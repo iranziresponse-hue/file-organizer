@@ -1,8 +1,9 @@
+import json
 import os
 import time
 from unittest import mock
 
-from organizer.core import watcher
+from organizer.core import paths, watcher
 from organizer.models import MoveEvent
 
 from .helpers import SandboxedPathsTestCase
@@ -54,7 +55,7 @@ class MoveDownloadedFileTests(SandboxedPathsTestCase):
         _age(target, seconds)
         return target
 
-    def test_moves_media_file_and_records_event(self):
+    def test_moves_media_file_and_records_event_with_no_active_profile(self):
         target = self._aged_file("photo.png")
 
         watcher.move_downloaded_file(target, ai_enabled=False)
@@ -66,8 +67,27 @@ class MoveDownloadedFileTests(SandboxedPathsTestCase):
         event = MoveEvent.objects.get()
         self.assertEqual(event.method, "media")
         self.assertTrue(event.success)
-        self.assertEqual(event.filename, "photo.png")
+        self.assertIsNone(event.profile)
         self.assertEqual(event.destination_path, str(expected))
+
+    def test_doc_file_routes_into_active_profile_and_records_it(self):
+        profile = self.make_profile()
+        paths.config_path(profile.root_path).write_text(json.dumps({
+            "primary_value": "Year 2",
+            "secondary_value": "Semester 1",
+            "groups": ["CSC2100"],
+        }))
+        target = self._aged_file("CSC2100 Assignment 1.docx")
+
+        watcher.move_downloaded_file(target, ai_enabled=False)
+
+        expected = self.profile_root / "Year 2" / "Semester 1" / "CSC2100" / "02 Assignments and Coursework" / "CSC2100 Assignment 1.docx"
+        self.assertTrue(expected.exists())
+
+        event = MoveEvent.objects.get()
+        self.assertEqual(event.profile, profile)
+        self.assertEqual(event.method, "course_code")
+        self.assertEqual(event.course_code, "CSC2100")
 
     def test_brand_new_file_is_left_alone_this_cycle(self):
         target = self.downloads / "still-writing.png"
@@ -106,3 +126,12 @@ class MoveDownloadedFileTests(SandboxedPathsTestCase):
         expected = self.personal_root / "Important" / "banking password.pdf"
         self.assertTrue(expected.exists())
         self.assertEqual(MoveEvent.objects.get().method, "sensitive")
+
+    def test_ai_enabled_none_defers_to_profile_setting(self):
+        profile = self.make_profile(ai_fallback_enabled=False)
+        target = self._aged_file("unmatched notes.docx")
+
+        with mock.patch("organizer.core.watcher.ai_classify.classify") as mock_classify:
+            watcher.move_downloaded_file(target, ai_enabled=None)
+
+        mock_classify.assert_not_called()

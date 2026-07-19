@@ -67,7 +67,10 @@ def is_ready(file_path: Path, attempts=10):
     return False
 
 
-def move_downloaded_file(file_path: Path, ai_enabled=True):
+def move_downloaded_file(file_path: Path, ai_enabled=None):
+    """ai_enabled: None (the default, used by the real watcher loop) defers
+    to the active profile's own ai_fallback_enabled setting. Pass True/False
+    explicitly to override it, which is what the test suite does."""
     if not file_path.exists() or file_path.is_dir():
         return
 
@@ -80,10 +83,18 @@ def move_downloaded_file(file_path: Path, ai_enabled=True):
     if (datetime.now().timestamp() - file_path.stat().st_mtime) < 2:
         return
 
+    from organizer.models import Profile
+
+    profile = Profile.get_active()
+    profile_root = profile.root_path if profile else None
+    use_ai = bool(profile and profile.ai_fallback_enabled) if ai_enabled is None else ai_enabled
+
     def _ai_classify(n, curriculum):
         return ai_classify.classify(n, curriculum, log=write_log)
 
-    dest = rules.get_destination(file_path, ai_classify=_ai_classify if ai_enabled else None)
+    dest = rules.get_destination(
+        file_path, profile_root=profile_root, ai_classify=_ai_classify if use_ai else None
+    )
     if dest is None:
         return
 
@@ -102,6 +113,7 @@ def move_downloaded_file(file_path: Path, ai_enabled=True):
         shutil.move(str(file_path), str(target))
         write_log(f"Moved '{name}' -> {dest.path}")
         _record_event(
+            profile=profile,
             filename=name,
             source_path=str(file_path),
             destination_path=str(target),
@@ -112,6 +124,7 @@ def move_downloaded_file(file_path: Path, ai_enabled=True):
     except OSError as exc:
         write_log(f"FAILED to move '{name}': {exc}")
         _record_event(
+            profile=profile,
             filename=name,
             source_path=str(file_path),
             destination_path=str(target),

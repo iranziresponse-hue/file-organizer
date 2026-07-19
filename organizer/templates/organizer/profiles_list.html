@@ -1,0 +1,75 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Profiles - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack">
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <span class="eyebrow">Contexts</span>
+                <h2>Profiles</h2>
+                <p class="card-subtitle">Each profile has its own folder, its own labels, and its own dashboard. Only one is active at a time.</p>
+            </div>
+            <a class="button" href="{% url 'profile_wizard' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                New profile
+            </a>
+        </div>
+
+        {% if profiles %}
+        <div class="table-shell">
+            <table>
+                <tr><th>Name</th><th>Purpose</th><th>{{ profiles.0.primary_label }} / {{ profiles.0.secondary_label }}</th><th>Folder</th><th>Status</th><th></th></tr>
+                {% for p in profiles %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td>{{ p.get_purpose_display }}</td>
+                    <td>{{ p.primary_label }} / {{ p.secondary_label }}</td>
+                    <td class="path-text">{{ p.root_path }}</td>
+                    <td>
+                        {% if p.is_active %}
+                        <span class="status-dot">Active</span>
+                        {% else %}
+                        <span class="path-text">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="meta-line">
+                            {% if not p.is_active %}
+                            <form method="post" action="{% url 'profile_activate' p.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="button-ghost">Set active</button>
+                            </form>
+                            {% endif %}
+                            <a class="button button-ghost" href="{% url 'profile_edit' p.pk %}">Edit</a>
+                            <form method="post" action="{% url 'profile_delete' p.pk %}" onsubmit="return confirm('Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.');">
+                                {% csrf_token %}
+                                <button type="submit" class="button-ghost">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No profiles yet.</h3>
+                <p>School, online courses, work training, research, whatever you're organizing. Create the first one to get started.</p>
+            </div>
+            <a class="button" href="{% url 'profile_wizard' %}">Create your first profile</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

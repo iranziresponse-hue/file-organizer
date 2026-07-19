@@ -4,15 +4,42 @@
 
 {% block content %}
 <div class="page-stack">
+    {% if not profile %}
+    <section class="card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>{% if has_any_profile %}No active profile{% else %}Set up your first profile{% endif %}</h3>
+                <p>
+                    {% if has_any_profile %}
+                        Pick a profile to make it active, or create a new one.
+                    {% else %}
+                        A profile is a context to organize files into: School, Online courses, Work training, Research, whatever fits. Each one gets its own folder, its own labels, and its own dashboard.
+                    {% endif %}
+                </p>
+            </div>
+            {% if has_any_profile %}
+                <a class="button" href="{% url 'profiles_list' %}">Choose a profile</a>
+            {% else %}
+                <a class="button" href="{% url 'profile_wizard' %}">Create your first profile</a>
+            {% endif %}
+        </div>
+    </section>
+    {% else %}
     <section class="overview-grid">
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="eyebrow">Dashboard</span>
-                    <h2>Current Semester</h2>
+                    <span class="eyebrow">{{ profile.name }}</span>
+                    <h2>Current {{ profile.secondary_label }}</h2>
                     <p class="card-subtitle">Active routing context</p>
                 </div>
-                <a class="button" href="{% url 'config_edit' %}">
+                <a class="button" href="{% url 'profile_edit' profile.pk %}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                         <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -22,15 +49,15 @@
             </div>
             {% if config %}
                 <div class="stat stat-primary">
-                    <div class="value">{{ config.current_year }}</div>
-                    <div class="label">{{ config.current_semester }}</div>
+                    <div class="value">{{ config.primary_value }}</div>
+                    <div class="label">{{ config.secondary_value }}</div>
                 </div>
                 <div class="section-gap"></div>
-                <div class="badge-list" aria-label="Courses">
-                    {% for c in config.courses %}
+                <div class="badge-list" aria-label="Subjects">
+                    {% for c in config.groups %}
                     <span class="badge">{{ c }}</span>
                     {% empty %}
-                    <span class="badge">No courses</span>
+                    <span class="badge">No subjects yet</span>
                     {% endfor %}
                 </div>
             {% else %}
@@ -42,10 +69,10 @@
                         </svg>
                     </span>
                     <div>
-                        <h3>Set your semester first.</h3>
-                        <p>Add your first folder context to start sorting files into the right course paths.</p>
+                        <h3>Set your {{ profile.primary_label|lower }}/{{ profile.secondary_label|lower }} first.</h3>
+                        <p>Add your current group to start sorting files into the right subject paths.</p>
                     </div>
-                    <a class="button" href="{% url 'config_edit' %}">Add your first folder</a>
+                    <a class="button" href="{% url 'profile_edit' profile.pk %}">Finish setup</a>
                 </div>
             {% endif %}
         </div>
@@ -81,13 +108,13 @@
     <section class="card">
         <div class="card-header">
             <div>
-                <h2>Course Distribution</h2>
-                <p class="card-subtitle">Which courses are receiving files</p>
+                <h2>Subject Distribution</h2>
+                <p class="card-subtitle">Which subjects are receiving files</p>
             </div>
         </div>
         <div class="table-shell">
             <table>
-                <tr><th>Course</th><th>Files</th></tr>
+                <tr><th>Subject</th><th>Files</th></tr>
                 {% for row in course_counts %}
                 <tr>
                     <td><span class="badge">{{ row.course_code }}</span></td>
@@ -103,7 +130,7 @@
         <div class="card-header">
             <div>
                 <h2>Recent Moves</h2>
-                <p class="card-subtitle">Latest 50 file decisions</p>
+                <p class="card-subtitle">Latest 50 file decisions for {{ profile.name }}</p>
             </div>
             <span class="badge">{{ recent_events|length }} shown</span>
         </div>
@@ -138,11 +165,11 @@
                 </span>
                 <div>
                     <h3>No files sorted yet.</h3>
-                    <p>Add your first folder to start sorting and see each move appear here.</p>
+                    <p>Once {{ profile.name }} is set up, each move will appear here.</p>
                 </div>
-                <a class="button" href="{% url 'config_edit' %}">Add your first folder</a>
             </div>
         {% endif %}
     </section>
+    {% endif %}
 </div>
 {% endblock %}

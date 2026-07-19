@@ -1,29 +1,81 @@
 from django.db import models
 
 
-class CourseConfig(models.Model):
-    """Mirrors D:\\School\\_config.json. Single-row table -- the semester you're
-    currently in. Edited from the dashboard, written back through to the JSON
-    file so anything else reading that path keeps working unchanged."""
+class Profile(models.Model):
+    """A context to organize files into -- School, Online courses, Work
+    training, Research, whatever the user names it. Each profile owns its
+    own root folder, its own primary/secondary grouping labels (e.g. "Year"
+    / "Semester" for a student, "Year" / "Bootcamp" for an online learner),
+    and its own subject list. Exactly one profile is active at a time --
+    that's the one the watcher routes files into.
+    """
 
-    current_year = models.CharField(max_length=32)
-    current_semester = models.CharField(max_length=32)
-    courses = models.JSONField(default=list, help_text="Course codes for the current semester")
+    PURPOSE_CHOICES = [
+        ("school", "School"),
+        ("online", "Online learning"),
+        ("research", "Research"),
+        ("work", "Work training"),
+        ("custom", "Custom"),
+    ]
+
+    name = models.CharField(max_length=64)
+    purpose = models.CharField(max_length=16, choices=PURPOSE_CHOICES, default="custom")
+    primary_label = models.CharField(max_length=32, default="Year")
+    secondary_label = models.CharField(max_length=32, default="Semester")
+    root_path = models.CharField(max_length=1024, help_text="Folder this profile organizes files into")
+    ai_fallback_enabled = models.BooleanField(
+        default=False,
+        help_text="Optional: use an AI classifier as a last resort for files that match nothing else. Needs your own API key in ai_config.json.",
+    )
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_active:
+            Profile.objects.exclude(pk=self.pk).update(is_active=False)
+
+    @classmethod
+    def get_active(cls):
+        return cls.objects.filter(is_active=True).first()
+
+
+class CourseConfig(models.Model):
+    """Mirrors <profile root>\\_config.json -- the primary/secondary group
+    (e.g. Year 2 / Semester 1, or 2026 / Python Bootcamp) a profile is
+    currently sorting into. Edited from the dashboard, written back through
+    to the JSON file so the watcher's fresh-read-every-poll design keeps
+    working unchanged."""
+
+    profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name="config")
+    primary_value = models.CharField(max_length=64)
+    secondary_value = models.CharField(max_length=64)
+    groups = models.JSONField(default=list, help_text="Course/subject/module codes for this profile")
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.current_year} / {self.current_semester}"
+        return f"{self.primary_value} / {self.secondary_value}"
 
 
 class CurriculumEntry(models.Model):
-    """Mirrors one entry of D:\\School\\_curriculum_map.json -- used for
-    topic-based routing when a filename has no course code in it."""
+    """Mirrors one entry of <profile root>\\_curriculum_map.json -- used for
+    topic-based routing when a filename has no course/subject code in it."""
 
-    code = models.CharField(max_length=16, unique=True)
-    year = models.CharField(max_length=32)
-    semester = models.CharField(max_length=32)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="curriculum_entries")
+    code = models.CharField(max_length=16)
+    primary_value = models.CharField(max_length=64)
+    secondary_value = models.CharField(max_length=64)
     archived = models.BooleanField(default=False)
     keywords = models.JSONField(default=list)
+
+    class Meta:
+        unique_together = ("profile", "code")
 
     def __str__(self):
         return self.code
@@ -31,7 +83,7 @@ class CurriculumEntry(models.Model):
 
 class MoveEvent(models.Model):
     METHOD_CHOICES = [
-        ("course_code", "Course code in filename"),
+        ("course_code", "Subject code in filename"),
         ("topic", "Topic keyword match"),
         ("ai", "AI classification"),
         ("ebook", "Ebook detected"),
@@ -44,6 +96,9 @@ class MoveEvent(models.Model):
         ("needs_sorting", "No match -- _NeedsSorting"),
     ]
 
+    profile = models.ForeignKey(
+        Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name="move_events"
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
     filename = models.CharField(max_length=512)
     source_path = models.CharField(max_length=1024)

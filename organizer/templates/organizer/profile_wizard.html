@@ -1,0 +1,141 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}New profile - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack">
+    <div class="page-banner">
+        <div class="page-banner-content">
+            <span class="eyebrow">New profile</span>
+            <h2>Organize files your way.</h2>
+            <p>Set up a folder context in three steps. School, online courses, research, work training, or anything else you're keeping in order.</p>
+        </div>
+    </div>
+
+    <form method="post" class="page-stack">
+        {% csrf_token %}
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 1</span>
+                    <h2>Choose a purpose</h2>
+                    <p class="card-subtitle">This just sets sensible defaults below -- you can change anything.</p>
+                </div>
+            </div>
+            <div class="badge-list" id="purpose-picker" role="radiogroup" aria-label="Purpose">
+                {% for value, label in purposes %}
+                <label class="badge" style="cursor:pointer; padding: 10px 16px;">
+                    <input
+                        type="radio"
+                        name="purpose"
+                        value="{{ value }}"
+                        {% if value == "custom" %}checked{% endif %}
+                        style="margin-right: 6px;"
+                    >
+                    {{ label }}
+                </label>
+                {% endfor %}
+            </div>
+            <div class="section-gap"></div>
+            <div class="field">
+                <label for="name">Profile name</label>
+                <input type="text" id="name" name="name" placeholder="University, Online Courses, Client Work..." value="{{ form.name }}" required>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 2</span>
+                    <h2>Add structure</h2>
+                    <p class="card-subtitle">Where files land, and how this profile's groups are labelled.</p>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="root_path">Folder to organize into</label>
+                    <input type="text" id="root_path" name="root_path" placeholder="D:\School" value="{{ form.root_path }}" required>
+                    <p class="help-text">Files matched to this profile get sorted into subfolders under here.</p>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="primary_label">Primary group label</label>
+                        <input type="text" id="primary_label" name="primary_label" placeholder="Year" value="{{ form.primary_label|default:'Year' }}">
+                    </div>
+                    <div class="field">
+                        <label for="secondary_label">Secondary group label</label>
+                        <input type="text" id="secondary_label" name="secondary_label" placeholder="Semester" value="{{ form.secondary_label|default:'Semester' }}">
+                    </div>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label id="primary_value_label" for="primary_value">Current Year</label>
+                        <input type="text" id="primary_value" name="primary_value" placeholder="Year 2" value="{{ form.primary_value }}">
+                    </div>
+                    <div class="field">
+                        <label id="secondary_value_label" for="secondary_value">Current Semester</label>
+                        <input type="text" id="secondary_value" name="secondary_value" placeholder="Semester 1" value="{{ form.secondary_value }}">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="groups">Subjects, courses, or modules</label>
+                    <input type="text" id="groups" name="groups" placeholder="CSC2100, BSE2105, Python Bootcamp" value="{{ form.groups }}">
+                    <p class="help-text">Comma separated. A file matching one of these codes routes straight to it -- no other match needed.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 3</span>
+                    <h2>Sorting behavior</h2>
+                    <p class="card-subtitle">Subject-code and topic-keyword matching are always on. This is the only optional extra.</p>
+                </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="ai_fallback_enabled" style="width:auto;" {% if form.ai_fallback_enabled %}checked{% endif %}>
+                Use a smart fallback match for files nothing else can place (advanced, needs your own API key in ai_config.json)
+            </label>
+        </section>
+
+        <div>
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Create profile
+            </button>
+        </div>
+    </form>
+</div>
+
+{{ purpose_defaults|json_script:"purpose-defaults" }}
+<script>
+    (function () {
+        var defaults = JSON.parse(document.getElementById('purpose-defaults').textContent);
+        var radios = document.querySelectorAll('#purpose-picker input[type="radio"]');
+        var primaryLabel = document.getElementById('primary_label');
+        var secondaryLabel = document.getElementById('secondary_label');
+        var primaryValueLabel = document.getElementById('primary_value_label');
+        var secondaryValueLabel = document.getElementById('secondary_value_label');
+
+        function applyDefaults(purpose) {
+            var d = defaults[purpose];
+            if (!d) return;
+            primaryLabel.value = d.primary_label;
+            secondaryLabel.value = d.secondary_label;
+            primaryValueLabel.textContent = 'Current ' + d.primary_label;
+            secondaryValueLabel.textContent = 'Current ' + d.secondary_label;
+        }
+
+        radios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                applyDefaults(radio.value);
+            });
+            if (radio.checked) applyDefaults(radio.value);
+        });
+    })();
+</script>
+{% endblock %}

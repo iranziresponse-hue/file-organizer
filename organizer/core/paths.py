@@ -1,22 +1,23 @@
-"""Central location for every path/constant this app touches on disk.
-
-Ported 1:1 from Documents\\Scripts\\OrganizeDownloads.ps1's global variables.
-If you ever change which physical drive is D:, or move where School/Personal
-docs live, this is the only file that needs updating.
+"""Central location for every path/constant this app touches on disk that
+isn't specific to one profile. Profile-specific routing (root folder,
+primary/secondary group, subject list) lives on the Profile model instead --
+see config_path()/curriculum_path() below and organizer.core.rules.
 """
 
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+from runtime import app_dir
+
+# Project root in development; the folder containing the exe once frozen by
+# PyInstaller (see runtime.py -- this must stay a persistent, exe-adjacent
+# location, not the temporary bundle extraction dir).
+BASE_DIR = app_dir()
 
 USER_PROFILE = Path(os.environ["USERPROFILE"])
 
 DOWNLOADS = USER_PROFILE / "Downloads"
 DOWNLOADS2 = Path("D:/myDownloads")  # a second, real download location
-SCHOOL_ROOT = Path("D:/School")
-CONFIG_PATH = SCHOOL_ROOT / "_config.json"
-CURRICULUM_PATH = SCHOOL_ROOT / "_curriculum_map.json"
 WORK_UNSORTED = USER_PROFILE / "Documents" / "Work" / "_Unsorted"
 PERSONAL_ROOT = USER_PROFILE / "Documents" / "Personal"
 IMPORTANT_ROOT = PERSONAL_ROOT / "Important"
@@ -28,6 +29,16 @@ LOG_PATH = USER_PROFILE / "Documents" / "Scripts" / "organize-log.txt"
 
 # Project-local, gitignored -- see ai_config.example.json for the template.
 AI_CONFIG_PATH = BASE_DIR / "ai_config.json"
+
+
+def config_path(profile_root):
+    """Each profile mirrors its current primary/secondary group into its own
+    root folder, so multiple profiles never share one global config file."""
+    return Path(profile_root) / "_config.json"
+
+
+def curriculum_path(profile_root):
+    return Path(profile_root) / "_curriculum_map.json"
 
 # Filename keywords that mean "sensitive, handle with care" -- checked before
 # every other rule so these never land in a generic sorting bucket.

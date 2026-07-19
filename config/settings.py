@@ -10,10 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
+from runtime import app_dir
 
+# Project root in development; the folder containing the exe once frozen by
+# PyInstaller, so db.sqlite3 persists across runs instead of living inside a
+# temporary bundle extraction directory that gets wiped every launch.
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = app_dir()
 
 
 # Quick-start development settings - unsuitable for production

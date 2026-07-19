@@ -37,20 +37,20 @@ class ContentCategoryTests(SandboxedPathsTestCase):
 
 
 class GetDestinationTests(SandboxedPathsTestCase):
-    def _write_config(self, courses=("CSC2100", "BSE2105"), year="Year 2", semester="Semester 1"):
-        paths.CONFIG_PATH.write_text(json.dumps({
-            "current_year": year,
-            "current_semester": semester,
-            "courses": list(courses),
+    def _write_config(self, groups=("CSC2100", "BSE2105"), primary="Year 2", secondary="Semester 1"):
+        paths.config_path(self.profile_root).write_text(json.dumps({
+            "primary_value": primary,
+            "secondary_value": secondary,
+            "groups": list(groups),
         }))
 
     def _write_curriculum(self, archived=False):
-        paths.CURRICULUM_PATH.write_text(json.dumps({
-            "courses": [
+        paths.curriculum_path(self.profile_root).write_text(json.dumps({
+            "subjects": [
                 {
                     "code": "CSC2100",
-                    "year": "Year 2",
-                    "semester": "Semester 1",
+                    "primary_value": "Year 2",
+                    "secondary_value": "Semester 1",
                     "archived": archived,
                     "keywords": ["data structures"],
                 }
@@ -73,7 +73,7 @@ class GetDestinationTests(SandboxedPathsTestCase):
 
     def test_ebook_wins_over_course_match(self):
         self._write_config()
-        dest = rules.get_destination("CSC2100 Data Structures [Z-Library].pdf")
+        dest = rules.get_destination("CSC2100 Data Structures [Z-Library].pdf", profile_root=self.profile_root)
         self.assertEqual(dest.method, "ebook")
         self.assertEqual(dest.path, paths.LIBRARY_INBOX)
 
@@ -110,42 +110,50 @@ class GetDestinationTests(SandboxedPathsTestCase):
         self.assertEqual(dest.method, "needs_sorting")
         self.assertEqual(dest.path, self.personal_root / "Documents" / "_NeedsSorting")
 
-    def test_course_code_in_filename_matches_current_semester(self):
+    def test_doc_with_no_active_profile_needs_sorting(self):
+        dest = rules.get_destination("mysterious file.docx", profile_root=None)
+        self.assertEqual(dest.method, "needs_sorting")
+        self.assertEqual(
+            dest.path,
+            self.personal_root / "Documents" / "_NeedsSorting" / "05 Reference and Extra Reading",
+        )
+
+    def test_course_code_in_filename_matches_current_group(self):
         self._write_config()
-        dest = rules.get_destination("CSC2100 Assignment 2.docx")
+        dest = rules.get_destination("CSC2100 Assignment 2.docx", profile_root=self.profile_root)
         self.assertEqual(dest.method, "course_code")
         self.assertEqual(dest.course_code, "CSC2100")
         self.assertEqual(
             dest.path,
-            self.school_root / "Year 2" / "Semester 1" / "CSC2100" / "02 Assignments and Coursework",
+            self.profile_root / "Year 2" / "Semester 1" / "CSC2100" / "02 Assignments and Coursework",
         )
 
     def test_topic_keyword_routes_with_no_course_code_in_name(self):
         self._write_curriculum()
-        dest = rules.get_destination("Data Structures Notes.pdf")
+        dest = rules.get_destination("Data Structures Notes.pdf", profile_root=self.profile_root)
         self.assertEqual(dest.method, "topic")
         self.assertEqual(dest.course_code, "CSC2100")
         self.assertEqual(
             dest.path,
-            self.school_root / "Year 2" / "Semester 1" / "CSC2100" / "01 Lecture Notes and Slides",
+            self.profile_root / "Year 2" / "Semester 1" / "CSC2100" / "01 Lecture Notes and Slides",
         )
 
     def test_archived_topic_match_goes_under_archive(self):
         self._write_curriculum(archived=True)
-        dest = rules.get_destination("Data Structures Notes.pdf")
+        dest = rules.get_destination("Data Structures Notes.pdf", profile_root=self.profile_root)
         self.assertEqual(dest.method, "topic")
         self.assertEqual(
             dest.path,
-            self.school_root / "_Archive" / "Year 2" / "Semester 1" / "CSC2100" / "01 Lecture Notes and Slides",
+            self.profile_root / "_Archive" / "Year 2" / "Semester 1" / "CSC2100" / "01 Lecture Notes and Slides",
         )
 
     def test_course_code_wins_over_topic_match(self):
         self._write_config()
         self._write_curriculum()
         # Course code check runs before the topic-keyword check, so this
-        # must resolve via course_code even though "revision" would also
-        # steer get_content_category, and the curriculum has a topic match.
-        dest = rules.get_destination("CSC2100 revision notes.pdf")
+        # must resolve via course_code even though the curriculum has a
+        # topic match too.
+        dest = rules.get_destination("CSC2100 revision notes.pdf", profile_root=self.profile_root)
         self.assertEqual(dest.method, "course_code")
 
     def test_ai_fallback_used_when_nothing_else_matches(self):
@@ -156,9 +164,11 @@ class GetDestinationTests(SandboxedPathsTestCase):
         def fake_ai_classify(name, curriculum):
             seen["name"] = name
             seen["curriculum"] = curriculum
-            return {"code": "CSC2100", "year": "Year 2", "semester": "Semester 1"}
+            return {"code": "CSC2100", "primary_value": "Year 2", "secondary_value": "Semester 1"}
 
-        dest = rules.get_destination("mysterious file.docx", ai_classify=fake_ai_classify)
+        dest = rules.get_destination(
+            "mysterious file.docx", profile_root=self.profile_root, ai_classify=fake_ai_classify
+        )
 
         self.assertEqual(dest.method, "ai")
         self.assertEqual(dest.course_code, "CSC2100")
@@ -166,20 +176,20 @@ class GetDestinationTests(SandboxedPathsTestCase):
 
     def test_ai_fallback_not_consulted_when_disabled(self):
         self._write_config()
-        dest = rules.get_destination("mysterious file.docx", ai_classify=None)
+        dest = rules.get_destination("mysterious file.docx", profile_root=self.profile_root, ai_classify=None)
         self.assertEqual(dest.method, "unsorted")
 
     def test_no_match_falls_back_to_unsorted_when_config_exists(self):
         self._write_config()
-        dest = rules.get_destination("mysterious file.docx")
+        dest = rules.get_destination("mysterious file.docx", profile_root=self.profile_root)
         self.assertEqual(dest.method, "unsorted")
         self.assertEqual(
             dest.path,
-            self.school_root / "Year 2" / "Semester 1" / "_Unsorted" / "05 Reference and Extra Reading",
+            self.profile_root / "Year 2" / "Semester 1" / "_Unsorted" / "05 Reference and Extra Reading",
         )
 
     def test_no_match_and_no_config_falls_back_to_needs_sorting(self):
-        dest = rules.get_destination("mysterious file.docx")
+        dest = rules.get_destination("mysterious file.docx", profile_root=self.profile_root)
         self.assertEqual(dest.method, "needs_sorting")
         self.assertEqual(
             dest.path,

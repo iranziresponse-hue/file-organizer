@@ -12,6 +12,10 @@ staticfiles/
 
 # App-local secrets/config
 ai_config.json
+.autostart_initialized
+
+# Claude Code harness state
+.claude/
 
 # PyInstaller build output
 build/

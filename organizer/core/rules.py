@@ -1,6 +1,10 @@
 """Pure destination-decision logic. Zero Django/Qt imports so this can be
-unit-tested and reasoned about in isolation. Ported 1:1 from Get-Destination
-/ Get-ContentCategory / Is-Ebook / Find-CourseByTopic in OrganizeDownloads.ps1.
+unit-tested and reasoned about in isolation. Ported originally from
+Get-Destination / Get-ContentCategory / Is-Ebook / Find-CourseByTopic in
+OrganizeDownloads.ps1, later generalized from a single hardcoded D:\\School
+layout into per-profile routing (see organizer.models.Profile) -- profile_root
+and the config/curriculum files under it are the only profile-specific
+inputs, so this module still doesn't need to know Django exists.
 """
 
 import json
@@ -17,37 +21,43 @@ class Destination:
         self.course_code = course_code
 
 
-def load_config():
-    if not paths.CONFIG_PATH.exists():
+def load_config(profile_root):
+    if not profile_root:
+        return None
+    path = paths.config_path(profile_root)
+    if not path.exists():
         return None
     try:
-        return json.loads(paths.CONFIG_PATH.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
 
-def load_curriculum():
-    if not paths.CURRICULUM_PATH.exists():
+def load_curriculum(profile_root):
+    if not profile_root:
+        return None
+    path = paths.curriculum_path(profile_root)
+    if not path.exists():
         return None
     try:
-        data = json.loads(paths.CURRICULUM_PATH.read_text(encoding="utf-8"))
-        return data.get("courses", [])
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("subjects", [])
     except (OSError, json.JSONDecodeError):
         return None
 
 
 def find_course_by_topic(name, curriculum):
-    """Matches by TOPIC, not just course code in the filename -- e.g. "Data
-    Structures Notes.pdf" matches CSC2100 via its keyword list even with no
-    course code anywhere in the name. Searches the whole degree, not just the
-    current semester."""
+    """Matches by TOPIC, not just a subject code in the filename -- e.g.
+    "Data Structures Notes.pdf" matches CSC2100 via its keyword list even
+    with no code anywhere in the name. Searches the whole curriculum, not
+    just the current primary/secondary group."""
     if not curriculum:
         return None
     n = name.lower()
-    for course in curriculum:
-        for keyword in course.get("keywords", []):
+    for entry in curriculum:
+        for keyword in entry.get("keywords", []):
             if re.search(re.escape(keyword.lower()), n):
-                return course
+                return entry
     return None
 
 
@@ -78,13 +88,16 @@ def get_content_category(name):
     return "05 Reference and Extra Reading"
 
 
-def get_destination(file_path, ai_classify=None):
-    """Decides where a file belongs. Re-reads config/curriculum fresh every
-    call (not cached) so editing those files takes effect on the very next
-    download, no restart needed.
+def get_destination(file_path, profile_root=None, ai_classify=None):
+    """Decides where a file belongs. Re-reads the profile's config/curriculum
+    fresh every call (not cached) so editing them takes effect on the very
+    next download, no restart needed.
 
-    ai_classify: optional callable(name, curriculum) -> course dict or None,
-    used as the last-resort fallback before giving up to _Unsorted/_NeedsSorting.
+    profile_root: the active Profile's root_path, or None if no profile is
+    active yet -- document files then fall straight to _NeedsSorting, same
+    as a profile with no config saved.
+    ai_classify: optional callable(name, curriculum) -> curriculum entry dict
+    or None, used as the last-resort fallback before giving up.
     """
     file_path = Path(file_path)
     name = file_path.name
@@ -101,7 +114,7 @@ def get_destination(file_path, ai_classify=None):
     if ext in paths.CERT_KEY_EXT:
         return Destination(paths.IMPORTANT_ROOT, "sensitive")
 
-    # Ebooks win over course/topic matching.
+    # Ebooks win over subject/topic matching.
     if is_ebook(name, ext):
         return Destination(paths.LIBRARY_INBOX, "ebook")
 
@@ -117,36 +130,37 @@ def get_destination(file_path, ai_classify=None):
         return Destination(paths.PERSONAL_ROOT / "Installers", "installer")
 
     if ext in paths.DOC_EXT:
-        config = load_config()
-        curriculum = load_curriculum()
+        config = load_config(profile_root)
+        curriculum = load_curriculum(profile_root)
         category = get_content_category(name)
+        root = Path(profile_root) if profile_root else None
 
-        # 1. Explicit course code in the filename (current semester's list).
-        if config:
-            for course in config.get("courses", []):
-                if re.search(re.escape(course.lower()), lname):
-                    dest = paths.SCHOOL_ROOT / config["current_year"] / config["current_semester"] / course / category
-                    return Destination(dest, "course_code", course)
+        # 1. Explicit subject code in the filename (current group's list).
+        if config and root:
+            for code in config.get("groups", []):
+                if re.search(re.escape(code.lower()), lname):
+                    dest = root / config["primary_value"] / config["secondary_value"] / code / category
+                    return Destination(dest, "course_code", code)
 
-        # 2. No code -- try matching the TOPIC against the whole curriculum map.
+        # 2. No code -- try matching the TOPIC against the whole curriculum.
         topic_match = find_course_by_topic(name, curriculum)
-        if topic_match:
-            prefix = (paths.SCHOOL_ROOT / "_Archive") if topic_match.get("archived") else paths.SCHOOL_ROOT
-            dest = prefix / topic_match["year"] / topic_match["semester"] / topic_match["code"] / category
+        if topic_match and root:
+            prefix = (root / "_Archive") if topic_match.get("archived") else root
+            dest = prefix / topic_match["primary_value"] / topic_match["secondary_value"] / topic_match["code"] / category
             return Destination(dest, "topic", topic_match["code"])
 
         # 3. No code, no topic match -- optional AI fallback.
-        if ai_classify:
+        if ai_classify and root:
             ai_match = ai_classify(name, curriculum)
             if ai_match:
-                prefix = (paths.SCHOOL_ROOT / "_Archive") if ai_match.get("archived") else paths.SCHOOL_ROOT
-                dest = prefix / ai_match["year"] / ai_match["semester"] / ai_match["code"] / category
+                prefix = (root / "_Archive") if ai_match.get("archived") else root
+                dest = prefix / ai_match["primary_value"] / ai_match["secondary_value"] / ai_match["code"] / category
                 return Destination(dest, "ai", ai_match["code"])
 
-        # 4. Nothing matched -- current semester's _Unsorted, or _NeedsSorting
-        #    if there's no config at all.
-        if config:
-            dest = paths.SCHOOL_ROOT / config["current_year"] / config["current_semester"] / "_Unsorted" / category
+        # 4. Nothing matched -- current group's _Unsorted, or _NeedsSorting
+        #    if there's no active profile/config at all.
+        if config and root:
+            dest = root / config["primary_value"] / config["secondary_value"] / "_Unsorted" / category
             return Destination(dest, "unsorted")
         return Destination(paths.PERSONAL_ROOT / "Documents" / "_NeedsSorting" / category, "needs_sorting")
 

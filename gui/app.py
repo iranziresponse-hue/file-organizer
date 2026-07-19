@@ -31,11 +31,17 @@ def main():
 
     call_command("migrate", run_syncdb=True, verbosity=0)
 
+    from organizer.models import Profile
+
+    needs_setup = not Profile.objects.exists()
+
+    from PyQt6.QtCore import QTimer
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
 
+    from . import autostart
     from .assets import ORCH_ICON_PATH
-    from .server import start_dashboard_server
+    from .server import dashboard_url, start_dashboard_server
     from .tray import OrganizerTray
 
     app = QApplication(sys.argv)
@@ -43,10 +49,18 @@ def main():
     app.setWindowIcon(QIcon(str(ORCH_ICON_PATH)))
     app.setQuitOnLastWindowClosed(False)
 
+    autostart.enable_on_first_run()
     start_dashboard_server()
 
     tray = OrganizerTray(app)
     tray.show()
+
+    if needs_setup:
+        # The dashboard server thread needs a moment to bind its socket --
+        # delay the first open instead of racing it.
+        import webbrowser
+
+        QTimer.singleShot(1500, lambda: webbrowser.open(dashboard_url() + "profiles/new/"))
 
     sys.exit(app.exec())
 
