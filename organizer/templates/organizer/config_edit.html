@@ -1,0 +1,23 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Config - Iranzi File Organizer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Semester config</h2>
+    <p>This edits the same _config.json the watcher reads. Update it at the start of every semester.</p>
+    <form method="post">
+        {% csrf_token %}
+        <label for="current_year">Current year</label>
+        <input type="text" id="current_year" name="current_year" value="{{ config.current_year|default:'' }}" placeholder="Year 2">
+
+        <label for="current_semester">Current semester</label>
+        <input type="text" id="current_semester" name="current_semester" value="{{ config.current_semester|default:'' }}" placeholder="Semester 1">
+
+        <label for="courses">Courses (comma separated)</label>
+        <input type="text" id="courses" name="courses" value="{{ config.courses|join:', ' }}" placeholder="BSE2105, BSE2106, CSC2100">
+
+        <button type="submit">Save</button>
+    </form>
+</div>
+{% endblock %}

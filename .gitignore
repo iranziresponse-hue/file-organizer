@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+
+# Django
+db.sqlite3
+staticfiles/
+
+# App-local secrets/config
+ai_config.json
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini

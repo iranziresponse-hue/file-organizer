@@ -1,0 +1,61 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Dashboard - Iranzi File Organizer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Current semester</h2>
+    {% if config %}
+        <p>{{ config.current_year }} / {{ config.current_semester }}</p>
+        <p>Courses: {% for c in config.courses %}<span class="badge">{{ c }}</span> {% endfor %}</p>
+    {% else %}
+        <p>No config loaded yet. <a href="{% url 'config_edit' %}">Set it up</a>.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Stats</h2>
+    <div class="stat-row">
+        <div class="stat">
+            <div class="value">{{ total_moves }}</div>
+            <div class="label">Total files sorted</div>
+        </div>
+        {% for row in method_counts %}
+        <div class="stat">
+            <div class="value">{{ row.total }}</div>
+            <div class="label">{{ row.method }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if course_counts %}
+<div class="card">
+    <h2>By course</h2>
+    <table>
+        <tr><th>Course</th><th>Files</th></tr>
+        {% for row in course_counts %}
+        <tr><td>{{ row.course_code }}</td><td>{{ row.total }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Recent moves</h2>
+    <table>
+        <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>OK</th></tr>
+        {% for event in recent_events %}
+        <tr>
+            <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+            <td>{{ event.filename }}</td>
+            <td>{{ event.destination_path }}</td>
+            <td>{{ event.get_method_display }}</td>
+            <td>{% if event.success %}yes{% else %}no{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Nothing sorted yet.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy this file to ai_config.json in the project root and fill in your key. ai_config.json is gitignored and never committed.",
+  "enabled": true,
+  "api_key": "your-groq-api-key-here",
+  "model": "llama-3.1-8b-instant",
+  "base_url": "https://api.groq.com/openai/v1"
+}
