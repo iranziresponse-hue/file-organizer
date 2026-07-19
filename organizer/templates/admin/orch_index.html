@@ -1,0 +1,447 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root {
+        --orch-bg: #0A0C14;
+        --orch-panel: rgba(255, 255, 255, 0.06);
+        --orch-panel-strong: rgba(255, 255, 255, 0.1);
+        --orch-border: rgba(255, 255, 255, 0.15);
+        --orch-text: #E8ECF2;
+        --orch-muted: #AEB7C5;
+        --orch-blue: #6EA8FF;
+        --orch-purple: #A78BFA;
+        --orch-good: #9BE7B0;
+        --orch-warn: #FFD38A;
+        --orch-bad: #FF9A9A;
+    }
+
+    body {
+        background:
+            radial-gradient(1100px 540px at 18% -10%, rgba(110, 168, 255, 0.2), transparent),
+            radial-gradient(900px 460px at 100% 100%, rgba(167, 139, 250, 0.18), transparent),
+            linear-gradient(135deg, #0A0C14, #121725 48%, #0A0C14);
+        color: var(--orch-text);
+    }
+
+    #header {
+        background: rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid var(--orch-border);
+        backdrop-filter: blur(18px);
+    }
+
+    #branding h1,
+    #branding h1 a:link,
+    #branding h1 a:visited {
+        color: var(--orch-text);
+        font-weight: 700;
+    }
+
+    #user-tools,
+    #user-tools a {
+        color: var(--orch-muted);
+    }
+
+    div.breadcrumbs {
+        background: transparent;
+        color: var(--orch-muted);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    #content {
+        max-width: 1360px;
+        margin: 0 auto;
+    }
+
+    #content h1 {
+        display: none;
+    }
+
+    .orch-admin {
+        display: grid;
+        gap: 24px;
+    }
+
+    .orch-hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 8px 0 4px;
+    }
+
+    .orch-hero h2 {
+        margin: 0;
+        color: var(--orch-text);
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.05;
+    }
+
+    .orch-hero p,
+    .orch-note {
+        margin: 8px 0 0;
+        color: var(--orch-muted);
+    }
+
+    .orch-updated {
+        color: var(--orch-muted);
+        white-space: nowrap;
+        font-size: 0.86rem;
+    }
+
+    .orch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+    }
+
+    .orch-card,
+    .orch-panel,
+    .module {
+        background: var(--orch-panel);
+        border: 1px solid var(--orch-border);
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.26);
+        backdrop-filter: blur(18px);
+    }
+
+    .orch-card {
+        padding: 18px;
+        color: var(--orch-text);
+        text-decoration: none;
+        transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .orch-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(110, 168, 255, 0.42);
+    }
+
+    .orch-card span,
+    .orch-section-label {
+        display: block;
+        color: var(--orch-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .orch-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--orch-text);
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .orch-card small {
+        display: block;
+        margin-top: 8px;
+        color: var(--orch-muted);
+        font-size: 0.82rem;
+    }
+
+    .orch-two {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .orch-panel {
+        padding: 20px;
+        overflow: hidden;
+    }
+
+    .orch-panel h3 {
+        margin: 0 0 14px;
+        color: var(--orch-text);
+        font-size: 1.12rem;
+    }
+
+    .orch-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .orch-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.045);
+    }
+
+    .orch-row strong,
+    .orch-row a {
+        color: var(--orch-text);
+        font-weight: 650;
+    }
+
+    .orch-row span,
+    .orch-row small {
+        display: block;
+        color: var(--orch-muted);
+        overflow-wrap: anywhere;
+    }
+
+    .orch-state {
+        font-weight: 700;
+        color: var(--orch-muted);
+        white-space: nowrap;
+    }
+
+    .orch-state.good {
+        color: var(--orch-good);
+    }
+
+    .orch-state.warning {
+        color: var(--orch-warn);
+    }
+
+    .orch-state.bad,
+    .orch-state.error {
+        color: var(--orch-bad);
+    }
+
+    .orch-meter {
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+        margin-top: 8px;
+    }
+
+    .orch-meter span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--orch-blue), var(--orch-purple));
+    }
+
+    .orch-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .orch-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 8px 13px;
+        border-radius: 12px;
+        border: 1px solid var(--orch-border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--orch-text) !important;
+        text-decoration: none;
+    }
+
+    .app-organizer.module table {
+        width: 100%;
+    }
+
+    .module caption,
+    .module h2 {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--orch-text);
+        border-radius: 18px 18px 0 0;
+    }
+
+    .module table {
+        background: transparent;
+    }
+
+    .module th,
+    .module td {
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .module a {
+        color: #BBD3FF;
+    }
+
+    @media (max-width: 940px) {
+        .orch-two,
+        .orch-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .orch-hero {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orch-admin">
+    <section class="orch-hero">
+        <div>
+            <span class="orch-section-label">Live operations</span>
+            <h2>Orch system cockpit</h2>
+            <p>Every number below comes from current database rows or real filesystem checks.</p>
+        </div>
+        <div class="orch-updated">Updated {{ orch_updated_at|date:"Y-m-d H:i:s" }}</div>
+    </section>
+
+    <section class="orch-grid" aria-label="Live system metrics">
+        {% for card in orch_cards %}
+        <a class="orch-card" href="{{ card.url }}">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+            <small>{{ card.detail }}</small>
+        </a>
+        {% endfor %}
+    </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>System Health</h3>
+            <div class="orch-list">
+                {% for item in orch_health %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ item.label }}</strong>
+                        <small>{{ item.detail }}</small>
+                    </div>
+                    <span class="orch-state {{ item.state }}">{{ item.value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="orch-panel">
+            <h3>Routing Methods</h3>
+            <div class="orch-list">
+                {% for row in orch_method_rows %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ row.label }}</strong>
+                        <div class="orch-meter"><span style="width: {{ row.percent }}%;"></span></div>
+                    </div>
+                    <span class="orch-state">{{ row.value }}</span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No file decisions have been recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>Recent File Decisions</h3>
+            <div class="orch-list">
+                {% for move in orch_recent_moves %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ move.filename }}</strong>
+                        <small>{{ move.get_method_display }}{% if move.course_code %} for {{ move.course_code }}{% endif %}</small>
+                        <small>{{ move.destination_path|default:"No destination recorded" }}</small>
+                    </div>
+                    <span class="orch-state {% if move.success %}good{% else %}bad{% endif %}">
+                        {% if move.success %}Sorted{% else %}Failed{% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No recent decisions yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="orch-panel">
+            <h3>Pending Work</h3>
+            <div class="orch-list">
+                {% for item in orch_reviews %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ item.title }}</strong>
+                        <small>{{ item.subject_code|default:"General" }} due {{ item.due_at|date:"Y-m-d H:i" }}</small>
+                    </div>
+                    <span class="orch-state">{{ item.get_priority_display }}</span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No queued review items.</p>
+                {% endfor %}
+                {% for item in orch_inbox_items %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ item.filename }}</strong>
+                        <small>{{ item.reason|default:"Awaiting decision" }}</small>
+                    </div>
+                    <span class="orch-state warning">Inbox</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>Profile Paths</h3>
+            <div class="orch-list">
+                {% for row in orch_profile_rows %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ row.label }}</strong>
+                        <div class="orch-meter"><span style="width: {{ row.percent }}%;"></span></div>
+                    </div>
+                    <span class="orch-state">{{ row.value }}</span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No profiles have been created.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="orch-panel">
+            <h3>Integrations</h3>
+            <div class="orch-list">
+                {% for connection in orch_integrations %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ connection.display_name }}</strong>
+                        <small>{{ connection.get_provider_display }}{% if connection.profile %} for {{ connection.profile.name }}{% endif %}</small>
+                        <small>{{ connection.base_url|default:"No URL configured" }}</small>
+                    </div>
+                    <span class="orch-state {% if connection.status == 'error' %}bad{% elif connection.status == 'connected' %}good{% else %}warning{% endif %}">
+                        {{ connection.get_status_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No integrations configured.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="orch-panel">
+        <h3>Admin Workspaces</h3>
+        <div class="orch-links">
+            <a class="orch-link" href="{{ orch_links.profiles }}">Profiles</a>
+            <a class="orch-link" href="{{ orch_links.moves }}">File decisions</a>
+            <a class="orch-link" href="{{ orch_links.reviews }}">Review queue</a>
+            <a class="orch-link" href="{{ orch_links.inbox }}">Decision inbox</a>
+            <a class="orch-link" href="{{ orch_links.rules }}">Folder rules</a>
+            <a class="orch-link" href="{{ orch_links.imports }}">Import plans</a>
+            <a class="orch-link" href="{{ orch_links.integrations }}">Integrations</a>
+            <a class="orch-link" href="{{ orch_links.digests }}">Digests</a>
+            <a class="orch-link" href="{{ orch_links.exports }}">Knowledge packs</a>
+        </div>
+    </section>
+
+    {% if app_list %}
+    <div id="content-main">
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </div>
+    {% else %}
+    <p class="orch-note">{% translate "You do not have permission to view or edit anything." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

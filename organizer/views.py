@@ -8,9 +8,27 @@ from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .core import makerere, paths
+from .core import makerere, makerere_curricula, paths, study
 from .core import summarize as summarize_core
-from .models import AppSettings, CourseConfig, CourseGuide, FileSummary, MoveEvent, Profile
+from .models import (
+    AppSettings,
+    CourseConfig,
+    CourseGuide,
+    ExportBundle,
+    FileSummary,
+    FolderImportPlan,
+    FolderRule,
+    IntegrationConnection,
+    LearningActivity,
+    LearningDigest,
+    MoveEvent,
+    Profile,
+    ReviewItem,
+    SortingInboxItem,
+    SubjectMemory,
+    SubjectTheme,
+    StudyGoal,
+)
 
 PURPOSE_LABEL_DEFAULTS = {
     "school": {"primary_label": "Year", "secondary_label": "Semester"},
@@ -131,6 +149,73 @@ def profiles_list(request):
     return render(request, "organizer/profiles_list.html", {"profiles": profiles})
 
 
+def study_home(request):
+    profile = Profile.get_active()
+    if profile and request.method == "POST" and request.POST.get("action") == "create_digest":
+        study.create_weekly_digest(profile)
+        messages.success(request, "Study digest created.")
+        return redirect("study_home")
+
+    foundation = study.ensure_learning_foundation(profile) if profile else {}
+    context = {
+        "profile": profile,
+        "foundation": foundation,
+        "subject_memories": SubjectMemory.objects.filter(profile=profile) if profile else [],
+        "subject_themes": SubjectTheme.objects.filter(profile=profile)[:12] if profile else [],
+        "review_items": ReviewItem.objects.filter(profile=profile, status="queued")[:8] if profile else [],
+        "digests": LearningDigest.objects.filter(profile=profile)[:4] if profile else [],
+        "activities": LearningActivity.objects.filter(profile=profile)[:12] if profile else [],
+        "inbox_items": SortingInboxItem.objects.filter(profile=profile, status="pending")[:8] if profile else [],
+        "connections": IntegrationConnection.objects.filter(profile=profile) if profile else [],
+        "export_bundles": ExportBundle.objects.filter(profile=profile)[:4] if profile else [],
+        "folder_rules": FolderRule.objects.filter(profile=profile)[:8] if profile else [],
+        "import_plans": FolderImportPlan.objects.filter(profile=profile)[:4] if profile else [],
+        "study_goals": StudyGoal.objects.filter(profile=profile)[:4] if profile else [],
+    }
+    return render(request, "organizer/study.html", context)
+
+
+def muele_connection(request):
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Create or activate a Makerere profile first.")
+        return redirect("start")
+
+    connection = study.ensure_makerere_connection(profile)
+    if connection is None:
+        connection = IntegrationConnection.objects.create(
+            profile=profile,
+            provider="muele",
+            display_name="Makerere MUELE",
+            base_url=study.MUELE_BASE_URL,
+            status="planned",
+            config={
+                "platform": "Moodle",
+                "sync_targets": ["course_files", "assignments", "calendar"],
+            },
+        )
+
+    if request.method == "POST":
+        connection.username = request.POST.get("username", "").strip()
+        connection.base_url = request.POST.get("base_url", "").strip() or study.MUELE_BASE_URL
+        connection.status = "planned"
+        connection.config = {
+            **(connection.config or {}),
+            "college": request.POST.get("college", "").strip(),
+            "sync_targets": request.POST.getlist("sync_targets") or ["course_files", "assignments", "calendar"],
+            "next_step": "Add secure credential storage and Moodle web service sync.",
+        }
+        connection.save()
+        messages.success(request, "MUELE connection details saved.")
+        return redirect("study_home")
+
+    return render(request, "organizer/muele_connection.html", {
+        "profile": profile,
+        "connection": connection,
+        "muele_url": study.MUELE_BASE_URL,
+    })
+
+
 def profile_wizard(request):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
@@ -154,6 +239,7 @@ def profile_wizard(request):
         profile = Profile.objects.create(
             name=name,
             purpose=purpose,
+            setup_path="manual",
             primary_label=primary_label,
             secondary_label=secondary_label,
             root_path=root_path,
@@ -167,6 +253,7 @@ def profile_wizard(request):
             groups=groups,
         )
         ok, error = _write_config_json(profile, config)
+        study.ensure_learning_foundation(profile)
         if ok:
             messages.success(request, f"'{profile.name}' is set up and active.")
         else:
@@ -188,6 +275,7 @@ def start(request):
 
 def makerere_wizard(request):
     colleges_json = makerere.as_json()
+    curricula_json = {name: data["years"] for name, data in makerere_curricula.CURRICULA.items()}
 
     if request.method == "POST":
         college_name = request.POST.get("college", "").strip()
@@ -209,6 +297,7 @@ def makerere_wizard(request):
             return render(request, "organizer/makerere_wizard.html", {
                 "colleges": makerere.COLLEGES,
                 "colleges_json": colleges_json,
+                "curricula_json": curricula_json,
                 "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
                 "form": request.POST,
             })
@@ -217,6 +306,7 @@ def makerere_wizard(request):
         profile = Profile.objects.create(
             name=profile_name,
             purpose="school",
+            setup_path="makerere",
             primary_label="Year",
             secondary_label="Semester",
             root_path=root_path,
@@ -230,6 +320,7 @@ def makerere_wizard(request):
             groups=groups,
         )
         ok, error = _write_config_json(profile, config)
+        study.ensure_learning_foundation(profile)
         if ok:
             messages.success(request, f"'{profile.name}' is set up and active.")
         else:
@@ -240,6 +331,7 @@ def makerere_wizard(request):
     return render(request, "organizer/makerere_wizard.html", {
         "colleges": makerere.COLLEGES,
         "colleges_json": colleges_json,
+        "curricula_json": curricula_json,
         "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
     })
 

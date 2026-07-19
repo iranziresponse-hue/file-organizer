@@ -5,6 +5,8 @@ from . import views
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("start/", views.start, name="start"),
+    path("study/", views.study_home, name="study_home"),
+    path("integrations/muele/", views.muele_connection, name="muele_connection"),
     path("profiles/", views.profiles_list, name="profiles_list"),
     path("profiles/new/", views.profile_wizard, name="profile_wizard"),
     path("profiles/new/makerere/", views.makerere_wizard, name="makerere_wizard"),

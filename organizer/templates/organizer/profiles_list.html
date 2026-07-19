@@ -3,75 +3,75 @@
 {% block title %}Profiles - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack">
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <span class="eyebrow">Contexts</span>
-                <h2>Profiles</h2>
-                <p class="card-subtitle">Each profile has its own folder, its own labels, and its own dashboard. Only one is active at a time.</p>
-            </div>
-            <a class="button" href="{% url 'start' %}">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                New profile
-            </a>
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Contexts</span>
+            <h2>Profiles</h2>
+            <p>Each profile has its own folder, labels, and dashboard. Only one routes files at a time.</p>
         </div>
+        <a class="button" href="{% url 'start' %}">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            New profile
+        </a>
+    </section>
 
-        {% if profiles %}
-        <div class="table-shell">
-            <table>
-                <tr><th>Name</th><th>Purpose</th><th>{{ profiles.0.primary_label }} / {{ profiles.0.secondary_label }}</th><th>Folder</th><th>Status</th><th></th></tr>
-                {% for p in profiles %}
-                <tr>
-                    <td>{{ p.name }}</td>
-                    <td>{{ p.get_purpose_display }}</td>
-                    <td>{{ p.primary_label }} / {{ p.secondary_label }}</td>
-                    <td class="path-text">{{ p.root_path }}</td>
-                    <td>
-                        {% if p.is_active %}
-                        <span class="status-dot">Active</span>
-                        {% else %}
-                        <span class="path-text">Inactive</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="meta-line">
-                            {% if not p.is_active %}
-                            <form method="post" action="{% url 'profile_activate' p.pk %}">
-                                {% csrf_token %}
-                                <button type="submit" class="button-ghost">
-                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    Set active
-                                </button>
-                            </form>
-                            {% endif %}
-                            <a class="button button-ghost" href="{% url 'profile_edit' p.pk %}">
-                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                </svg>
-                                Edit
-                            </a>
-                            <form method="post" action="{% url 'profile_delete' p.pk %}" onsubmit="return confirm('Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.');">
-                                {% csrf_token %}
-                                <button type="submit" class="button-ghost button-danger">
-                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    Delete
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-        {% else %}
+    {% if profiles %}
+    <section class="profile-list" aria-label="Profiles">
+        {% for p in profiles %}
+        <article class="profile-row">
+            <div class="profile-main">
+                <div class="meta-line">
+                    {% if p.is_active %}
+                    <span class="status-dot">Active</span>
+                    {% else %}
+                    <span class="path-text">Inactive</span>
+                    {% endif %}
+                    <span class="meta-token">{{ p.get_purpose_display }}</span>
+                </div>
+                <h3>{{ p.name }}</h3>
+            </div>
+            <div class="profile-detail">
+                <span class="path-text">Structure</span>
+                <strong>{{ p.primary_label }} / {{ p.secondary_label }}</strong>
+            </div>
+            <div class="profile-actions">
+                {% if not p.is_active %}
+                <form method="post" action="{% url 'profile_activate' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button-ghost">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Set active
+                    </button>
+                </form>
+                {% endif %}
+                <a class="button button-ghost" href="{% url 'profile_edit' p.pk %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Edit
+                </a>
+                <form method="post" action="{% url 'profile_delete' p.pk %}" onsubmit="return confirm('Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.');">
+                    {% csrf_token %}
+                    <button type="submit" class="button-ghost button-danger">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Delete
+                    </button>
+                </form>
+            </div>
+            <div class="profile-path path-text">{{ p.root_path }}</div>
+        </article>
+        {% endfor %}
+    </section>
+    {% else %}
+    <section class="card compact-card">
         <div class="empty-state">
             <span class="empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
@@ -91,7 +91,7 @@
                 Create your first profile
             </a>
         </div>
-        {% endif %}
     </section>
+    {% endif %}
 </div>
 {% endblock %}

@@ -4,102 +4,122 @@
 {% block title %}Edit {{ profile.name }} - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack">
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <span class="eyebrow">{{ profile.get_purpose_display }}</span>
-                <h2>{{ profile.name }}</h2>
-                <p class="card-subtitle">Writes to _config.json under this profile's folder -- the watcher picks it up on its next poll.</p>
-            </div>
-            <a class="button button-ghost" href="{% url 'profiles_list' %}">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M19 12H5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="m12 19-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                All profiles
-            </a>
+<div class="page-stack page-center page-medium">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.get_purpose_display }}</span>
+            <h2>{{ profile.name }}</h2>
+            <p>Update the folder structure and routing labels for this profile.</p>
         </div>
+        <a class="button button-ghost" href="{% url 'profiles_list' %}">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M19 12H5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="m12 19-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            All profiles
+        </a>
+    </section>
 
+    <section class="card compact-card">
         <form method="post" class="form-grid">
             {% csrf_token %}
-            <div class="field">
-                <label for="name">Profile name</label>
-                <input type="text" id="name" name="name" value="{{ profile.name }}" required>
-            </div>
-
-            <div class="field">
-                <label for="root_path">Folder to organize into</label>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" id="root_path" name="root_path" value="{{ profile.root_path }}" required style="flex:1;">
-                    <button type="button" class="button-ghost" style="flex:0 0 auto; white-space:nowrap;" onclick="openFolderBrowser('root_path')">
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
-                        </svg>
-                        Browse
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-two">
-                <div class="field">
-                    <label for="primary_label">Primary group label</label>
-                    <input type="text" id="primary_label" name="primary_label" list="label-presets" value="{{ profile.primary_label }}">
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Profile location</h3>
+                    <p>Writes to _config.json under this profile's folder. The watcher picks it up on its next poll.</p>
                 </div>
                 <div class="field">
-                    <label for="secondary_label">Secondary group label</label>
-                    <input type="text" id="secondary_label" name="secondary_label" list="label-presets" value="{{ profile.secondary_label }}">
+                    <label for="name">Profile name</label>
+                    <input type="text" id="name" name="name" value="{{ profile.name }}" required>
                 </div>
-            </div>
-            <datalist id="label-presets">
-                <option value="Year"></option>
-                <option value="Semester"></option>
-                <option value="Quarter"></option>
-                <option value="Topic"></option>
-                <option value="Phase"></option>
-                <option value="Department"></option>
-                <option value="Training Cycle"></option>
-                <option value="Course"></option>
-                <option value="Module"></option>
-                <option value="Bootcamp"></option>
-                <option value="Sprint"></option>
-            </datalist>
 
-            <div class="form-two">
                 <div class="field">
-                    <label for="primary_value">Current {{ profile.primary_label }}</label>
-                    <input type="text" id="primary_value" name="primary_value" list="primary-value-presets" value="{{ config.primary_value|default:'' }}" placeholder="Year 2">
-                    <datalist id="primary-value-presets"></datalist>
+                    <label for="root_path">Folder to organize into</label>
+                    <div class="field-control">
+                        <input type="text" id="root_path" name="root_path" value="{{ profile.root_path }}" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('root_path')">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Structure labels</h3>
+                    <p>These labels describe the two folder levels before subjects or modules.</p>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="primary_label">Primary group label</label>
+                        <input type="text" id="primary_label" name="primary_label" list="label-presets" value="{{ profile.primary_label }}">
+                    </div>
+                    <div class="field">
+                        <label for="secondary_label">Secondary group label</label>
+                        <input type="text" id="secondary_label" name="secondary_label" list="label-presets" value="{{ profile.secondary_label }}">
+                    </div>
+                </div>
+                <datalist id="label-presets">
+                    <option value="Year"></option>
+                    <option value="Semester"></option>
+                    <option value="Quarter"></option>
+                    <option value="Topic"></option>
+                    <option value="Phase"></option>
+                    <option value="Department"></option>
+                    <option value="Training Cycle"></option>
+                    <option value="Course"></option>
+                    <option value="Module"></option>
+                    <option value="Bootcamp"></option>
+                    <option value="Sprint"></option>
+                </datalist>
+
+                <div class="form-two">
+                    <div class="field">
+                        <label for="primary_value">Current {{ profile.primary_label }}</label>
+                        <input type="text" id="primary_value" name="primary_value" list="primary-value-presets" value="{{ config.primary_value|default:'' }}" placeholder="Year 2">
+                        <datalist id="primary-value-presets"></datalist>
+                    </div>
+                    <div class="field">
+                        <label for="secondary_value">Current {{ profile.secondary_label }}</label>
+                        <input type="text" id="secondary_value" name="secondary_value" list="secondary-value-presets" value="{{ config.secondary_value|default:'' }}" placeholder="Semester 1">
+                        <datalist id="secondary-value-presets"></datalist>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Subjects and behavior</h3>
+                    <p>Add the codes or module names Orch should recognize inside this profile.</p>
                 </div>
                 <div class="field">
-                    <label for="secondary_value">Current {{ profile.secondary_label }}</label>
-                    <input type="text" id="secondary_value" name="secondary_value" list="secondary-value-presets" value="{{ config.secondary_value|default:'' }}" placeholder="Semester 1">
-                    <datalist id="secondary-value-presets"></datalist>
+                    <label for="groups_entry">Subjects, courses, or modules</label>
+                    <div class="tag-input" id="groups-tag-input">
+                        <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="groups" id="groups_hidden" value="{{ config.groups|join:', ' }}">
+                    <div class="meta-list" id="groups-suggestions" style="margin-top:8px;"></div>
+                    <p class="help-text">Press Enter to add, or click a suggestion below if the folder already exists.</p>
                 </div>
+
+                <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                    <input type="checkbox" name="ai_fallback_enabled" style="width:auto;" {% if profile.ai_fallback_enabled %}checked{% endif %}>
+                    Use smart fallback for files nothing else can place (advanced, needs your private key in local config)
+                </label>
             </div>
 
-            <div class="field">
-                <label for="groups_entry">Subjects, courses, or modules</label>
-                <div class="tag-input" id="groups-tag-input">
-                    <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
-                </div>
-                <input type="hidden" name="groups" id="groups_hidden" value="{{ config.groups|join:', ' }}">
-                <div class="meta-list" id="groups-suggestions" style="margin-top:8px;"></div>
-                <p class="help-text">Press Enter to add, or click a suggestion below if the folder already exists.</p>
+            <div class="form-actions">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Save profile
+                </button>
             </div>
-
-            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                <input type="checkbox" name="ai_fallback_enabled" style="width:auto;" {% if profile.ai_fallback_enabled %}checked{% endif %}>
-                Use smart fallback for files nothing else can place (advanced, needs your private key in local config)
-            </label>
-
-            <button type="submit">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                    <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                </svg>
-                Save profile
-            </button>
         </form>
     </section>
 </div>

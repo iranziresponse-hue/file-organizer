@@ -101,7 +101,7 @@
                     </div>
                     <input type="hidden" name="groups" id="groups_hidden" value="{{ form.groups }}">
                     <div class="meta-list" id="groups-suggestions" style="margin-top:8px;"></div>
-                    <p class="help-text">Type each course code from your real timetable this semester and press Enter. Only you know exactly what you're registered for this semester, so Orch asks rather than guesses.</p>
+                    <p class="help-text" id="curriculum-help">Type each course code from your real timetable this semester and press Enter. Only you know exactly what you're registered for this semester, so Orch asks rather than guesses.</p>
                 </div>
             </div>
         </section>
@@ -132,6 +132,7 @@
 </div>
 
 {{ colleges_json|json_script:"colleges-data" }}
+{{ curricula_json|json_script:"curricula-data" }}
 <script src="{% static 'organizer/js/tag-input.js' %}"></script>
 <script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
 <script>
@@ -140,12 +141,44 @@
 
     (function () {
         var colleges = JSON.parse(document.getElementById('colleges-data').textContent);
+        var curricula = JSON.parse(document.getElementById('curricula-data').textContent);
         var collegeInput = document.getElementById('college');
         var schoolInput = document.getElementById('school');
         var programInput = document.getElementById('program');
+        var yearInput = document.getElementById('year_value');
+        var semesterInput = document.getElementById('semester_value');
         var schoolOptions = document.getElementById('school-options');
         var programOptions = document.getElementById('program-options');
         var programHelp = document.getElementById('program-help');
+        var curriculumHelp = document.getElementById('curriculum-help');
+        var groupsContainer = document.getElementById('groups-tag-input');
+        var groupsSuggestions = document.getElementById('groups-suggestions');
+
+        function refreshCurriculumSuggestions() {
+            var years = curricula[programInput.value];
+            var year = years ? years['Year ' + yearInput.value] : null;
+            var units = year ? year['Semester ' + semesterInput.value] : null;
+
+            if (!units || !units.length) {
+                curriculumHelp.textContent = 'Type each course code from your real timetable this semester and press Enter. Only you know exactly what you\'re registered for this semester, so Orch asks rather than guesses.';
+                return;
+            }
+
+            groupsSuggestions.innerHTML = '';
+            units.forEach(function (unit) {
+                var code = unit.split(' ')[0];
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggestion-token';
+                btn.title = unit;
+                btn.textContent = code;
+                btn.addEventListener('click', function () {
+                    if (groupsContainer && groupsContainer.addTag) groupsContainer.addTag(code);
+                });
+                groupsSuggestions.appendChild(btn);
+            });
+            curriculumHelp.textContent = 'These are Orch\'s verified course units for this program, year, and semester (source noted in organizer/core/makerere_curricula.py) -- click one to add it, or type your own if something is missing or different for you.';
+        }
 
         function findCollege(name) {
             for (var code in colleges) {
@@ -191,14 +224,20 @@
             programInput.value = '';
             refreshSchools();
             refreshPrograms();
+            refreshCurriculumSuggestions();
         });
         schoolInput.addEventListener('change', function () {
             programInput.value = '';
             refreshPrograms();
+            refreshCurriculumSuggestions();
         });
+        programInput.addEventListener('change', refreshCurriculumSuggestions);
+        yearInput.addEventListener('change', refreshCurriculumSuggestions);
+        semesterInput.addEventListener('change', refreshCurriculumSuggestions);
 
         refreshSchools();
         refreshPrograms();
+        refreshCurriculumSuggestions();
     })();
 </script>
 {% endblock %}

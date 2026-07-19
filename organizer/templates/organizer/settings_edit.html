@@ -3,53 +3,97 @@
 {% block title %}Settings - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack">
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <span class="eyebrow">App-wide</span>
-                <h2>Settings</h2>
-                <p class="card-subtitle">These apply across every profile -- where Orch watches for downloads, and where ebooks land.</p>
-            </div>
+<div class="page-stack page-center page-narrow">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">App-wide</span>
+            <h2>Settings</h2>
+            <p>Set the folders Orch watches and the housekeeping rules it uses across every profile.</p>
         </div>
+    </section>
 
+    <section class="card compact-card">
         <form method="post" class="form-grid">
             {% csrf_token %}
-            <div class="field">
-                <label for="downloads_path">Primary downloads folder</label>
-                <input type="text" id="downloads_path" name="downloads_path" value="{{ settings.downloads_path }}" placeholder="{{ default_downloads }}" required>
-            </div>
-
-            <div class="field">
-                <label for="secondary_downloads_path">Secondary downloads folder (optional)</label>
-                <input type="text" id="secondary_downloads_path" name="secondary_downloads_path" value="{{ settings.secondary_downloads_path }}" placeholder="e.g. a downloads folder on another drive">
-                <p class="help-text">Leave blank to disable. Only files added after this is set get swept -- existing files are never touched.</p>
-            </div>
-
-            <div class="field">
-                <label for="library_inbox_path">Ebook inbox folder</label>
-                <input type="text" id="library_inbox_path" name="library_inbox_path" value="{{ settings.library_inbox_path }}" placeholder="{{ default_library_inbox }}" required>
-                <p class="help-text">Detected ebooks land here, independent of any profile.</p>
-            </div>
-
-            <div class="form-two">
-                <div class="field">
-                    <label for="installer_stale_days">Installer review after (days)</label>
-                    <input type="number" min="1" id="installer_stale_days" name="installer_stale_days" value="{{ settings.installer_stale_days }}">
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Watched folders</h3>
+                    <p>Files added here are reviewed and routed by Orch.</p>
                 </div>
                 <div class="field">
-                    <label for="installer_delete_days">Installer delete after (days)</label>
-                    <input type="number" min="1" id="installer_delete_days" name="installer_delete_days" value="{{ settings.installer_delete_days }}">
+                    <label for="downloads_path">Primary downloads folder</label>
+                    <div class="field-control">
+                        <input type="text" id="downloads_path" name="downloads_path" value="{{ settings.downloads_path }}" placeholder="{{ default_downloads }}" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('downloads_path')">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="secondary_downloads_path">Secondary downloads folder (optional)</label>
+                    <div class="field-control">
+                        <input type="text" id="secondary_downloads_path" name="secondary_downloads_path" value="{{ settings.secondary_downloads_path }}" placeholder="e.g. a downloads folder on another drive">
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('secondary_downloads_path')">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                    <p class="help-text">Leave blank to disable. Only files added after this is set get swept. Existing files are never touched.</p>
                 </div>
             </div>
 
-            <button type="submit">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                    <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                </svg>
-                Save settings
-            </button>
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Library inbox</h3>
+                    <p>Ebooks are kept separate from profile routing.</p>
+                </div>
+                <div class="field">
+                    <label for="library_inbox_path">Ebook inbox folder</label>
+                    <div class="field-control">
+                        <input type="text" id="library_inbox_path" name="library_inbox_path" value="{{ settings.library_inbox_path }}" placeholder="{{ default_library_inbox }}" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('library_inbox_path')">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                    <p class="help-text">Detected ebooks land here, independent of any profile.</p>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Installer cleanup</h3>
+                    <p>Keep setup files visible long enough to review, then remove stale ones later.</p>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="installer_stale_days">Review after (days)</label>
+                        <input type="number" min="1" id="installer_stale_days" name="installer_stale_days" value="{{ settings.installer_stale_days }}">
+                    </div>
+                    <div class="field">
+                        <label for="installer_delete_days">Delete after (days)</label>
+                        <input type="number" min="1" id="installer_delete_days" name="installer_delete_days" value="{{ settings.installer_delete_days }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Save settings
+                </button>
+            </div>
         </form>
     </section>
 </div>

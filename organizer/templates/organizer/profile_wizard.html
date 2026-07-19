@@ -4,7 +4,7 @@
 {% block title %}New profile - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack">
+<div class="page-stack page-center page-medium">
     <div class="page-banner">
         <div class="page-banner-content">
             <span class="eyebrow">New profile</span>
@@ -55,9 +55,9 @@
             <div class="form-grid">
                 <div class="field">
                     <label for="root_path">Folder to organize into</label>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="root_path" name="root_path" placeholder="e.g. C:\Users\You\Documents\School" value="{{ form.root_path }}" required style="flex:1;">
-                        <button type="button" class="button-ghost" style="flex:0 0 auto; white-space:nowrap;" onclick="openFolderBrowser('root_path')">
+                    <div class="field-control">
+                        <input type="text" id="root_path" name="root_path" placeholder="e.g. C:\Users\You\Documents\School" value="{{ form.root_path }}" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('root_path')">
                             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
                             </svg>
@@ -127,7 +127,7 @@
             </label>
         </section>
 
-        <div>
+        <div class="form-actions">
             <button type="submit">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>

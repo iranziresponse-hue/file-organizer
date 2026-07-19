@@ -85,6 +85,7 @@ class ProfileWizardViewTests(SandboxedPathsTestCase):
 
         profile = Profile.objects.get(name="University")
         self.assertTrue(profile.is_active)
+        self.assertEqual(profile.setup_path, "manual")
         self.assertEqual(profile.root_path, str(self.profile_root))
 
         config = CourseConfig.objects.get(profile=profile)

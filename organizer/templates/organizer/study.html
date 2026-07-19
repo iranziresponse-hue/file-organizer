@@ -1,0 +1,339 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Study - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Study cockpit</span>
+            <h2>Keep learning moving.</h2>
+            <p>Contexts, timeline, subject memory, reviews, rules, inbox, digest, imports, integrations, and knowledge packs are now in one place.</p>
+        </div>
+        {% if profile %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_digest">
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                Create digest
+            </button>
+        </form>
+        {% endif %}
+    </section>
+
+    {% if not profile %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No active profile.</h3>
+                <p>Create or activate a profile before the study cockpit can build memory and review items.</p>
+            </div>
+            <a class="button" href="{% url 'start' %}">Set up profile</a>
+        </div>
+    </section>
+    {% else %}
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">{{ profile.get_setup_path_display }}</span>
+                    <h2>Study context</h2>
+                    <p class="card-subtitle">{{ profile.get_purpose_display }} context rooted at {{ profile.root_path }}</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for goal in study_goals %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ goal.title }}</h3>
+                        <span class="path-text">{{ goal.subject_code|default:"Whole context" }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Goal status</span>
+                        <strong>{{ goal.get_status_display }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Goals are ready for this context.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Learning timeline</h2>
+                    <p class="card-subtitle">Recent activity from sorted files, reviews, digests, and integrations.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for activity in activities %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ activity.title }}</h3>
+                        <span class="path-text">{{ activity.get_activity_type_display }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ activity.subject_code|default:"General" }}</span>
+                        <strong>{{ activity.happened_at|date:"Y-m-d H:i" }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">The timeline starts filling as Orch sorts files and creates reviews.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">{{ profile.name }}</span>
+                    <h2>Subject memory</h2>
+                    <p class="card-subtitle">A durable memory layer for each course, module, or topic.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for memory in subject_memories %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ memory.code }}</h3>
+                        <span class="path-text">{{ memory.resource_count }} resources tracked</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Last touched</span>
+                        <strong>{% if memory.last_touched_at %}{{ memory.last_touched_at|date:"Y-m-d H:i" }}{% else %}Waiting for files{% endif %}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Add subjects in your active profile to start building memory.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Review queue</h2>
+                    <p class="card-subtitle">Seeded from recently sorted study files.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for item in review_items %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ item.title }}</h3>
+                        <span class="path-text">{{ item.subject_code|default:"General" }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Due</span>
+                        <strong>{{ item.due_at|date:"Y-m-d H:i" }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">No review items yet. Sort files with subject codes and Orch will seed the queue.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Subject themes</h2>
+                    <p class="card-subtitle">Detected focus areas for the semantic subject dashboard.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for theme in subject_themes %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ theme.name }}</h3>
+                        <span class="path-text">{{ theme.subject_code }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ theme.get_source_display }}</span>
+                        <strong>{{ theme.weight }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Themes appear as subject files and summaries accumulate.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Folder rules</h2>
+                    <p class="card-subtitle">Visual rule-builder records seeded from your subjects.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for rule in folder_rules %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ rule.name }}</h3>
+                        <span class="path-text">If {{ rule.get_match_field_display|lower }} {{ rule.get_operator_display|lower }} {{ rule.pattern }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ rule.subject_code|default:"No subject" }}</span>
+                        <strong>{{ rule.get_action_display }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Rules are ready to be built manually or seeded from subjects.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Learning digest</h2>
+                    <p class="card-subtitle">Weekly summaries of files, subjects, summaries, and due reviews.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for digest in digests %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ digest.title }}</h3>
+                        <span class="path-text">{{ digest.period_start|date:"Y-m-d" }} to {{ digest.period_end|date:"Y-m-d" }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ digest.content|linebreaksbr }}</span>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Create your first digest from the button above.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Integrations</h2>
+                    <p class="card-subtitle">MUELE and future learning sources attach here.</p>
+                </div>
+                <a class="button button-ghost" href="{% url 'muele_connection' %}">MUELE setup</a>
+            </div>
+            <div class="profile-list">
+                {% for connection in connections %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ connection.display_name }}</h3>
+                        <span class="path-text">{{ connection.get_provider_display }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ connection.base_url|default:"No URL yet" }}</span>
+                        <strong>{{ connection.get_status_display }}</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">No integrations attached yet. Makerere profiles get a MUELE connection foundation automatically.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Decision inbox</h2>
+                    <p class="card-subtitle">The trust layer for uncertain files.</p>
+                </div>
+            </div>
+            {% if inbox_items %}
+            <div class="profile-list">
+                {% for item in inbox_items %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ item.filename }}</h3>
+                        <span class="path-text">{{ item.reason|default:"Awaiting review" }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ item.suggested_subject|default:"No subject suggested" }}</span>
+                        <strong>{{ item.confidence }}</strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">Ready for future low-confidence routing decisions.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Folder imports</h2>
+                    <p class="card-subtitle">Read-only scans that map messy folders before Orch changes anything.</p>
+                </div>
+            </div>
+            {% if import_plans %}
+            <div class="profile-list">
+                {% for plan in import_plans %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ plan.root_path }}</h3>
+                        <span class="path-text">{{ plan.proposed_subjects|length }} subjects proposed</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Import plan</span>
+                        <strong>{{ plan.get_status_display }}</strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">Ready for existing-folder mapping.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Knowledge packs</h2>
+                <p class="card-subtitle">Exportable bundles for a subject, term, or whole profile.</p>
+            </div>
+        </div>
+        {% if export_bundles %}
+        <div class="profile-list">
+            {% for bundle in export_bundles %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ bundle.title }}</h3>
+                    <span class="path-text">{{ bundle.get_scope_display }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ bundle.subject_code|default:"All subjects" }}</span>
+                    <strong>{{ bundle.get_status_display }}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">Ready for subject packs with files, summaries, guides, and a manifest.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

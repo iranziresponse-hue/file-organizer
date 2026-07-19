@@ -43,6 +43,7 @@ class MakerereWizardViewTests(SandboxedPathsTestCase):
 
         profile = Profile.objects.get()
         self.assertTrue(profile.is_active)
+        self.assertEqual(profile.setup_path, "makerere")
         self.assertIn("Bachelor of Science in Computer Science", profile.name)
         self.assertIn("COCIS", profile.name)
         self.assertEqual(profile.primary_label, "Year")
