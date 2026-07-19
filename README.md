@@ -14,13 +14,17 @@ Orch runs as a system tray app that watches your Downloads folder (and a second 
 
 **Setup wizard.** A three-step flow (purpose, structure, sorting behavior) gets a new profile running in under a minute. Subject codes are added as removable chips, not a comma-separated text blob, and group labels suggest common presets ("Year", "Topic", "Department"...) while still taking anything you type.
 
+**Connects to folders you already have.** A "Browse..." button opens your real file system to point a profile at an existing folder, no typing paths from memory. Once picked, Orch reads what's already inside it: the primary/secondary group fields suggest folders that already exist there (e.g. "Year 2", "Semester 1"), and the subject list suggests the subfolders already sitting under those, one click to adopt them instead of retyping. Each profile connects to its own folder, so having two or more existing folder structures (say, a School drive and a separate Work folder) is exactly what profiles are for.
+
 **Settings.** Nothing is hardcoded to one machine. Which folders get watched, and where ebooks land, are all editable from a Settings page, defaulted sensibly to your own Windows user profile the first time the app runs.
 
 **Guide.** A `?` button in the top bar explains the routing logic in a few bullet points, no digging through docs.
 
+**Document summaries.** Next to any sorted PDF or Word document in Recent Moves, a "Summarize" button generates a long, structured study companion, not a one-line blurb. It reads the actual file, pulls in the other summarizable files already sitting in the same destination folder, and writes a piece with a real hook, a detailed breakdown of the content, and a dedicated section connecting it to those related files. View it in a scrollable popup or download it as a formatted PDF. This is an AI feature (see below), off until you configure a key, and the prompt explicitly forbids em dashes and dash-divider lines.
+
 ## Tech stack
 
-- **Django** provides the data model (`AppSettings`, `Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`), the admin site, and the dashboard: profile switcher, setup wizard, and recent-moves view.
+- **Django** provides the data model (`AppSettings`, `Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`, `FileSummary`), the admin site, the dashboard, and a small read-only local API (`/api/browse-folders/`) that lets the UI browse this machine's real folders. The dashboard only ever binds to `127.0.0.1` (see `gui/server.py`), so this never leaves the machine.
 - **PyQt6** provides the desktop shell: a system tray icon that starts and stops the watcher, opens the dashboard in your browser, opens the log file, and toggles launch-at-startup, all without a console window.
 - The watcher itself is a polling loop, not a filesystem-events watcher, because a `FileSystemWatcher`/`Register-ObjectEvent` approach in the original PowerShell version this was ported from was found to silently stop firing when run as a detached background process.
 - `main.py` runs Django's migrations and dashboard server on background threads inside the same process as the tray icon, so the packaged exe needs no separate `manage.py` steps.
@@ -38,18 +42,19 @@ gui/
     autostart.py             Windows launch-at-login toggle (per-user registry key)
     assets.py                Resolves bundled asset paths, dev and PyInstaller alike
 organizer/
-    models.py                AppSettings, Profile, CourseConfig, CurriculumEntry, MoveEvent
-    views.py                  Dashboard, profile wizard/edit/list/activate/delete, settings views
+    models.py                AppSettings, Profile, CourseConfig, CurriculumEntry, MoveEvent, FileSummary
+    views.py                  Dashboard, profile wizard/edit/list/activate/delete, settings, summary views
     admin.py                   Django admin registrations
     core/
         paths.py               Filesystem paths/constants not specific to any one profile
         rules.py               Pure destination-decision logic (no Django imports, unit-testable)
         ai_classify.py         Optional, off-by-default AI fallback classifier
+        summarize.py           Long-form AI document summaries: text extraction, prompt, HTML/PDF rendering
         watcher.py             The polling watcher loop and move/cleanup logic
     static/organizer/img/      The Orch mark (favicon, tray icon, exe icon)
-    static/organizer/js/       Small vanilla-JS widgets (tag/chip input for subject lists)
+    static/organizer/js/       Small vanilla-JS widgets: tag/chip input, folder browser, folder suggestions, summary popup
     templates/organizer/       Dashboard, wizard, profile, and settings templates
-    tests/                    Unit tests for rules, ai_classify, watcher, views, and settings
+    tests/                    Unit tests for rules, ai_classify, summarize, watcher, views, settings, and folder browsing
 main.py                      Desktop app entry point (python main.py, or the PyInstaller target)
 runtime.py                   Resolves persistent-state paths, dev root vs. exe-adjacent when frozen
 Orch.spec                    PyInstaller build spec
@@ -71,9 +76,14 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-## Advanced: AI fallback
+## Advanced: AI features
 
-Each profile has an optional "smart fallback match" setting, off by default. If enabled, files that match no subject code and no topic keyword get one more pass through an AI classifier (Groq's OpenAI-compatible API) before falling back to `_Unsorted`. It needs your own API key: copy `ai_config.example.json` to `ai_config.json` in the project root (or next to the built exe) and fill it in. `ai_config.json` is gitignored and never committed. Nobody needs this to use Orch.
+Two things use an AI model, both off until you configure a key, and neither is required to use Orch:
+
+- Each profile has an optional "smart fallback match" setting. If enabled, files that match no subject code and no topic keyword get one more pass through an AI classifier before falling back to `_Unsorted`.
+- Document summaries (the "Summarize" button on a sorted PDF or Word file) always need a key, since there is no non-AI fallback for that feature.
+
+Both use the same Groq's OpenAI-compatible API and the same key: copy `ai_config.example.json` to `ai_config.json` in the project root (or next to the built exe) and fill it in. `ai_config.json` is gitignored and never committed.
 
 ## Tests
 

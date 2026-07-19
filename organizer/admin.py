@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AppSettings, CourseConfig, CurriculumEntry, MoveEvent, Profile
+from .models import AppSettings, CourseConfig, CurriculumEntry, FileSummary, MoveEvent, Profile
 
 
 @admin.register(AppSettings)
@@ -30,3 +30,8 @@ class MoveEventAdmin(admin.ModelAdmin):
     list_display = ("timestamp", "profile", "filename", "method", "course_code", "success")
     list_filter = ("profile", "method", "success")
     search_fields = ("filename", "destination_path")
+
+
+@admin.register(FileSummary)
+class FileSummaryAdmin(admin.ModelAdmin):
+    list_display = ("move_event", "created_at", "updated_at")

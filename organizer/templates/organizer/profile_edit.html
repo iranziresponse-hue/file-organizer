@@ -30,7 +30,10 @@
 
             <div class="field">
                 <label for="root_path">Folder to organize into</label>
-                <input type="text" id="root_path" name="root_path" value="{{ profile.root_path }}" required>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="root_path" name="root_path" value="{{ profile.root_path }}" required style="flex:1;">
+                    <button type="button" class="button-ghost" style="flex:0 0 auto; white-space:nowrap;" onclick="openFolderBrowser('root_path')">Browse…</button>
+                </div>
             </div>
 
             <div class="form-two">
@@ -60,11 +63,13 @@
             <div class="form-two">
                 <div class="field">
                     <label for="primary_value">Current {{ profile.primary_label }}</label>
-                    <input type="text" id="primary_value" name="primary_value" value="{{ config.primary_value|default:'' }}" placeholder="Year 2">
+                    <input type="text" id="primary_value" name="primary_value" list="primary-value-presets" value="{{ config.primary_value|default:'' }}" placeholder="Year 2">
+                    <datalist id="primary-value-presets"></datalist>
                 </div>
                 <div class="field">
                     <label for="secondary_value">Current {{ profile.secondary_label }}</label>
-                    <input type="text" id="secondary_value" name="secondary_value" value="{{ config.secondary_value|default:'' }}" placeholder="Semester 1">
+                    <input type="text" id="secondary_value" name="secondary_value" list="secondary-value-presets" value="{{ config.secondary_value|default:'' }}" placeholder="Semester 1">
+                    <datalist id="secondary-value-presets"></datalist>
                 </div>
             </div>
 
@@ -74,7 +79,8 @@
                     <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
                 </div>
                 <input type="hidden" name="groups" id="groups_hidden" value="{{ config.groups|join:', ' }}">
-                <p class="help-text">Press Enter to add. A file matching one of these codes routes straight to it -- no other match needed.</p>
+                <div class="badge-list" id="groups-suggestions" style="margin-top:8px;"></div>
+                <p class="help-text">Press Enter to add, or click a suggestion below if the folder already exists.</p>
             </div>
 
             <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
@@ -94,7 +100,9 @@
 </div>
 
 <script src="{% static 'organizer/js/tag-input.js' %}"></script>
+<script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
 <script>
     initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+    initFolderSuggestions();
 </script>
 {% endblock %}

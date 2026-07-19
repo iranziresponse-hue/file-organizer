@@ -56,8 +56,11 @@
             <div class="form-grid">
                 <div class="field">
                     <label for="root_path">Folder to organize into</label>
-                    <input type="text" id="root_path" name="root_path" placeholder="D:\School" value="{{ form.root_path }}" required>
-                    <p class="help-text">Files matched to this profile get sorted into subfolders under here.</p>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="root_path" name="root_path" placeholder="e.g. C:\Users\You\Documents\School" value="{{ form.root_path }}" required style="flex:1;">
+                        <button type="button" class="button-ghost" style="flex:0 0 auto; white-space:nowrap;" onclick="openFolderBrowser('root_path')">Browse…</button>
+                    </div>
+                    <p class="help-text">Already have this folder set up? Point Orch at it and pick from what's already there below.</p>
                 </div>
                 <div class="form-two">
                     <div class="field">
@@ -85,11 +88,13 @@
                 <div class="form-two">
                     <div class="field">
                         <label id="primary_value_label" for="primary_value">Current Year</label>
-                        <input type="text" id="primary_value" name="primary_value" placeholder="Year 2" value="{{ form.primary_value }}">
+                        <input type="text" id="primary_value" name="primary_value" list="primary-value-presets" placeholder="Year 2" value="{{ form.primary_value }}">
+                        <datalist id="primary-value-presets"></datalist>
                     </div>
                     <div class="field">
                         <label id="secondary_value_label" for="secondary_value">Current Semester</label>
-                        <input type="text" id="secondary_value" name="secondary_value" placeholder="Semester 1" value="{{ form.secondary_value }}">
+                        <input type="text" id="secondary_value" name="secondary_value" list="secondary-value-presets" placeholder="Semester 1" value="{{ form.secondary_value }}">
+                        <datalist id="secondary-value-presets"></datalist>
                     </div>
                 </div>
                 <div class="field">
@@ -98,7 +103,8 @@
                         <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
                     </div>
                     <input type="hidden" name="groups" id="groups_hidden" value="{{ form.groups }}">
-                    <p class="help-text">Press Enter to add. A file matching one of these codes routes straight to it -- no other match needed.</p>
+                    <div class="badge-list" id="groups-suggestions" style="margin-top:8px;"></div>
+                    <p class="help-text">Press Enter to add, or click a suggestion below if the folder already exists.</p>
                 </div>
             </div>
         </section>
@@ -130,8 +136,10 @@
 
 {{ purpose_defaults|json_script:"purpose-defaults" }}
 <script src="{% static 'organizer/js/tag-input.js' %}"></script>
+<script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
 <script>
     initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+    initFolderSuggestions();
 
     (function () {
         var defaults = JSON.parse(document.getElementById('purpose-defaults').textContent);

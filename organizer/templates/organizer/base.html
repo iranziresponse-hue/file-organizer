@@ -702,6 +702,122 @@
             color: var(--text);
         }
 
+        .browser-panel {
+            max-width: 560px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .browser-path {
+            font-size: 0.82rem;
+            color: var(--faint);
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .browser-list {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            max-height: 320px;
+            display: grid;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .browser-item {
+            all: unset;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .browser-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .browser-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .browser-actions button[disabled] {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .summary-panel {
+            max-width: 760px;
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-meta {
+            font-size: 0.8rem;
+            color: var(--faint);
+            margin-bottom: 16px;
+            padding-right: 32px;
+        }
+
+        .summary-body {
+            overflow-y: auto;
+            padding-right: 10px;
+            flex: 1 1 auto;
+        }
+
+        .summary-body h1 {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.6rem;
+            margin-bottom: 16px;
+            line-height: 1.25;
+        }
+
+        .summary-body h2 {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.1rem;
+            margin: 26px 0 10px;
+            color: #A5F3FC;
+        }
+
+        .summary-body p {
+            color: rgba(248, 250, 252, 0.88);
+            line-height: 1.75;
+            margin-bottom: 14px;
+            font-size: 0.96rem;
+        }
+
+        .summary-body ul {
+            margin: 0 0 14px;
+            padding-left: 22px;
+            color: rgba(248, 250, 252, 0.88);
+        }
+
+        .summary-body li {
+            line-height: 1.7;
+            margin-bottom: 8px;
+            font-size: 0.96rem;
+        }
+
+        .summary-body strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .summary-actions {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--stroke-soft);
+            display: flex;
+            justify-content: flex-end;
+        }
+
         .form-grid {
             display: grid;
             gap: 16px;
@@ -898,6 +1014,7 @@
     </style>
 </head>
 <body>
+{% csrf_token %}
 <div class="app-shell">
     <div class="liquid-field" aria-hidden="true">
         <div class="blob blob-cyan"></div>
@@ -937,6 +1054,33 @@
             </ul>
         </div>
     </div>
+
+    <div class="guide-overlay" id="browser-overlay" hidden>
+        <div class="guide-panel browser-panel" role="dialog" aria-modal="true" aria-label="Choose a folder">
+            <button type="button" class="guide-close" id="browser-close" aria-label="Close">&times;</button>
+            <h3>Choose a folder</h3>
+            <div class="browser-path" id="browser-current-path">This PC</div>
+            <div class="browser-list" id="browser-list"></div>
+            <div class="browser-actions">
+                <button type="button" class="button-ghost" id="browser-up">Up</button>
+                <button type="button" id="browser-select">Use this folder</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="guide-overlay" id="summary-overlay" hidden>
+        <div class="guide-panel summary-panel" role="dialog" aria-modal="true" aria-label="File summary">
+            <button type="button" class="guide-close" id="summary-close" aria-label="Close">&times;</button>
+            <div class="summary-meta" id="summary-meta"></div>
+            <div class="summary-body" id="summary-body"></div>
+            <div class="summary-actions">
+                <a id="summary-download" class="button" href="#" target="_blank" rel="noopener">Download PDF</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'organizer/js/folder-browser.js' %}"></script>
+    <script src="{% static 'organizer/js/summary.js' %}"></script>
 
     <main>
         {% if messages %}

@@ -52,5 +52,15 @@ function initTagInput(containerId, entryId, hiddenId, initial) {
     });
     entry.addEventListener('blur', addFromEntry);
 
+    // Lets external code (e.g. a "this folder already exists" suggestion
+    // chip) add a tag without simulating keyboard events.
+    container.addTag = function (value) {
+        var t = (value || '').trim();
+        if (t && tags.indexOf(t) === -1) {
+            tags.push(t);
+            render();
+        }
+    };
+
     render();
 }

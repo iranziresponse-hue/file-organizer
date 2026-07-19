@@ -1,11 +1,16 @@
 import json
+import re
+import string
+from pathlib import Path
 
 from django.contrib import messages
 from django.db.models import Count
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .core import paths
-from .models import AppSettings, CourseConfig, MoveEvent, Profile
+from .core import summarize as summarize_core
+from .models import AppSettings, CourseConfig, FileSummary, MoveEvent, Profile
 
 PURPOSE_LABEL_DEFAULTS = {
     "school": {"primary_label": "Year", "secondary_label": "Semester"},
@@ -38,6 +43,54 @@ def _write_config_json(profile, config):
 
 def _parse_groups(raw):
     return [g.strip() for g in raw.split(",") if g.strip()]
+
+
+_SKIP_DIR_NAMES = {"$recycle.bin", "system volume information"}
+
+
+def _is_accessible_dir(path):
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def browse_folders(request):
+    """Read-only directory listing of this machine's own filesystem, used by
+    the folder-browser picker and the existing-subfolder suggestions in the
+    profile forms. The dashboard only ever binds to 127.0.0.1 (see
+    gui/server.py), so this is local-machine-only, same trust boundary as
+    everything else here -- no separate auth layer, consistent with the rest
+    of the app.
+    """
+    raw_path = request.GET.get("path", "").strip()
+
+    if not raw_path:
+        drives = []
+        for letter in string.ascii_uppercase:
+            root = Path(f"{letter}:/")
+            if _is_accessible_dir(root):
+                drives.append({"name": f"{letter}:\\", "path": str(root)})
+        return JsonResponse({"path": "", "parent": None, "folders": drives})
+
+    path = Path(raw_path)
+    if not _is_accessible_dir(path):
+        return JsonResponse({"error": "That folder doesn't exist or can't be opened."}, status=400)
+
+    try:
+        children = [
+            p for p in path.iterdir()
+            if _is_accessible_dir(p) and not p.name.startswith(".") and p.name.lower() not in _SKIP_DIR_NAMES
+        ]
+    except OSError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    folders = sorted(
+        ({"name": p.name, "path": str(p)} for p in children),
+        key=lambda f: f["name"].lower(),
+    )
+    parent = str(path.parent) if path.parent != path else None
+    return JsonResponse({"path": str(path), "parent": parent, "folders": folders})
 
 
 def dashboard(request):
@@ -195,3 +248,42 @@ def settings_edit(request):
         "default_downloads": str(paths.DEFAULT_DOWNLOADS),
         "default_library_inbox": str(paths.DEFAULT_LIBRARY_INBOX),
     })
+
+
+def move_summarize(request, pk):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    event = get_object_or_404(MoveEvent, pk=pk)
+    content, error = summarize_core.generate_summary(event.destination_path)
+    if error:
+        return JsonResponse({"error": error}, status=400)
+
+    FileSummary.objects.update_or_create(move_event=event, defaults={"content": content})
+    return JsonResponse({"ok": True})
+
+
+def move_summary_view(request, pk):
+    event = get_object_or_404(MoveEvent, pk=pk)
+    summary = getattr(event, "summary", None)
+    if summary is None:
+        return JsonResponse({"error": "No summary yet -- generate one first."}, status=404)
+
+    return JsonResponse({
+        "filename": event.filename,
+        "html": summarize_core.render_html(summary.content),
+        "created_at": summary.created_at.strftime("%Y-%m-%d %H:%M"),
+    })
+
+
+def move_summary_pdf(request, pk):
+    event = get_object_or_404(MoveEvent, pk=pk)
+    summary = getattr(event, "summary", None)
+    if summary is None:
+        return HttpResponse("No summary yet.", status=404)
+
+    pdf_bytes = summarize_core.render_pdf(event.filename, summary.content)
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    safe_name = re.sub(r"[^\w\-. ]", "_", Path(event.filename).stem) or "summary"
+    response["Content-Disposition"] = f'attachment; filename="{safe_name} summary.pdf"'
+    return response

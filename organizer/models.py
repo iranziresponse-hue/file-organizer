@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.db import models
 
 
@@ -147,3 +149,27 @@ class MoveEvent(models.Model):
 
     def __str__(self):
         return f"{self.filename} -> {self.destination_path}"
+
+    def is_summarizable(self):
+        from .core import summarize
+
+        if Path(self.filename).suffix.lstrip(".").lower() not in summarize.SUPPORTED_EXTENSIONS:
+            return False
+        if not self.destination_path:
+            return False
+        return Path(self.destination_path).exists()
+
+
+class FileSummary(models.Model):
+    """A long-form AI summary of a sorted document, cross-referenced against
+    whatever else was already sitting in its destination folder. One per
+    MoveEvent -- regenerating overwrites the previous content rather than
+    piling up duplicates."""
+
+    move_event = models.OneToOneField(MoveEvent, on_delete=models.CASCADE, related_name="summary")
+    content = models.TextField(help_text='Structured text using a "# "/"## " heading convention')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Summary for {self.move_event.filename}"
