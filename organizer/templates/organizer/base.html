@@ -1046,11 +1046,12 @@
             <button type="button" class="guide-close" id="guide-close" aria-label="Close">&times;</button>
             <h3>How Orch works</h3>
             <ul>
-                <li>A <strong>profile</strong> is one context (School, Work, Research...) with its own folder and rules. Only one is active at a time.</li>
-                <li>Files matching a subject code or topic keyword route straight into that subject's folder.</li>
-                <li>No match? Optional AI fallback, then <em>_Unsorted</em>.</li>
-                <li>Media, installers, archives, and sensitive files sort automatically, no profile needed.</li>
-                <li>Switch or edit profiles anytime from <strong>Profiles</strong>. Watch folders live in <strong>Settings</strong>.</li>
+                <li>Orch watches two folders, set in <strong>Settings</strong>: your Downloads folder, plus an optional second one.</li>
+                <li>Every new file is checked against these first, in order: passwords, keys, and certificates go to Important. Ebooks go to your Library inbox. Photos, music, and video go to Media. Zip and rar files go to Archives. Installers go to Installers. Code files go to Work.</li>
+                <li>Everything else (PDF, Word, Excel, PowerPoint) is routed by whichever <strong>profile</strong> is currently active. A profile is one folder plus a pair of labels you choose, like Year and Semester.</li>
+                <li>Inside that profile: a subject code in the filename wins first. No code? Orch checks the filename against that subject's topic keywords instead. Neither matches, and you've turned on AI fallback for this profile? The AI makes one last guess. Still nothing? The file goes to that profile's own _Unsorted folder.</li>
+                <li>No profile is active yet, or the file type isn't handled above? It lands in Documents\Personal\_NeedsSorting so nothing gets lost.</li>
+                <li>Create, switch, or edit a profile from <strong>Profiles</strong>. Change which folders get watched, or where ebooks land, from <strong>Settings</strong>.</li>
             </ul>
         </div>
     </div>
