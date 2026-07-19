@@ -222,7 +222,7 @@ class GenerateSummaryTests(SimpleTestCase):
         mock_post.return_value.json.return_value = {
             "choices": [{"message": {"content": (
                 "# Title\n\n"
-                "This uses an em dash — right here.\n\n"
+                "This uses an em dash \u2014 right here.\n\n"
                 "----\n\n"
                 "## Section\n\nMore text.\n"
             )}}]
@@ -231,7 +231,7 @@ class GenerateSummaryTests(SimpleTestCase):
         content, error = summarize.generate_summary(target)
 
         self.assertIsNone(error)
-        self.assertNotIn("—", content)
+        self.assertNotIn("\u2014", content)
         self.assertNotIn("----", content)
         self.assertIn("Title", content)
 
@@ -244,7 +244,7 @@ class GenerateSummaryTests(SimpleTestCase):
         content, error = summarize.generate_summary(target)
 
         self.assertIsNone(content)
-        self.assertIn("Couldn't reach the AI service", error)
+        self.assertIn("Couldn't reach the summary service", error)
 
     @mock.patch("organizer.core.summarize.requests.post")
     def test_related_files_are_included_in_the_prompt(self, mock_post):

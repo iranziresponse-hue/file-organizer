@@ -112,7 +112,7 @@ def _related_context(related_files):
 def _sanitize(content):
     # Belt and suspenders -- the prompt already forbids these, but strip
     # them regardless of whether the model actually listened.
-    content = content.replace("—", ",")
+    content = content.replace("\u2014", ",")
     return re.sub(r"^[\-_*]{3,}\s*$", "", content, flags=re.MULTILINE)
 
 
@@ -163,10 +163,74 @@ def generate_summary(file_path, log=None):
     except Exception as exc:  # network/timeout/bad-key/malformed-response
         if log:
             log(f"Summary generation failed for '{file_path.name}': {exc}")
-        return None, "Couldn't reach the AI service to generate this summary. Try again in a moment."
+        return None, "Couldn't reach the summary service. Try again in a moment."
 
     if not content:
-        return None, "The AI returned an empty response. Try again."
+        return None, "The summary service returned an empty response. Try again."
+
+    return _sanitize(content), None
+
+
+COURSE_GUIDE_PROMPT_TEMPLATE = """You are writing a general academic guide for a university course unit. You do not have access to this institution's actual official syllabus for this course. Do not invent specific facts you cannot know: no specific lecturer names, no specific assessment weightings, no specific week-by-week schedule, and do not claim this is the official curriculum. Instead, give an honest, well-grounded overview of what a course with this code and title typically covers at this level of study, based on how courses with this kind of code and title are generally structured in a program like this one.
+
+Course code: {course_code}
+Program context: {program}
+Academic level: {level}
+
+Write a long, thorough, unambiguous guide. Requirements:
+- Open with a short, compelling hook (2 to 4 sentences) that makes clear why this course matters and what a student stands to gain from taking it seriously.
+- Be explicit and detailed, not a short blurb.
+- Structure the output using this exact convention: one line starting with "# " for the title, and lines starting with "## " for section headings. Do not use any other heading depth. Leave a blank line between paragraphs.
+- Include at minimum: an overview of what this course is generally about, a breakdown of the topics a course like this typically covers, how it usually connects to other courses in a program like this, and a closing section on how to approach it and what to focus on.
+- Write in full prose paragraphs. Do not use bullet points, numbered lists, or asterisks anywhere.
+- Never use an em dash anywhere. Use a comma, period, or parentheses instead.
+- Never use a line made only of dashes, underscores, or asterisks as a divider.
+- Be explicit that this is a general guide, not an official syllabus, if you are not confident about institution-specific details.
+"""
+
+
+def generate_course_guide(course_code, program="", level="", log=None):
+    """Returns (content, None) on success or (None, error_message) on
+    failure, same shape as generate_summary(). Unlike generate_summary,
+    there is no source document to ground this in -- just the course code
+    and whatever program/level context the caller has -- so the prompt is
+    explicit about not inventing institution-specific facts it cannot know.
+    """
+    course_code = (course_code or "").strip()
+    if not course_code:
+        return None, "No course code given."
+
+    ai = ai_classify.load_ai_config()
+    if not ai or not ai.get("enabled") or not ai.get("api_key"):
+        return None, "AI isn't configured yet. Add your API key to ai_config.json to use course guides."
+
+    prompt = COURSE_GUIDE_PROMPT_TEMPLATE.format(
+        course_code=course_code,
+        program=program or "not specified",
+        level=level or "not specified",
+    )
+
+    body = {
+        "model": ai["model"],
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 3000,
+        "temperature": 0.4,
+    }
+
+    try:
+        response = requests.post(
+            f"{ai['base_url']}/chat/completions",
+            headers={"Authorization": f"Bearer {ai['api_key']}"},
+            json=body,
+            timeout=90,
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"].strip()
+    except Exception as exc:  # network/timeout/bad-key/malformed-response
+        return None, "Couldn't reach the guide service. Try again in a moment."
+
+    if not content:
+        return None, "The guide service returned an empty response. Try again."
 
     return _sanitize(content), None
 
@@ -295,7 +359,7 @@ def render_pdf(filename, content):
         elif kind == "h2":
             story.append(Paragraph(safe, h2_style))
         elif kind == "li":
-            story.append(Paragraph("• " + safe, li_style))
+            story.append(Paragraph("- " + safe, li_style))
         else:
             story.append(Paragraph(safe, body_style))
     if not story:

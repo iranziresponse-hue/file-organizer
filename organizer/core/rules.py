@@ -152,7 +152,7 @@ def get_destination(file_path, profile_root=None, library_inbox=None, ai_classif
             dest = prefix / topic_match["primary_value"] / topic_match["secondary_value"] / topic_match["code"] / category
             return Destination(dest, "topic", topic_match["code"])
 
-        # 3. No code, no topic match -- optional AI fallback.
+        # 3. No code, no topic match -- optional smart fallback.
         if ai_classify and root:
             ai_match = ai_classify(name, curriculum)
             if ai_match:

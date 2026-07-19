@@ -23,8 +23,7 @@ function initFolderSuggestions() {
         names.forEach(function (name) {
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'badge';
-            btn.style.cursor = 'pointer';
+            btn.className = 'suggestion-token';
             btn.textContent = name;
             btn.addEventListener('click', function () {
                 if (groupsContainer && groupsContainer.addTag) groupsContainer.addTag(name);

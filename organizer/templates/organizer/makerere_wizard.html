@@ -1,0 +1,204 @@
+{% extends "organizer/base.html" %}
+{% load static %}
+
+{% block title %}Makerere setup - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack">
+    <div class="page-banner">
+        <div class="page-banner-content">
+            <span class="eyebrow">Makerere University</span>
+            <h2>Set up your college folders.</h2>
+            <p>Pick your college, school, and program, and Orch builds this semester's course folders around them.</p>
+        </div>
+    </div>
+
+    <form method="post" class="page-stack">
+        {% csrf_token %}
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 1</span>
+                    <h2>Your college and program</h2>
+                    <p class="card-subtitle">Start typing to filter. Every college and school here is Makerere's real, current structure.</p>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="college">College</label>
+                    <input type="text" id="college" name="college" list="college-options" placeholder="Start typing, e.g. Computing" value="{{ form.college }}" required autocomplete="off">
+                    <datalist id="college-options">
+                        {% for c in colleges %}
+                        <option value="{{ c.name }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label for="school">School</label>
+                    <input type="text" id="school" name="school" list="school-options" placeholder="Pick your college first" value="{{ form.school }}" required autocomplete="off">
+                    <datalist id="school-options"></datalist>
+                </div>
+                <div class="field">
+                    <label for="program">Program</label>
+                    <input type="text" id="program" name="program" list="program-options" placeholder="Pick your school first, then type your program" value="{{ form.program }}" required autocomplete="off">
+                    <datalist id="program-options"></datalist>
+                    <p class="help-text" id="program-help">Suggestions come from that school's official programme list where Orch has one verified. If yours isn't listed, just type it.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 2</span>
+                    <h2>Where you are right now</h2>
+                    <p class="card-subtitle">Your current year and semester, and the courses you're taking this semester.</p>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-two">
+                    <div class="field">
+                        <label for="year_value">Year</label>
+                        <input type="text" id="year_value" name="year_value" list="year-options" placeholder="e.g. 2" value="{{ form.year_value }}" required autocomplete="off">
+                        <datalist id="year-options">
+                            <option value="1"></option>
+                            <option value="2"></option>
+                            <option value="3"></option>
+                            <option value="4"></option>
+                            <option value="5"></option>
+                            <option value="6"></option>
+                        </datalist>
+                    </div>
+                    <div class="field">
+                        <label for="semester_value">Semester</label>
+                        <input type="text" id="semester_value" name="semester_value" list="semester-options" placeholder="1 or 2" value="{{ form.semester_value }}" required autocomplete="off">
+                        <datalist id="semester-options">
+                            <option value="1"></option>
+                            <option value="2"></option>
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="root_path">Folder to organize into</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="root_path" name="root_path" placeholder="e.g. {{ default_root_hint }}" value="{{ form.root_path }}" required style="flex:1;">
+                        <button type="button" class="button-ghost" style="flex:0 0 auto; white-space:nowrap;" onclick="openFolderBrowser('root_path')">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                            Browse
+                        </button>
+                    </div>
+                    <p class="help-text">Already have a folder for this? Point Orch at it.</p>
+                </div>
+
+                <div class="field">
+                    <label for="groups_entry">This semester's course units</label>
+                    <div class="tag-input" id="groups-tag-input">
+                        <input type="text" id="groups_entry" placeholder="e.g. CSC1101, press Enter" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="groups" id="groups_hidden" value="{{ form.groups }}">
+                    <div class="meta-list" id="groups-suggestions" style="margin-top:8px;"></div>
+                    <p class="help-text">Type each course code from your real timetable this semester and press Enter. Only you know exactly what you're registered for this semester, so Orch asks rather than guesses.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Step 3</span>
+                    <h2>Sorting behavior</h2>
+                    <p class="card-subtitle">Course-code and topic-keyword matching are always on. This is the only optional extra.</p>
+                </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="ai_fallback_enabled" style="width:auto;" {% if form.ai_fallback_enabled %}checked{% endif %}>
+                Use smart fallback for files nothing else can place (advanced, needs your private key in local config)
+            </label>
+        </section>
+
+        <div>
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Create my profile
+            </button>
+        </div>
+    </form>
+</div>
+
+{{ colleges_json|json_script:"colleges-data" }}
+<script src="{% static 'organizer/js/tag-input.js' %}"></script>
+<script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
+<script>
+    initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+    initFolderSuggestions();
+
+    (function () {
+        var colleges = JSON.parse(document.getElementById('colleges-data').textContent);
+        var collegeInput = document.getElementById('college');
+        var schoolInput = document.getElementById('school');
+        var programInput = document.getElementById('program');
+        var schoolOptions = document.getElementById('school-options');
+        var programOptions = document.getElementById('program-options');
+        var programHelp = document.getElementById('program-help');
+
+        function findCollege(name) {
+            for (var code in colleges) {
+                if (colleges[code].name === name) return colleges[code];
+            }
+            return null;
+        }
+
+        function findSchool(college, name) {
+            if (!college) return null;
+            for (var i = 0; i < college.schools.length; i++) {
+                if (college.schools[i].name === name) return college.schools[i];
+            }
+            return null;
+        }
+
+        function fillOptions(datalist, values) {
+            datalist.innerHTML = '';
+            values.forEach(function (value) {
+                var opt = document.createElement('option');
+                opt.value = value;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function refreshSchools() {
+            var college = findCollege(collegeInput.value);
+            fillOptions(schoolOptions, college ? college.schools.map(function (s) { return s.name; }) : []);
+        }
+
+        function refreshPrograms() {
+            var college = findCollege(collegeInput.value);
+            var school = findSchool(college, schoolInput.value);
+            var programmes = school ? school.programmes : [];
+            fillOptions(programOptions, programmes);
+            programHelp.textContent = programmes.length
+                ? "Suggestions come from " + schoolInput.value + "'s official programme list. If yours isn't listed, just type it."
+                : "Orch doesn't have a verified programme list for this school yet -- just type your program name.";
+        }
+
+        collegeInput.addEventListener('change', function () {
+            schoolInput.value = '';
+            programInput.value = '';
+            refreshSchools();
+            refreshPrograms();
+        });
+        schoolInput.addEventListener('change', function () {
+            programInput.value = '';
+            refreshPrograms();
+        });
+
+        refreshSchools();
+        refreshPrograms();
+    })();
+</script>
+{% endblock %}

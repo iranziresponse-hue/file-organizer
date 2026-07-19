@@ -173,3 +173,26 @@ class FileSummary(models.Model):
 
     def __str__(self):
         return f"Summary for {self.move_event.filename}"
+
+
+class CourseGuide(models.Model):
+    """A general, AI-generated academic guide for one of a profile's course
+    units -- what a course like this one typically covers and why it
+    matters. Explicitly NOT an official syllabus: Orch has no access to any
+    institution's actual curriculum documents, so the guide is grounded
+    only in the course code/name and the profile's own program/year/
+    semester context, and the prompt forbids inventing institution-specific
+    specifics it cannot know. One per (profile, course_code) -- regenerating
+    overwrites rather than piling up duplicates."""
+
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="course_guides")
+    course_code = models.CharField(max_length=32)
+    content = models.TextField(help_text='Structured text using a "# "/"## " heading convention')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("profile", "course_code")
+
+    def __str__(self):
+        return f"Guide for {self.course_code} ({self.profile.name})"

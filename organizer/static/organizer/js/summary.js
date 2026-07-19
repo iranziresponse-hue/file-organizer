@@ -14,10 +14,18 @@
         return match ? match[1] : '';
     }
 
+    function viewSummaryIcon() {
+        return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/><path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    }
+
+    function setButtonContent(btn, icon, label) {
+        btn.innerHTML = icon + '<span>' + label + '</span>';
+    }
+
     function showSummary(moveId) {
         overlay.hidden = false;
         meta.textContent = '';
-        body.innerHTML = '<p>Loading…</p>';
+        body.innerHTML = '<p>Loading...</p>';
         downloadLink.href = '/moves/' + moveId + '/summary.pdf';
 
         fetch('/moves/' + moveId + '/summary/')
@@ -27,7 +35,7 @@
                     body.innerHTML = '<p>' + data.error + '</p>';
                     return;
                 }
-                meta.textContent = data.filename + ' · generated ' + data.created_at;
+                meta.textContent = data.filename + ' - generated ' + data.created_at;
                 body.innerHTML = data.html;
             })
             .catch(function () {
@@ -36,8 +44,8 @@
     }
 
     function generateSummary(moveId, btn) {
-        var originalText = btn.textContent;
-        btn.textContent = 'Generating…';
+        var originalHtml = btn.innerHTML;
+        setButtonContent(btn, viewSummaryIcon(), 'Generating...');
         btn.disabled = true;
 
         fetch('/moves/' + moveId + '/summarize/', {
@@ -48,17 +56,17 @@
             .then(function (data) {
                 btn.disabled = false;
                 if (data.error) {
-                    btn.textContent = originalText;
+                    btn.innerHTML = originalHtml;
                     window.alert(data.error);
                     return;
                 }
-                btn.textContent = 'View summary';
+                setButtonContent(btn, viewSummaryIcon(), 'View summary');
                 btn.dataset.action = 'view';
                 showSummary(moveId);
             })
             .catch(function () {
                 btn.disabled = false;
-                btn.textContent = originalText;
+                btn.innerHTML = originalHtml;
                 window.alert('Something went wrong generating this summary. Try again.');
             });
     }

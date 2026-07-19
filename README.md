@@ -22,9 +22,13 @@ Orch runs as a system tray app that watches your Downloads folder (and a second 
 
 **Document summaries.** Next to any sorted PDF or Word document in Recent Moves, a "Summarize" button generates a long, structured study companion, not a one-line blurb. It reads the actual file, pulls in the other summarizable files already sitting in the same destination folder, and writes a piece with a real hook, a detailed breakdown of the content, and a dedicated section connecting it to those related files. View it in a scrollable popup or download it as a formatted PDF. This is an AI feature (see below), off until you configure a key, and the prompt explicitly forbids em dashes and dash-divider lines.
 
+**Makerere University setup.** The first time you create a profile, Orch asks whether you're a Makerere student. If so, a guided flow walks through your real college, school, and program (typeahead search across all 10 colleges and every school in them, verified directly against each college's official site, not a plain scrolling dropdown), then your year, semester, and this semester's course units, and builds the folder structure for you. Every course unit gets its own "Guide" button: a long, AI-generated academic overview of what a course like that typically covers, clearly presented as general guidance rather than an official syllabus, since Orch has no access to any institution's actual curriculum documents. See `organizer/core/makerere.py` for exactly what's verified versus reasonably inferred, with sources.
+
+**Get your downloads flowing to Orch.** The first-run page walks through pointing your browser's (and other apps') default download location at the folder Orch watches, since Orch only ever sees files that land there.
+
 ## Tech stack
 
-- **Django** provides the data model (`AppSettings`, `Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`, `FileSummary`), the admin site, the dashboard, and a small read-only local API (`/api/browse-folders/`) that lets the UI browse this machine's real folders. The dashboard only ever binds to `127.0.0.1` (see `gui/server.py`), so this never leaves the machine.
+- **Django** provides the data model (`AppSettings`, `Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`, `FileSummary`, `CourseGuide`), the admin site, the dashboard, and a small read-only local API (`/api/browse-folders/`) that lets the UI browse this machine's real folders. The dashboard only ever binds to `127.0.0.1` (see `gui/server.py`), so this never leaves the machine.
 - **PyQt6** provides the desktop shell: a system tray icon that starts and stops the watcher, opens the dashboard in your browser, opens the log file, and toggles launch-at-startup, all without a console window.
 - The watcher itself is a polling loop, not a filesystem-events watcher, because a `FileSystemWatcher`/`Register-ObjectEvent` approach in the original PowerShell version this was ported from was found to silently stop firing when run as a detached background process.
 - `main.py` runs Django's migrations and dashboard server on background threads inside the same process as the tray icon, so the packaged exe needs no separate `manage.py` steps.
@@ -42,19 +46,20 @@ gui/
     autostart.py             Windows launch-at-login toggle (per-user registry key)
     assets.py                Resolves bundled asset paths, dev and PyInstaller alike
 organizer/
-    models.py                AppSettings, Profile, CourseConfig, CurriculumEntry, MoveEvent, FileSummary
-    views.py                  Dashboard, profile wizard/edit/list/activate/delete, settings, summary views
+    models.py                AppSettings, Profile, CourseConfig, CurriculumEntry, MoveEvent, FileSummary, CourseGuide
+    views.py                  Dashboard, profile wizard/edit/list/activate/delete, Makerere wizard, settings, summary/guide views
     admin.py                   Django admin registrations
     core/
         paths.py               Filesystem paths/constants not specific to any one profile
         rules.py               Pure destination-decision logic (no Django imports, unit-testable)
         ai_classify.py         Optional, off-by-default AI fallback classifier
-        summarize.py           Long-form AI document summaries: text extraction, prompt, HTML/PDF rendering
+        summarize.py           Long-form AI document summaries and course guides: extraction, prompts, HTML/PDF rendering
+        makerere.py            Verified Makerere University college/school/programme structure, with sources
         watcher.py             The polling watcher loop and move/cleanup logic
     static/organizer/img/      The Orch mark (favicon, tray icon, exe icon)
-    static/organizer/js/       Small vanilla-JS widgets: tag/chip input, folder browser, folder suggestions, summary popup
-    templates/organizer/       Dashboard, wizard, profile, and settings templates
-    tests/                    Unit tests for rules, ai_classify, summarize, watcher, views, settings, and folder browsing
+    static/organizer/js/       Small vanilla-JS widgets: tag/chip input, folder browser, folder suggestions, summary/guide popups
+    templates/organizer/       Dashboard, wizard, Makerere wizard, profile, start, and settings templates
+    tests/                    Unit tests for rules, ai_classify, summarize, makerere, watcher, views, settings, and folder browsing
 main.py                      Desktop app entry point (python main.py, or the PyInstaller target)
 runtime.py                   Resolves persistent-state paths, dev root vs. exe-adjacent when frozen
 Orch.spec                    PyInstaller build spec
@@ -67,7 +72,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-This runs migrations automatically, starts the dashboard on `http://127.0.0.1:8765/`, and puts a tray icon in the system tray with Start/Stop watching, Open dashboard, Open log, Start with Windows, and Quit. On first launch it opens the setup wizard so you can create your first profile.
+This runs migrations automatically, starts the dashboard on `http://127.0.0.1:8765/`, and puts a tray icon in the system tray with Start/Stop watching, Open dashboard, Open log, Start with Windows, and Quit. On first launch it opens the get-started page so you can create your first profile.
 
 If you just want the Django dashboard on its own, without the tray app or the watcher:
 
@@ -78,12 +83,13 @@ python manage.py runserver
 
 ## Advanced: AI features
 
-Two things use an AI model, both off until you configure a key, and neither is required to use Orch:
+Three things use an AI model, all off until you configure a key, and none required to use Orch:
 
 - Each profile has an optional "smart fallback match" setting. If enabled, files that match no subject code and no topic keyword get one more pass through an AI classifier before falling back to `_Unsorted`.
 - Document summaries (the "Summarize" button on a sorted PDF or Word file) always need a key, since there is no non-AI fallback for that feature.
+- Course guides (the "Guide" button on a course unit token) also always need a key. These are general academic overviews grounded only in the course code and program context, explicitly not claiming to be an official syllabus.
 
-Both use the same Groq's OpenAI-compatible API and the same key: copy `ai_config.example.json` to `ai_config.json` in the project root (or next to the built exe) and fill it in. `ai_config.json` is gitignored and never committed.
+All three use the same Groq OpenAI-compatible API and the same key: copy `ai_config.example.json` to `ai_config.json` in the project root (or next to the built exe) and fill it in. `ai_config.json` is gitignored and never committed.
 
 ## Tests
 

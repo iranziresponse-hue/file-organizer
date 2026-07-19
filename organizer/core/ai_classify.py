@@ -1,4 +1,4 @@
-"""AI fallback for files the heuristics genuinely can't place. Ported from
+"""Smart fallback for files the heuristics genuinely can't place. Ported from
 Invoke-AIClassify in OrganizeDownloads.ps1 -- currently configured for Groq's
 OpenAI-compatible endpoint. Works on the FILENAME only (semantic reasoning
 over the name against the course list), not file content.

@@ -60,7 +60,7 @@ def main():
         # delay the first open instead of racing it.
         import webbrowser
 
-        QTimer.singleShot(1500, lambda: webbrowser.open(dashboard_url() + "profiles/new/"))
+        QTimer.singleShot(1500, lambda: webbrowser.open(dashboard_url() + "start/"))
 
     sys.exit(app.exec())
 

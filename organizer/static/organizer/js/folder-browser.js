@@ -19,7 +19,7 @@ function fetchSubfolderNames(path, callback) {
     var state = { path: '', parent: null, targetInputId: null };
 
     function fetchFolders(path, onDone) {
-        list.innerHTML = '<p class="help-text">Loading…</p>';
+        list.innerHTML = '<p class="help-text">Loading...</p>';
         fetch('/api/browse-folders/?path=' + encodeURIComponent(path || ''))
             .then(function (r) { return r.json(); })
             .then(onDone)

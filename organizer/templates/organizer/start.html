@@ -1,0 +1,61 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Get started - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack">
+    <div class="page-banner">
+        <div class="page-banner-content">
+            <span class="eyebrow">Get started</span>
+            <h2>Let's set up your first profile.</h2>
+            <p>One quick question first, then Orch takes it from there.</p>
+        </div>
+    </div>
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Are you a Makerere University student?</h2>
+                <p class="card-subtitle">If so, Orch can build your college, school, program, and course folders for you.</p>
+            </div>
+        </div>
+        <div class="form-two">
+            <a class="button" href="{% url 'makerere_wizard' %}" style="justify-content:center;">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 4 3 8.5 12 13l9-4.5L12 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M6 10.5V16c0 1.1 2.7 3 6 3s6-1.9 6-3v-5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Yes, I'm at Makerere
+            </a>
+            <a class="button button-ghost" href="{% url 'profile_wizard' %}" style="justify-content:center;">
+                No, set up my own profile
+            </a>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <span class="eyebrow">Do this first</span>
+                <h2>Point your downloads at Orch</h2>
+                <p class="card-subtitle">Orch only sees files that land in the folder it's watching. Set that folder as the default save location everywhere, once, and every download sorts itself from then on.</p>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="field">
+                <label>Chrome or Edge</label>
+                <p class="help-text">Settings, then Downloads. Turn off "Ask where to save each file before downloading" and set the location to your Downloads folder (or whichever folder you set in Orch's Settings page).</p>
+            </div>
+            <div class="field">
+                <label>Firefox</label>
+                <p class="help-text">Settings, then General, then Files and Applications. Under "Downloads," choose "Save files to" and pick the same folder.</p>
+            </div>
+            <div class="field">
+                <label>WhatsApp Desktop, and anything else that saves files</label>
+                <p class="help-text">Check its own Settings for a "Save to" or "Download location" option, and point it at the same folder. Most apps that download files let you change this somewhere in their settings.</p>
+            </div>
+            <p class="help-text">Already set up? You can change which folder Orch watches anytime from <strong>Settings</strong>.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}

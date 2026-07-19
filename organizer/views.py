@@ -8,9 +8,9 @@ from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .core import paths
+from .core import makerere, paths
 from .core import summarize as summarize_core
-from .models import AppSettings, CourseConfig, FileSummary, MoveEvent, Profile
+from .models import AppSettings, CourseConfig, CourseGuide, FileSummary, MoveEvent, Profile
 
 PURPOSE_LABEL_DEFAULTS = {
     "school": {"primary_label": "Year", "secondary_label": "Semester"},
@@ -109,6 +109,9 @@ def dashboard(request):
         .order_by("-total")
     )
     config = getattr(profile, "config", None) if profile else None
+    guided_codes = set(
+        CourseGuide.objects.filter(profile=profile).values_list("course_code", flat=True)
+    ) if profile else set()
 
     context = {
         "profile": profile,
@@ -117,6 +120,7 @@ def dashboard(request):
         "method_counts": method_counts,
         "course_counts": course_counts,
         "config": config,
+        "guided_codes": guided_codes,
         "total_moves": events.count(),
     }
     return render(request, "organizer/dashboard.html", context)
@@ -173,6 +177,70 @@ def profile_wizard(request):
     return render(request, "organizer/profile_wizard.html", {
         "purposes": Profile.PURPOSE_CHOICES,
         "purpose_defaults": PURPOSE_LABEL_DEFAULTS,
+    })
+
+
+def start(request):
+    """First stop when setting up a profile: a Makerere-specific guided
+    path, or the generic wizard for everyone else."""
+    return render(request, "organizer/start.html")
+
+
+def makerere_wizard(request):
+    colleges_json = makerere.as_json()
+
+    if request.method == "POST":
+        college_name = request.POST.get("college", "").strip()
+        school_name = request.POST.get("school", "").strip()
+        program = request.POST.get("program", "").strip()
+        year_value = request.POST.get("year_value", "").strip()
+        semester_value = request.POST.get("semester_value", "").strip()
+        root_path = request.POST.get("root_path", "").strip()
+        groups = _parse_groups(request.POST.get("groups", ""))
+        ai_fallback_enabled = bool(request.POST.get("ai_fallback_enabled"))
+
+        college = makerere.get_college_by_name(college_name)
+
+        if not college or not school_name or not program or not root_path or not year_value or not semester_value:
+            messages.error(
+                request,
+                "Pick your college and school, fill in your program, year, semester, and a folder to organize into.",
+            )
+            return render(request, "organizer/makerere_wizard.html", {
+                "colleges": makerere.COLLEGES,
+                "colleges_json": colleges_json,
+                "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
+                "form": request.POST,
+            })
+
+        profile_name = f"{program} ({college['code']}) - Makerere University"
+        profile = Profile.objects.create(
+            name=profile_name,
+            purpose="school",
+            primary_label="Year",
+            secondary_label="Semester",
+            root_path=root_path,
+            ai_fallback_enabled=ai_fallback_enabled,
+            is_active=True,
+        )
+        config = CourseConfig.objects.create(
+            profile=profile,
+            primary_value=f"Year {year_value}",
+            secondary_value=f"Semester {semester_value}",
+            groups=groups,
+        )
+        ok, error = _write_config_json(profile, config)
+        if ok:
+            messages.success(request, f"'{profile.name}' is set up and active.")
+        else:
+            messages.error(request, f"Profile saved, but could not write _config.json: {error}")
+
+        return redirect("dashboard")
+
+    return render(request, "organizer/makerere_wizard.html", {
+        "colleges": makerere.COLLEGES,
+        "colleges_json": colleges_json,
+        "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
     })
 
 
@@ -286,4 +354,46 @@ def move_summary_pdf(request, pk):
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     safe_name = re.sub(r"[^\w\-. ]", "_", Path(event.filename).stem) or "summary"
     response["Content-Disposition"] = f'attachment; filename="{safe_name} summary.pdf"'
+    return response
+
+
+def course_guide_generate(request, profile_pk, code):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    profile = get_object_or_404(Profile, pk=profile_pk)
+    config = getattr(profile, "config", None)
+    level = f"{config.primary_value} {config.secondary_value}".strip() if config else ""
+
+    content, error = summarize_core.generate_course_guide(code, program=profile.name, level=level)
+    if error:
+        return JsonResponse({"error": error}, status=400)
+
+    CourseGuide.objects.update_or_create(profile=profile, course_code=code, defaults={"content": content})
+    return JsonResponse({"ok": True})
+
+
+def course_guide_view(request, profile_pk, code):
+    profile = get_object_or_404(Profile, pk=profile_pk)
+    guide = CourseGuide.objects.filter(profile=profile, course_code=code).first()
+    if guide is None:
+        return JsonResponse({"error": "No guide yet -- generate one first."}, status=404)
+
+    return JsonResponse({
+        "course_code": code,
+        "html": summarize_core.render_html(guide.content),
+        "created_at": guide.created_at.strftime("%Y-%m-%d %H:%M"),
+    })
+
+
+def course_guide_pdf(request, profile_pk, code):
+    profile = get_object_or_404(Profile, pk=profile_pk)
+    guide = CourseGuide.objects.filter(profile=profile, course_code=code).first()
+    if guide is None:
+        return HttpResponse("No guide yet.", status=404)
+
+    pdf_bytes = summarize_core.render_pdf(code, guide.content)
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    safe_name = re.sub(r"[^\w\-. ]", "_", code) or "course-guide"
+    response["Content-Disposition"] = f'attachment; filename="{safe_name} guide.pdf"'
     return response

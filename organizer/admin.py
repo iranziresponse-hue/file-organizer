@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AppSettings, CourseConfig, CurriculumEntry, FileSummary, MoveEvent, Profile
+from .models import AppSettings, CourseConfig, CourseGuide, CurriculumEntry, FileSummary, MoveEvent, Profile
 
 
 @admin.register(AppSettings)
@@ -35,3 +35,10 @@ class MoveEventAdmin(admin.ModelAdmin):
 @admin.register(FileSummary)
 class FileSummaryAdmin(admin.ModelAdmin):
     list_display = ("move_event", "created_at", "updated_at")
+
+
+@admin.register(CourseGuide)
+class CourseGuideAdmin(admin.ModelAdmin):
+    list_display = ("course_code", "profile", "created_at", "updated_at")
+    list_filter = ("profile",)
+    search_fields = ("course_code",)

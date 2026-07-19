@@ -24,9 +24,21 @@
                 </p>
             </div>
             {% if has_any_profile %}
-                <a class="button" href="{% url 'profiles_list' %}">Choose a profile</a>
+                <a class="button" href="{% url 'profiles_list' %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M8 7h12M8 12h12M8 17h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    Choose a profile
+                </a>
             {% else %}
-                <a class="button" href="{% url 'profile_wizard' %}">Create your first profile</a>
+                <a class="button" href="{% url 'start' %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Create your first profile
+                </a>
             {% endif %}
         </div>
     </section>
@@ -53,13 +65,16 @@
                     <div class="label">{{ config.secondary_value }}</div>
                 </div>
                 <div class="section-gap"></div>
-                <div class="badge-list" aria-label="Subjects">
+                <div class="meta-list" aria-label="Subjects">
                     {% for c in config.groups %}
-                    <span class="badge">{{ c }}</span>
+                    <button type="button" class="suggestion-token course-guide-btn" data-profile-id="{{ profile.pk }}" data-course-code="{{ c }}" data-has-guide="{% if c in guided_codes %}true{% else %}false{% endif %}">{{ c }}</button>
                     {% empty %}
-                    <span class="badge">No subjects yet</span>
+                    <span class="meta-token">No subjects yet</span>
                     {% endfor %}
                 </div>
+                {% if config.groups %}
+                <p class="help-text">Click a course to generate or view its guide.</p>
+                {% endif %}
             {% else %}
                 <div class="empty-state">
                     <span class="empty-icon" aria-hidden="true">
@@ -72,7 +87,12 @@
                         <h3>Set your {{ profile.primary_label|lower }}/{{ profile.secondary_label|lower }} first.</h3>
                         <p>Add your current group to start sorting files into the right subject paths.</p>
                     </div>
-                    <a class="button" href="{% url 'profile_edit' profile.pk %}">Finish setup</a>
+                    <a class="button" href="{% url 'profile_edit' profile.pk %}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Finish setup
+                    </a>
                 </div>
             {% endif %}
         </div>
@@ -117,7 +137,7 @@
                 <tr><th>Subject</th><th>Files</th></tr>
                 {% for row in course_counts %}
                 <tr>
-                    <td><span class="badge">{{ row.course_code }}</span></td>
+                    <td><span class="meta-token">{{ row.course_code }}</span></td>
                     <td>{{ row.total }}</td>
                 </tr>
                 {% endfor %}
@@ -132,7 +152,7 @@
                 <h2>Recent Moves</h2>
                 <p class="card-subtitle">Latest 50 file decisions for {{ profile.name }}</p>
             </div>
-            <span class="badge">{{ recent_events|length }} shown</span>
+            <span class="meta-token">{{ recent_events|length }} shown</span>
         </div>
         {% if recent_events %}
             <div class="table-shell">
@@ -154,12 +174,24 @@
                         <td>
                             {% if event.is_summarizable %}
                                 {% if event.summary %}
-                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">View summary</button>
+                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">
+                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+                                        <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                    View summary
+                                </button>
                                 {% else %}
-                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">Summarize</button>
+                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">
+                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+                                        <path d="M9 9h6M9 12h6M9 15h3M16.5 14.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5.5-1.2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Summarize
+                                </button>
                                 {% endif %}
                             {% else %}
-                            <span class="path-text">n/a</span>
+                            <span class="path-text">Not available</span>
                             {% endif %}
                         </td>
                     </tr>
