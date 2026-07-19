@@ -1,0 +1,56 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Settings - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack">
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <span class="eyebrow">App-wide</span>
+                <h2>Settings</h2>
+                <p class="card-subtitle">These apply across every profile -- where Orch watches for downloads, and where ebooks land.</p>
+            </div>
+        </div>
+
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="field">
+                <label for="downloads_path">Primary downloads folder</label>
+                <input type="text" id="downloads_path" name="downloads_path" value="{{ settings.downloads_path }}" placeholder="{{ default_downloads }}" required>
+            </div>
+
+            <div class="field">
+                <label for="secondary_downloads_path">Secondary downloads folder (optional)</label>
+                <input type="text" id="secondary_downloads_path" name="secondary_downloads_path" value="{{ settings.secondary_downloads_path }}" placeholder="e.g. a downloads folder on another drive">
+                <p class="help-text">Leave blank to disable. Only files added after this is set get swept -- existing files are never touched.</p>
+            </div>
+
+            <div class="field">
+                <label for="library_inbox_path">Ebook inbox folder</label>
+                <input type="text" id="library_inbox_path" name="library_inbox_path" value="{{ settings.library_inbox_path }}" placeholder="{{ default_library_inbox }}" required>
+                <p class="help-text">Detected ebooks land here, independent of any profile.</p>
+            </div>
+
+            <div class="form-two">
+                <div class="field">
+                    <label for="installer_stale_days">Installer review after (days)</label>
+                    <input type="number" min="1" id="installer_stale_days" name="installer_stale_days" value="{{ settings.installer_stale_days }}">
+                </div>
+                <div class="field">
+                    <label for="installer_delete_days">Installer delete after (days)</label>
+                    <input type="number" min="1" id="installer_delete_days" name="installer_delete_days" value="{{ settings.installer_delete_days }}">
+                </div>
+            </div>
+
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                Save settings
+            </button>
+        </form>
+    </section>
+</div>
+{% endblock %}

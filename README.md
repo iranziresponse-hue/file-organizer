@@ -12,11 +12,15 @@ Orch runs as a system tray app that watches your Downloads folder (and a second 
 
 **History.** Every move is logged both to a text log file and to a Django database table, so there is a searchable, per-profile history of what got moved where and why, surfaced on a dashboard.
 
-**Setup wizard.** A three-step flow (purpose, structure, sorting behavior) gets a new profile running in under a minute.
+**Setup wizard.** A three-step flow (purpose, structure, sorting behavior) gets a new profile running in under a minute. Subject codes are added as removable chips, not a comma-separated text blob, and group labels suggest common presets ("Year", "Topic", "Department"...) while still taking anything you type.
+
+**Settings.** Nothing is hardcoded to one machine. Which folders get watched, and where ebooks land, are all editable from a Settings page, defaulted sensibly to your own Windows user profile the first time the app runs.
+
+**Guide.** A `?` button in the top bar explains the routing logic in a few bullet points, no digging through docs.
 
 ## Tech stack
 
-- **Django** provides the data model (`Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`), the admin site, and the dashboard: profile switcher, setup wizard, and recent-moves view.
+- **Django** provides the data model (`AppSettings`, `Profile`, `CourseConfig`, `CurriculumEntry`, `MoveEvent`), the admin site, and the dashboard: profile switcher, setup wizard, and recent-moves view.
 - **PyQt6** provides the desktop shell: a system tray icon that starts and stops the watcher, opens the dashboard in your browser, opens the log file, and toggles launch-at-startup, all without a console window.
 - The watcher itself is a polling loop, not a filesystem-events watcher, because a `FileSystemWatcher`/`Register-ObjectEvent` approach in the original PowerShell version this was ported from was found to silently stop firing when run as a detached background process.
 - `main.py` runs Django's migrations and dashboard server on background threads inside the same process as the tray icon, so the packaged exe needs no separate `manage.py` steps.
@@ -34,8 +38,8 @@ gui/
     autostart.py             Windows launch-at-login toggle (per-user registry key)
     assets.py                Resolves bundled asset paths, dev and PyInstaller alike
 organizer/
-    models.py                Profile, CourseConfig, CurriculumEntry, MoveEvent
-    views.py                  Dashboard, profile wizard/edit/list/activate/delete views
+    models.py                AppSettings, Profile, CourseConfig, CurriculumEntry, MoveEvent
+    views.py                  Dashboard, profile wizard/edit/list/activate/delete, settings views
     admin.py                   Django admin registrations
     core/
         paths.py               Filesystem paths/constants not specific to any one profile
@@ -43,8 +47,9 @@ organizer/
         ai_classify.py         Optional, off-by-default AI fallback classifier
         watcher.py             The polling watcher loop and move/cleanup logic
     static/organizer/img/      The Orch mark (favicon, tray icon, exe icon)
-    templates/organizer/       Dashboard, wizard, and profile templates
-    tests/                    Unit tests for rules, ai_classify, watcher, and the views
+    static/organizer/js/       Small vanilla-JS widgets (tag/chip input for subject lists)
+    templates/organizer/       Dashboard, wizard, profile, and settings templates
+    tests/                    Unit tests for rules, ai_classify, watcher, views, and settings
 main.py                      Desktop app entry point (python main.py, or the PyInstaller target)
 runtime.py                   Resolves persistent-state paths, dev root vs. exe-adjacent when frozen
 Orch.spec                    PyInstaller build spec

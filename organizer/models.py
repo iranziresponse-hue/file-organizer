@@ -1,6 +1,40 @@
 from django.db import models
 
 
+class AppSettings(models.Model):
+    """Single-row, app-wide settings that aren't specific to any one
+    profile: where to watch for downloads, where ebooks land, how long
+    installers sit before cleanup. Defaults are computed from this
+    machine's own user profile the first time this row is created --
+    never hardcoded to one person's drive layout. Editable from the
+    dashboard at any time."""
+
+    downloads_path = models.CharField(max_length=1024)
+    secondary_downloads_path = models.CharField(
+        max_length=1024,
+        blank=True,
+        help_text="Optional second folder to watch, e.g. downloads on another drive. Leave blank to disable.",
+    )
+    library_inbox_path = models.CharField(max_length=1024)
+    installer_stale_days = models.PositiveIntegerField(default=30)
+    installer_delete_days = models.PositiveIntegerField(default=60)
+
+    def __str__(self):
+        return "App settings"
+
+    @classmethod
+    def get_solo(cls):
+        obj = cls.objects.first()
+        if obj:
+            return obj
+        from .core import paths
+
+        return cls.objects.create(
+            downloads_path=str(paths.DEFAULT_DOWNLOADS),
+            library_inbox_path=str(paths.DEFAULT_LIBRARY_INBOX),
+        )
+
+
 class Profile(models.Model):
     """A context to organize files into -- School, Online courses, Work
     training, Research, whatever the user names it. Each profile owns its

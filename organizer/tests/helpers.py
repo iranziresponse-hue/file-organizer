@@ -1,9 +1,9 @@
 """Shared test infrastructure. organizer.core.paths hardcodes real locations
-on this machine (D:\\myDownloads, Documents\\Personal, ...), and several code
-paths write to them. SandboxedPathsTestCase redirects every one of those
-constants into a throwaway temp directory for the life of the test, so
-nothing under test can ever touch the real filesystem. profile_root is a
-ready-to-use folder for tests that need an active Profile's root_path.
+on this machine (Documents\\Personal, ...), and several code paths write to
+them. SandboxedPathsTestCase redirects every one of those constants into a
+throwaway temp directory for the life of the test, so nothing under test can
+ever touch the real filesystem. profile_root is a ready-to-use folder for
+tests that need an active Profile's root_path.
 """
 
 import tempfile
@@ -41,10 +41,14 @@ class SandboxedPathsTestCase(TestCase):
             "WORK_UNSORTED": self.work_unsorted,
             "PERSONAL_ROOT": self.personal_root,
             "IMPORTANT_ROOT": self.personal_root / "Important",
-            "LIBRARY_INBOX": self.library_inbox,
             "LOG_PATH": self.log_path,
-            "DOWNLOADS": self.downloads,
-            "DOWNLOADS2": self.downloads2,
+            # DEFAULT_DOWNLOADS/DEFAULT_LIBRARY_INBOX are only ever read by
+            # AppSettings.get_solo() the first time it creates its row --
+            # patch them directly rather than relying on them being derived
+            # from PERSONAL_ROOT, since they were already computed once at
+            # import time before PERSONAL_ROOT was patched here.
+            "DEFAULT_DOWNLOADS": self.downloads,
+            "DEFAULT_LIBRARY_INBOX": self.library_inbox,
         }
         for name, value in overrides.items():
             self.enterContext(mock.patch.object(paths, name, value))
@@ -62,3 +66,18 @@ class SandboxedPathsTestCase(TestCase):
         }
         fields.update(overrides)
         return Profile.objects.create(**fields)
+
+    def make_settings(self, **overrides):
+        from organizer.models import AppSettings
+
+        fields = {
+            "downloads_path": str(self.downloads),
+            "secondary_downloads_path": str(self.downloads2),
+            "library_inbox_path": str(self.library_inbox),
+        }
+        fields.update(overrides)
+        settings = AppSettings.get_solo()
+        for key, value in fields.items():
+            setattr(settings, key, value)
+        settings.save()
+        return settings

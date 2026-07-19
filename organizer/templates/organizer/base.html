@@ -561,6 +561,147 @@
             text-transform: uppercase;
         }
 
+        .tag-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--stroke);
+            border-radius: 16px;
+            padding: 10px 12px;
+        }
+
+        .tag-input:focus-within {
+            border-color: rgba(103, 232, 249, 0.65);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px 4px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #C4B5FD;
+        }
+
+        .tag-chip button {
+            all: unset;
+            display: grid;
+            place-items: center;
+            width: 16px;
+            height: 16px;
+            min-height: 0;
+            border-radius: 999px;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+        }
+
+        .tag-chip button:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .tag-input input {
+            flex: 1 1 140px;
+            border: none;
+            background: transparent;
+            padding: 4px 2px;
+            width: auto;
+        }
+
+        .tag-input input:focus {
+            box-shadow: none;
+        }
+
+        .guide-btn {
+            all: unset;
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--stroke);
+            color: rgba(248, 250, 252, 0.82);
+            font-weight: 800;
+            font-size: 0.84rem;
+            cursor: pointer;
+        }
+
+        .guide-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .guide-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(7, 12, 24, 0.6);
+            backdrop-filter: blur(6px);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .guide-overlay[hidden] {
+            display: none;
+        }
+
+        .guide-panel {
+            position: relative;
+            max-width: 420px;
+            width: 100%;
+            background: rgba(20, 24, 33, 0.96);
+            border: 1px solid var(--stroke);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 28px;
+        }
+
+        .guide-panel h3 {
+            font-size: 1.2rem;
+            margin-bottom: 14px;
+        }
+
+        .guide-panel ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .guide-panel li {
+            margin-bottom: 8px;
+        }
+
+        .guide-close {
+            all: unset;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 999px;
+            cursor: pointer;
+            color: var(--muted);
+        }
+
+        .guide-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
         .form-grid {
             display: grid;
             gap: 16px;
@@ -777,9 +918,25 @@
         <nav class="nav" aria-label="Primary navigation">
             <a href="{% url 'dashboard' %}">Dashboard</a>
             <a href="{% url 'profiles_list' %}">Profiles</a>
+            <a href="{% url 'settings_edit' %}">Settings</a>
             <a href="/admin/">Admin</a>
+            <button type="button" class="guide-btn" id="guide-toggle" aria-haspopup="dialog" aria-controls="guide-overlay" title="How Orch works">?</button>
         </nav>
     </header>
+
+    <div class="guide-overlay" id="guide-overlay" hidden>
+        <div class="guide-panel" role="dialog" aria-modal="true" aria-label="How Orch works">
+            <button type="button" class="guide-close" id="guide-close" aria-label="Close">&times;</button>
+            <h3>How Orch works</h3>
+            <ul>
+                <li>A <strong>profile</strong> is one context (School, Work, Research...) with its own folder and rules. Only one is active at a time.</li>
+                <li>Files matching a subject code or topic keyword route straight into that subject's folder.</li>
+                <li>No match? Optional AI fallback, then <em>_Unsorted</em>.</li>
+                <li>Media, installers, archives, and sensitive files sort automatically, no profile needed.</li>
+                <li>Switch or edit profiles anytime from <strong>Profiles</strong>. Watch folders live in <strong>Settings</strong>.</li>
+            </ul>
+        </div>
+    </div>
 
     <main>
         {% if messages %}
@@ -792,5 +949,27 @@
         {% block content %}{% endblock %}
     </main>
 </div>
+
+<script>
+    (function () {
+        var overlay = document.getElementById('guide-overlay');
+        var toggle = document.getElementById('guide-toggle');
+        var close = document.getElementById('guide-close');
+        if (!overlay || !toggle) return;
+
+        function open() { overlay.hidden = false; }
+        function hide() { overlay.hidden = true; }
+
+        toggle.addEventListener('click', open);
+        close.addEventListener('click', hide);
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) hide();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') hide();
+        });
+    })();
+</script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

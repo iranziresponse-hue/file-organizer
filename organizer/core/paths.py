@@ -16,12 +16,17 @@ BASE_DIR = app_dir()
 
 USER_PROFILE = Path(os.environ["USERPROFILE"])
 
-DOWNLOADS = USER_PROFILE / "Downloads"
-DOWNLOADS2 = Path("D:/myDownloads")  # a second, real download location
 WORK_UNSORTED = USER_PROFILE / "Documents" / "Work" / "_Unsorted"
 PERSONAL_ROOT = USER_PROFILE / "Documents" / "Personal"
 IMPORTANT_ROOT = PERSONAL_ROOT / "Important"
-LIBRARY_INBOX = Path("D:/Library/00 New - Sort Me")
+
+# Defaults only -- used the first time AppSettings.get_solo() creates its
+# row, and as rules.get_destination()'s fallback when no library_inbox is
+# passed in. The actual, possibly-user-edited values always come from
+# AppSettings (organizer.models), never from these constants directly, so
+# nothing here assumes any drive layout beyond "this user has a profile".
+DEFAULT_DOWNLOADS = USER_PROFILE / "Downloads"
+DEFAULT_LIBRARY_INBOX = PERSONAL_ROOT / "Library" / "00 New - Sort Me"
 
 # Kept pointing at the same log file the PowerShell version used, so history
 # stays in one continuous place across the switchover.
@@ -65,8 +70,3 @@ ARCHIVE_EXT = {"zip", "rar", "7z", "tar", "gz"}
 INSTALLER_EXT = {"exe", "msi", "apk"}
 DOC_EXT = {"pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv"}
 CODE_EXT = {"sh", "py", "js", "json", "ts", "php", "java", "sql", "ipynb"}
-
-# Old installer cleanup thresholds -- only ever touches
-# Documents\Personal\Installers, never Downloads or any other drive.
-INSTALLER_STALE_DAYS = 30
-INSTALLER_DELETE_DAYS = 60

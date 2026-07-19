@@ -88,7 +88,7 @@ def get_content_category(name):
     return "05 Reference and Extra Reading"
 
 
-def get_destination(file_path, profile_root=None, ai_classify=None):
+def get_destination(file_path, profile_root=None, library_inbox=None, ai_classify=None):
     """Decides where a file belongs. Re-reads the profile's config/curriculum
     fresh every call (not cached) so editing them takes effect on the very
     next download, no restart needed.
@@ -96,6 +96,9 @@ def get_destination(file_path, profile_root=None, ai_classify=None):
     profile_root: the active Profile's root_path, or None if no profile is
     active yet -- document files then fall straight to _NeedsSorting, same
     as a profile with no config saved.
+    library_inbox: where ebooks land -- normally organizer.models.AppSettings'
+    configured value, passed in by the caller. Falls back to
+    paths.DEFAULT_LIBRARY_INBOX if not given.
     ai_classify: optional callable(name, curriculum) -> curriculum entry dict
     or None, used as the last-resort fallback before giving up.
     """
@@ -116,7 +119,7 @@ def get_destination(file_path, profile_root=None, ai_classify=None):
 
     # Ebooks win over subject/topic matching.
     if is_ebook(name, ext):
-        return Destination(paths.LIBRARY_INBOX, "ebook")
+        return Destination(library_inbox or paths.DEFAULT_LIBRARY_INBOX, "ebook")
 
     if ext in paths.IMAGE_EXT:
         return Destination(paths.PERSONAL_ROOT / "Media" / "Images", "media")

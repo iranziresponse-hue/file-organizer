@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import CourseConfig, CurriculumEntry, MoveEvent, Profile
+from .models import AppSettings, CourseConfig, CurriculumEntry, MoveEvent, Profile
+
+
+@admin.register(AppSettings)
+class AppSettingsAdmin(admin.ModelAdmin):
+    list_display = ("downloads_path", "secondary_downloads_path", "library_inbox_path")
 
 
 @admin.register(Profile)

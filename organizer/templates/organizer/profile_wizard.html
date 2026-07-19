@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load static %}
 
 {% block title %}New profile - Orch{% endblock %}
 
@@ -61,13 +62,26 @@
                 <div class="form-two">
                     <div class="field">
                         <label for="primary_label">Primary group label</label>
-                        <input type="text" id="primary_label" name="primary_label" placeholder="Year" value="{{ form.primary_label|default:'Year' }}">
+                        <input type="text" id="primary_label" name="primary_label" list="label-presets" placeholder="Year" value="{{ form.primary_label|default:'Year' }}">
                     </div>
                     <div class="field">
                         <label for="secondary_label">Secondary group label</label>
-                        <input type="text" id="secondary_label" name="secondary_label" placeholder="Semester" value="{{ form.secondary_label|default:'Semester' }}">
+                        <input type="text" id="secondary_label" name="secondary_label" list="label-presets" placeholder="Semester" value="{{ form.secondary_label|default:'Semester' }}">
                     </div>
                 </div>
+                <datalist id="label-presets">
+                    <option value="Year"></option>
+                    <option value="Semester"></option>
+                    <option value="Quarter"></option>
+                    <option value="Topic"></option>
+                    <option value="Phase"></option>
+                    <option value="Department"></option>
+                    <option value="Training Cycle"></option>
+                    <option value="Course"></option>
+                    <option value="Module"></option>
+                    <option value="Bootcamp"></option>
+                    <option value="Sprint"></option>
+                </datalist>
                 <div class="form-two">
                     <div class="field">
                         <label id="primary_value_label" for="primary_value">Current Year</label>
@@ -79,9 +93,12 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label for="groups">Subjects, courses, or modules</label>
-                    <input type="text" id="groups" name="groups" placeholder="CSC2100, BSE2105, Python Bootcamp" value="{{ form.groups }}">
-                    <p class="help-text">Comma separated. A file matching one of these codes routes straight to it -- no other match needed.</p>
+                    <label for="groups_entry">Subjects, courses, or modules</label>
+                    <div class="tag-input" id="groups-tag-input">
+                        <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="groups" id="groups_hidden" value="{{ form.groups }}">
+                    <p class="help-text">Press Enter to add. A file matching one of these codes routes straight to it -- no other match needed.</p>
                 </div>
             </div>
         </section>
@@ -112,7 +129,10 @@
 </div>
 
 {{ purpose_defaults|json_script:"purpose-defaults" }}
+<script src="{% static 'organizer/js/tag-input.js' %}"></script>
 <script>
+    initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+
     (function () {
         var defaults = JSON.parse(document.getElementById('purpose-defaults').textContent);
         var radios = document.querySelectorAll('#purpose-picker input[type="radio"]');

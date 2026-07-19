@@ -75,7 +75,12 @@ class GetDestinationTests(SandboxedPathsTestCase):
         self._write_config()
         dest = rules.get_destination("CSC2100 Data Structures [Z-Library].pdf", profile_root=self.profile_root)
         self.assertEqual(dest.method, "ebook")
-        self.assertEqual(dest.path, paths.LIBRARY_INBOX)
+        self.assertEqual(dest.path, paths.DEFAULT_LIBRARY_INBOX)
+
+    def test_ebook_uses_the_configured_library_inbox_when_given(self):
+        custom_inbox = self.personal_root / "Custom Library Inbox"
+        dest = rules.get_destination("book.epub", library_inbox=custom_inbox)
+        self.assertEqual(dest.path, custom_inbox)
 
     def test_image_goes_to_media(self):
         dest = rules.get_destination("screenshot.png")

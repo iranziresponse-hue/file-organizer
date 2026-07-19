@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load static %}
 
 {% block title %}Edit {{ profile.name }} - Orch{% endblock %}
 
@@ -35,13 +36,26 @@
             <div class="form-two">
                 <div class="field">
                     <label for="primary_label">Primary group label</label>
-                    <input type="text" id="primary_label" name="primary_label" value="{{ profile.primary_label }}">
+                    <input type="text" id="primary_label" name="primary_label" list="label-presets" value="{{ profile.primary_label }}">
                 </div>
                 <div class="field">
                     <label for="secondary_label">Secondary group label</label>
-                    <input type="text" id="secondary_label" name="secondary_label" value="{{ profile.secondary_label }}">
+                    <input type="text" id="secondary_label" name="secondary_label" list="label-presets" value="{{ profile.secondary_label }}">
                 </div>
             </div>
+            <datalist id="label-presets">
+                <option value="Year"></option>
+                <option value="Semester"></option>
+                <option value="Quarter"></option>
+                <option value="Topic"></option>
+                <option value="Phase"></option>
+                <option value="Department"></option>
+                <option value="Training Cycle"></option>
+                <option value="Course"></option>
+                <option value="Module"></option>
+                <option value="Bootcamp"></option>
+                <option value="Sprint"></option>
+            </datalist>
 
             <div class="form-two">
                 <div class="field">
@@ -55,8 +69,12 @@
             </div>
 
             <div class="field">
-                <label for="groups">Subjects, courses, or modules</label>
-                <input type="text" id="groups" name="groups" value="{{ config.groups|join:', ' }}" placeholder="CSC2100, BSE2105, Python Bootcamp">
+                <label for="groups_entry">Subjects, courses, or modules</label>
+                <div class="tag-input" id="groups-tag-input">
+                    <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
+                </div>
+                <input type="hidden" name="groups" id="groups_hidden" value="{{ config.groups|join:', ' }}">
+                <p class="help-text">Press Enter to add. A file matching one of these codes routes straight to it -- no other match needed.</p>
             </div>
 
             <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
@@ -74,4 +92,9 @@
         </form>
     </section>
 </div>
+
+<script src="{% static 'organizer/js/tag-input.js' %}"></script>
+<script>
+    initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+</script>
 {% endblock %}

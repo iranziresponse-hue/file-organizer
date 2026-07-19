@@ -83,17 +83,21 @@ def move_downloaded_file(file_path: Path, ai_enabled=None):
     if (datetime.now().timestamp() - file_path.stat().st_mtime) < 2:
         return
 
-    from organizer.models import Profile
+    from organizer.models import AppSettings, Profile
 
     profile = Profile.get_active()
     profile_root = profile.root_path if profile else None
     use_ai = bool(profile and profile.ai_fallback_enabled) if ai_enabled is None else ai_enabled
+    settings = AppSettings.get_solo()
 
     def _ai_classify(n, curriculum):
         return ai_classify.classify(n, curriculum, log=write_log)
 
     dest = rules.get_destination(
-        file_path, profile_root=profile_root, ai_classify=_ai_classify if use_ai else None
+        file_path,
+        profile_root=profile_root,
+        library_inbox=Path(settings.library_inbox_path),
+        ai_classify=_ai_classify if use_ai else None,
     )
     if dest is None:
         return
@@ -137,7 +141,13 @@ def move_downloaded_file(file_path: Path, ai_enabled=None):
 
 def run_installer_cleanup():
     """Two-stage cleanup, scoped to Documents\\Personal\\Installers only --
-    nothing outside it, no other drive, ever touched."""
+    nothing outside it, no other drive, ever touched. Thresholds come from
+    AppSettings (user-editable), read fresh so a change takes effect on the
+    next hourly cleanup, no restart needed."""
+    from organizer.models import AppSettings
+
+    settings = AppSettings.get_solo()
+
     installers_root = paths.PERSONAL_ROOT / "Installers"
     if not installers_root.exists():
         return
@@ -150,7 +160,7 @@ def run_installer_cleanup():
         if not item.is_file():
             continue
         age_days = (now.timestamp() - item.stat().st_mtime) / 86400
-        if age_days >= paths.INSTALLER_STALE_DAYS:
+        if age_days >= settings.installer_stale_days:
             dest = review_root / item.name
             try:
                 shutil.move(str(item), str(dest))
@@ -162,7 +172,7 @@ def run_installer_cleanup():
         if not item.is_file():
             continue
         age_days = (now.timestamp() - item.stat().st_mtime) / 86400
-        if age_days >= paths.INSTALLER_DELETE_DAYS:
+        if age_days >= settings.installer_delete_days:
             try:
                 item.unlink()
                 write_log(f"Installer '{item.name}' untouched {int(age_days)}d in _ToReview -> permanently deleted")
@@ -175,39 +185,57 @@ def run_watcher(stop_event=None, poll_seconds=3):
     so a GUI can stop this cleanly from another thread. Pass a fresh Event
     per run so start/stop/start works without leftover state.
 
-    CRITICAL: DOWNLOADS2 (D:\\myDownloads) must NEVER be swept in full -- only
-    files created/modified AFTER this process started. Its historical backlog
-    (hundreds of files, some of them real project material) must never be
-    touched by a generic sort; this happened once with the PowerShell version
-    and had to be reversed via the log. watcher_start_time is the guard.
-    """
-    paths.DOWNLOADS.mkdir(parents=True, exist_ok=True)
+    Both watched folders come from AppSettings, re-read every cycle so
+    editing them in the dashboard takes effect on the next poll, no restart
+    needed.
 
-    # Initial sweep of whatever's already in Downloads -- deliberately does
-    # NOT include DOWNLOADS2's backlog, same as the PowerShell version.
-    for item in paths.DOWNLOADS.iterdir():
+    CRITICAL: the secondary folder must NEVER be swept in full -- only files
+    created/modified AFTER this process started. Its historical backlog
+    (hundreds of files, some of them real project material, on the original
+    machine this was ported from) must never be touched by a generic sort;
+    this happened once with the PowerShell version and had to be reversed
+    via the log. watcher_start_time is the guard.
+    """
+    from organizer.models import AppSettings
+
+    def _watched_paths():
+        settings = AppSettings.get_solo()
+        primary = Path(settings.downloads_path)
+        secondary = Path(settings.secondary_downloads_path) if settings.secondary_downloads_path else None
+        return primary, secondary
+
+    downloads, downloads2 = _watched_paths()
+    downloads.mkdir(parents=True, exist_ok=True)
+
+    # Initial sweep of whatever's already in the primary folder -- deliberately
+    # does NOT include the secondary folder's backlog, same as the PowerShell
+    # version this was ported from.
+    for item in downloads.iterdir():
         if item.is_file():
             move_downloaded_file(item)
     run_installer_cleanup()
 
     watcher_start_time = datetime.now()
+    secondary_note = f" and {downloads2}" if downloads2 else ""
     write_log(
-        f"Organizer started, watching {paths.DOWNLOADS} and {paths.DOWNLOADS2} "
-        f"(poll mode, downloads2 new-files-only since {watcher_start_time:%Y-%m-%d %H:%M:%S})"
+        f"Organizer started, watching {downloads}{secondary_note} "
+        f"(poll mode, secondary folder new-files-only since {watcher_start_time:%Y-%m-%d %H:%M:%S})"
     )
     last_installer_cleanup = datetime.now()
 
     while stop_event is None or not stop_event.is_set():
+        downloads, downloads2 = _watched_paths()
+
         try:
-            for item in paths.DOWNLOADS.iterdir():
+            for item in downloads.iterdir():
                 if item.is_file():
                     move_downloaded_file(item)
         except OSError:
             pass
 
         try:
-            if paths.DOWNLOADS2.exists():
-                for item in paths.DOWNLOADS2.iterdir():
+            if downloads2 and downloads2.exists():
+                for item in downloads2.iterdir():
                     if not item.is_file():
                         continue
                     stat = item.stat()

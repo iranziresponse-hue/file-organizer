@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 import time
 from unittest import mock
 
@@ -135,3 +136,41 @@ class MoveDownloadedFileTests(SandboxedPathsTestCase):
             watcher.move_downloaded_file(target, ai_enabled=None)
 
         mock_classify.assert_not_called()
+
+
+class RunWatcherAndInstallerCleanupTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(mock.patch.object(watcher.time, "sleep"))
+
+    def test_initial_sweep_uses_the_configured_downloads_path(self):
+        self.make_settings(secondary_downloads_path="")
+        target = self.downloads / "photo.png"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"data")
+        _age(target, 10)
+
+        # Pre-set the stop event so the blocking loop never runs -- only the
+        # unconditional initial sweep before it does.
+        stop_event = threading.Event()
+        stop_event.set()
+        watcher.run_watcher(stop_event=stop_event, poll_seconds=0)
+
+        expected = self.personal_root / "Media" / "Images" / "photo.png"
+        self.assertTrue(expected.exists())
+
+    def test_installer_cleanup_uses_configured_thresholds(self):
+        # 2 days old clears the stale threshold (moves to _ToReview) but not
+        # the delete threshold (stays there, not deleted), so this exercises
+        # both configured values in one pass.
+        self.make_settings(installer_stale_days=1, installer_delete_days=5)
+        installers_root = self.personal_root / "Installers"
+        installers_root.mkdir(parents=True)
+        stale = installers_root / "setup.exe"
+        stale.write_bytes(b"x")
+        _age(stale, seconds=2 * 86400)
+
+        watcher.run_installer_cleanup()
+
+        self.assertFalse(stale.exists())
+        self.assertTrue((installers_root / "_ToReview" / "setup.exe").exists())

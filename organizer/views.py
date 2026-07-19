@@ -5,7 +5,7 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .core import paths
-from .models import CourseConfig, MoveEvent, Profile
+from .models import AppSettings, CourseConfig, MoveEvent, Profile
 
 PURPOSE_LABEL_DEFAULTS = {
     "school": {"primary_label": "Year", "secondary_label": "Semester"},
@@ -169,3 +169,29 @@ def profile_delete(request, pk):
         profile.delete()
         messages.success(request, f"Deleted '{name}'.")
     return redirect("profiles_list")
+
+
+def settings_edit(request):
+    settings = AppSettings.get_solo()
+
+    if request.method == "POST":
+        settings.downloads_path = request.POST.get("downloads_path", "").strip() or settings.downloads_path
+        settings.secondary_downloads_path = request.POST.get("secondary_downloads_path", "").strip()
+        settings.library_inbox_path = request.POST.get("library_inbox_path", "").strip() or settings.library_inbox_path
+        try:
+            settings.installer_stale_days = max(1, int(request.POST.get("installer_stale_days", "")))
+        except ValueError:
+            pass
+        try:
+            settings.installer_delete_days = max(1, int(request.POST.get("installer_delete_days", "")))
+        except ValueError:
+            pass
+        settings.save()
+        messages.success(request, "Settings saved.")
+        return redirect("settings_edit")
+
+    return render(request, "organizer/settings_edit.html", {
+        "settings": settings,
+        "default_downloads": str(paths.DEFAULT_DOWNLOADS),
+        "default_library_inbox": str(paths.DEFAULT_LIBRARY_INBOX),
+    })

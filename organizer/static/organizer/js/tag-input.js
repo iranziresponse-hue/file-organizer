@@ -1,0 +1,56 @@
+function initTagInput(containerId, entryId, hiddenId, initial) {
+    var container = document.getElementById(containerId);
+    var entry = document.getElementById(entryId);
+    var hidden = document.getElementById(hiddenId);
+    if (!container || !entry || !hidden) return;
+
+    var tags = (initial || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+
+    function render() {
+        container.querySelectorAll('.tag-chip').forEach(function (el) { el.remove(); });
+        tags.forEach(function (tag, index) {
+            var chip = document.createElement('span');
+            chip.className = 'tag-chip';
+
+            var label = document.createElement('span');
+            label.textContent = tag;
+
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.setAttribute('aria-label', 'Remove ' + tag);
+            remove.textContent = '×';
+            remove.addEventListener('click', function () {
+                tags.splice(index, 1);
+                render();
+            });
+
+            chip.appendChild(label);
+            chip.appendChild(remove);
+            container.insertBefore(chip, entry);
+        });
+        hidden.value = tags.join(', ');
+    }
+
+    function addFromEntry() {
+        var value = entry.value;
+        entry.value = '';
+        value.split(',').forEach(function (part) {
+            var t = part.trim();
+            if (t && tags.indexOf(t) === -1) tags.push(t);
+        });
+        render();
+    }
+
+    entry.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addFromEntry();
+        } else if (e.key === 'Backspace' && !entry.value && tags.length) {
+            tags.pop();
+            render();
+        }
+    });
+    entry.addEventListener('blur', addFromEntry);
+
+    render();
+}
