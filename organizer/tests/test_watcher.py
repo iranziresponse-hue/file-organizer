@@ -34,14 +34,14 @@ class IsReadyTests(SandboxedPathsTestCase):
 
     def test_missing_file_is_not_ready(self):
         target = self.downloads / "gone.bin"
-        self.assertFalse(watcher.is_ready(target, attempts=1))
+        self.assertFalse(watcher.is_ready(target, max_attempts=1))
 
     def test_unopenable_path_is_not_ready(self):
         # A directory can never be opened as a file -- exercises the same
         # OSError branch a genuinely locked file would hit.
         target = self.downloads / "a_directory"
         target.mkdir(parents=True)
-        self.assertFalse(watcher.is_ready(target, attempts=1))
+        self.assertFalse(watcher.is_ready(target, max_attempts=1))
 
 
 class MoveDownloadedFileTests(SandboxedPathsTestCase):

@@ -1,0 +1,140 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Study Digests - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Stats] Study Digests</h2>
+            <p>Daily and weekly summaries of your learning activity - files sorted, subjects active, reviews due, and assignments tracked.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="generate">
+                <input type="hidden" name="period" value="daily">
+                <button type="submit" class="button-ghost">
+                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Daily digest
+                </button>
+            </form>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="generate">
+                <input type="hidden" name="period" value="weekly">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                        <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    Weekly digest
+                </button>
+            </form>
+            <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+        </div>
+    </section>
+
+    <!-- Schedule info -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Chart] Digest stats</h2>
+                </div>
+            </div>
+            <div class="stat-row">
+                <div class="stat stat-primary">
+                    <div class="value">{{ schedule_info.total_digests }}</div>
+                    <div class="label">Total generated</div>
+                </div>
+                <div class="stat">
+                    <div class="value">{{ schedule_info.last_type|title }}</div>
+                    <div class="label">Last type</div>
+                </div>
+                <div class="stat">
+                    <div class="value">
+                        {% if schedule_info.hours_since_last %}
+                            {{ schedule_info.hours_since_last|floatformat:0 }}h
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                    <div class="label">Since last digest</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Idea] What's included</h2>
+                </div>
+            </div>
+            <ul style="color:var(--muted); font-size:0.9rem; line-height:1.7; margin:0; padding-left:18px;">
+                <li>Files sorted by routing method</li>
+                <li>MUELE downloads from Makerere</li>
+                <li>Subject activity breakdown</li>
+                <li>Review queue status</li>
+                <li>Assignment deadlines and misses</li>
+                <li>Personalized next steps</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Digest list -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>All digests ({{ digests|length }})</h2>
+                <p class="card-subtitle">Click any digest to view the full report</p>
+            </div>
+        </div>
+        {% if digests %}
+        <div class="profile-list">
+            {% for digest in digests %}
+            <a href="{% url 'digest_detail' digest.pk %}" style="text-decoration:none;">
+            <article class="profile-row" style="cursor:pointer;">
+                <div class="profile-main">
+                    <h3>{{ digest.title }}</h3>
+                    <span class="path-text">{{ digest.period_start|date:"M d" }} - {{ digest.period_end|date:"M d, Y" }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Files sorted</span>
+                    <strong>{{ digest.metrics.files_sorted|default:"0" }}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Reviews due</span>
+                    <strong>{{ digest.metrics.reviews_due|default:"0" }}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Assignments</span>
+                    <strong>{{ digest.metrics.open_assignments|default:"0" }}</strong>
+                </div>
+                <div class="profile-actions">
+                    <span class="button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
+                        View →
+                    </span>
+                </div>
+            </article>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No digests yet</h3>
+                <p>Click "Daily digest" or "Weekly digest" above to generate your first report.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

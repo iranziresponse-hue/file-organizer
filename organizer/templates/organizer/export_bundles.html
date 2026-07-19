@@ -1,0 +1,177 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Knowledge Packs - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Box] Portable Knowledge Packs</h2>
+            <p>Export your study materials, summaries, and guides as a standalone ZIP bundle - perfect for offline access, sharing, or archive.</p>
+        </div>
+        <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <!-- Create new pack -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Target] Export your profile</h2>
+                    <p class="card-subtitle">All files, summaries, and guides for your entire {{ profile.name }} context.</p>
+                </div>
+            </div>
+            <form method="post" style="margin-top:16px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="scope" value="profile">
+                <div class="field" style="margin-bottom:12px;">
+                    <label for="profile_title">Pack title</label>
+                    <input type="text" id="profile_title" name="title" value="{{ profile.name }} - Complete Knowledge Pack">
+                </div>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                        <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Export full profile
+                </button>
+            </form>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Books] Export a subject</h2>
+                    <p class="card-subtitle">Files, summaries, course guide, and study-guide PDF for one subject.</p>
+                </div>
+            </div>
+            <form method="post" style="margin-top:16px;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="scope" value="subject">
+                <div class="field" style="margin-bottom:12px;">
+                    <label for="subject_code">Subject code</label>
+                    <select id="subject_code" name="subject_code">
+                        {% for memory in subject_memories %}
+                        <option value="{{ memory.code }}">{{ memory.code }} - {{ memory.resource_count }} resources</option>
+                        {% empty %}
+                        <option value="">- No subjects available -</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                        <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Export subject
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Existing bundles -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Existing packs ({{ bundles|length }})</h2>
+                <p class="card-subtitle">Generated knowledge packs ready for download</p>
+            </div>
+        </div>
+        {% if bundles %}
+        <div class="profile-list">
+            {% for bundle in bundles %}
+            <article class="profile-row" style="grid-template-columns: minmax(200px, 1.5fr) minmax(100px, 0.6fr) minmax(80px, 0.4fr) auto;">
+                <div class="profile-main">
+                    <h3>{{ bundle.title }}</h3>
+                    <span class="path-text">{{ bundle.get_scope_display }} • {{ bundle.manifest.total_files|default:"0" }} files • {{ bundle.manifest.summaries|default:"0" }} summaries</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Status</span>
+                    <strong>
+                        {% if bundle.status == "ready" %}
+                            <span style="color:var(--green);">Ready</span>
+                        {% elif bundle.status == "building" %}
+                            <span style="color:var(--cyan);">Building</span>
+                        {% elif bundle.status == "failed" %}
+                            <span style="color:var(--red);">Failed</span>
+                        {% else %}
+                            {{ bundle.get_status_display }}
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Created</span>
+                    <strong>{{ bundle.created_at|date:"Y-m-d" }}</strong>
+                </div>
+                <div class="profile-actions" style="display:flex; gap:6px;">
+                    {% if bundle.status == "ready" and bundle.output_path %}
+                    <a class="button" href="{% url 'export_download' bundle.pk %}" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">
+                        <svg viewBox="0 0 24 24" fill="none" style="width:14px;">
+                            <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Download ZIP
+                    </a>
+                    {% endif %}
+                    <form method="post" action="{% url 'export_delete' bundle.pk %}" style="display:inline;" onsubmit="return confirm('Delete this knowledge pack?');">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">Delete</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No knowledge packs yet</h3>
+                <p>Export your profile or a specific subject to create a portable study bundle with files, summaries, folder map, reading list, and a study-guide PDF.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- What's inside -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[List] What's inside a Knowledge Pack</h2>
+            </div>
+        </div>
+        <div class="stat-row" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+            <div class="stat">
+                <div class="value">[Folder]</div>
+                <div class="label">File copies<br><span class="path-text">Preserved folder structure</span></div>
+            </div>
+            <div class="stat">
+                <div class="value">[Tree]</div>
+                <div class="label">Folder map<br><span class="path-text">JSON tree view</span></div>
+            </div>
+            <div class="stat">
+                <div class="value">[Book]</div>
+                <div class="label">Reading list<br><span class="path-text">Markdown index by subject</span></div>
+            </div>
+            <div class="stat">
+                <div class="value">[Note]</div>
+                <div class="label">Summaries<br><span class="path-text">HTML for each document</span></div>
+            </div>
+            <div class="stat">
+                <div class="value">[Doc]</div>
+                <div class="label">Study-guide PDF<br><span class="path-text">With course guide + file index</span></div>
+            </div>
+            <div class="stat">
+                <div class="value">[List]</div>
+                <div class="label">Manifest<br><span class="path-text">metadata.json</span></div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

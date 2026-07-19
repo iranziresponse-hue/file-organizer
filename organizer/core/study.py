@@ -19,6 +19,8 @@ from organizer.models import (
     StudyGoal,
 )
 
+from . import topics as topics_core
+
 MUELE_BASE_URL = "https://muele.mak.ac.ug"
 
 
@@ -118,6 +120,17 @@ def _theme_words(filename):
 
 
 def sync_subject_themes(profile, limit=40):
+    """Intelligent topic extraction for all subjects. Uses the new NLP + AI
+    pipeline from topics.py, with the old simple word extraction as a fallback
+    for subjects with very few files."""
+    try:
+        results = topics_core.process_all_subjects(profile)
+        if results:
+            return SubjectTheme.objects.filter(profile=profile)
+    except Exception:
+        pass
+
+    # Fallback: old simple word extraction
     memories = {m.code: m for m in SubjectMemory.objects.filter(profile=profile)}
     events = (
         MoveEvent.objects.filter(profile=profile, success=True)
@@ -150,6 +163,15 @@ def sync_subject_themes(profile, limit=40):
                 theme.save(update_fields=["evidence", "weight", "subject_memory", "last_seen_at"])
             touched.append(theme)
     return touched
+
+
+def refresh_subject_topics(profile, subject_code=None, log=None):
+    """Explicitly refresh topics for one or all subjects.
+    Returns dict of subject_code -> theme_count."""
+    if subject_code:
+        themes = topics_core.process_subject_topics(profile, subject_code, log=log)
+        return {subject_code: len(themes)}
+    return topics_core.process_all_subjects(profile, log=log)
 
 
 def schedule_review_seed(profile, limit=8):

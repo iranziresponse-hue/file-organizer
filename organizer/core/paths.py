@@ -6,67 +6,68 @@ see config_path()/curriculum_path() below and organizer.core.rules.
 
 import os
 from pathlib import Path
+from typing import Set, List
 
 from runtime import app_dir
 
 # Project root in development; the folder containing the exe once frozen by
 # PyInstaller (see runtime.py -- this must stay a persistent, exe-adjacent
 # location, not the temporary bundle extraction dir).
-BASE_DIR = app_dir()
+BASE_DIR: Path = app_dir()
 
-USER_PROFILE = Path(os.environ["USERPROFILE"])
+USER_PROFILE: Path = Path(os.environ["USERPROFILE"])
 
-WORK_UNSORTED = USER_PROFILE / "Documents" / "Work" / "_Unsorted"
-PERSONAL_ROOT = USER_PROFILE / "Documents" / "Personal"
-IMPORTANT_ROOT = PERSONAL_ROOT / "Important"
+WORK_UNSORTED: Path = USER_PROFILE / "Documents" / "Work" / "_Unsorted"
+PERSONAL_ROOT: Path = USER_PROFILE / "Documents" / "Personal"
+IMPORTANT_ROOT: Path = PERSONAL_ROOT / "Important"
 
 # Defaults only -- used the first time AppSettings.get_solo() creates its
 # row, and as rules.get_destination()'s fallback when no library_inbox is
 # passed in. The actual, possibly-user-edited values always come from
 # AppSettings (organizer.models), never from these constants directly, so
 # nothing here assumes any drive layout beyond "this user has a profile".
-DEFAULT_DOWNLOADS = USER_PROFILE / "Downloads"
-DEFAULT_LIBRARY_INBOX = PERSONAL_ROOT / "Library" / "00 New - Sort Me"
+DEFAULT_DOWNLOADS: Path = USER_PROFILE / "Downloads"
+DEFAULT_LIBRARY_INBOX: Path = PERSONAL_ROOT / "Library" / "00 New - Sort Me"
 
 # Kept pointing at the same log file the PowerShell version used, so history
 # stays in one continuous place across the switchover.
-LOG_PATH = USER_PROFILE / "Documents" / "Scripts" / "organize-log.txt"
+LOG_PATH: Path = USER_PROFILE / "Documents" / "Scripts" / "organize-log.txt"
 
 # Project-local, gitignored -- see ai_config.example.json for the template.
-AI_CONFIG_PATH = BASE_DIR / "ai_config.json"
+AI_CONFIG_PATH: Path = BASE_DIR / "ai_config.json"
 
 
-def config_path(profile_root):
+def config_path(profile_root: str) -> Path:
     """Each profile mirrors its current primary/secondary group into its own
     root folder, so multiple profiles never share one global config file."""
     return Path(profile_root) / "_config.json"
 
 
-def curriculum_path(profile_root):
+def curriculum_path(profile_root: str) -> Path:
     return Path(profile_root) / "_curriculum_map.json"
 
 # Filename keywords that mean "sensitive, handle with care" -- checked before
 # every other rule so these never land in a generic sorting bucket.
-SENSITIVE_KEYWORDS = [
+SENSITIVE_KEYWORDS: List[str] = [
     "password", "passwords", "credential", "credentials",
     "login", "logins", "recovery code", "recovery codes",
     "backup code", "backup codes", "2fa", "secret key", "private key",
 ]
 
 # Certificate/key file extensions -- sensitive by nature regardless of filename.
-CERT_KEY_EXT = {"pem", "key", "crt", "cer", "p12", "pfx", "ppk"}
+CERT_KEY_EXT: Set[str] = {"pem", "key", "crt", "cer", "p12", "pfx", "ppk"}
 
 # Markers that mean "this is an ebook", not a course note -- checked BEFORE
 # course/topic matching.
-EBOOK_MARKERS = [
+EBOOK_MARKERS: List[str] = [
     "z-library", "zlibrary", "1lib", "z-lib", "libgen",
     "annas-archive", "anna's archive", "oceanofpdf",
 ]
 
-IMAGE_EXT = {"jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"}
-MUSIC_EXT = {"mp3", "wav", "flac", "m4a"}
-VIDEO_EXT = {"mp4", "mkv", "mov", "avi", "webm"}
-ARCHIVE_EXT = {"zip", "rar", "7z", "tar", "gz"}
-INSTALLER_EXT = {"exe", "msi", "apk"}
-DOC_EXT = {"pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv"}
-CODE_EXT = {"sh", "py", "js", "json", "ts", "php", "java", "sql", "ipynb"}
+IMAGE_EXT: Set[str] = {"jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"}
+MUSIC_EXT: Set[str] = {"mp3", "wav", "flac", "m4a"}
+VIDEO_EXT: Set[str] = {"mp4", "mkv", "mov", "avi", "webm"}
+ARCHIVE_EXT: Set[str] = {"zip", "rar", "7z", "tar", "gz"}
+INSTALLER_EXT: Set[str] = {"exe", "msi", "apk"}
+DOC_EXT: Set[str] = {"pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv"}
+CODE_EXT: Set[str] = {"sh", "py", "js", "json", "ts", "php", "java", "sql", "ipynb"}

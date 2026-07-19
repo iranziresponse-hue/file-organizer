@@ -1,0 +1,89 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Undo Moves - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Undo] Undo recent moves</h2>
+            <p>Restore files that Orch has moved back to their original locations. Every move is reversible.</p>
+        </div>
+        <a class="button-ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary">
+            <div class="value">{{ stats.restorable }}</div>
+            <div class="label">Restorable files</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ stats.recent_moves }}</div>
+            <div class="label">Recent moves</div>
+        </div>
+    </section>
+
+    {% if restorable %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Restorable moves ({{ restorable|length }})</h2>
+                <p class="card-subtitle">Files that Orch has moved and can be restored to their original location.</p>
+            </div>
+            <form method="post" style="display:inline;" onsubmit="return confirm('Restore all files from the last hour?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="restore_all">
+                <button type="submit" class="button-ghost">Restore last hour</button>
+            </form>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr><th>Time</th><th>File</th><th>From</th><th>To (original)</th><th>Method</th><th></th></tr>
+                {% for event in restorable %}
+                <tr>
+                    <td>{{ event.timestamp|date:"Y-m-d H:i" }}</td>
+                    <td><strong>{{ event.filename }}</strong></td>
+                    <td class="path-text">{{ event.destination_path|truncatechars:60 }}</td>
+                    <td class="path-text">{{ event.source_path|truncatechars:60 }}</td>
+                    <td><span class="meta-token">{{ event.get_method_display }}</span></td>
+                    <td>
+                        <form method="post" style="display:inline;" onsubmit="return confirm('Restore {{ event.filename }} to its original location?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="restore">
+                            <input type="hidden" name="move_pk" value="{{ event.pk }}">
+                            <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                                [Undo] Restore
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <div><h3>No files to restore</h3><p>When Orch moves files, they'll appear here so you can undo any move.</p></div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[Idea] How undo works</h2>
+            </div>
+        </div>
+        <ul style="color:var(--muted);font-size:0.9rem;line-height:1.7;margin:0;padding-left:18px;">
+            <li>Every file Orch moves is logged with its <strong>original source path</strong></li>
+            <li>Click <strong>Restore</strong> to move the file back to where it came from</li>
+            <li>Click <strong>Restore last hour</strong> to undo all moves from the last 60 minutes</li>
+            <li>Files can only be restored if they still exist at their moved location</li>
+            <li>A restore creates its own log entry so you can trace what happened</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

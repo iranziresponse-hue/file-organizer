@@ -1,0 +1,241 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}{{ memory.code }} Memory - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>{{ memory.code }}: {{ memory.title|default:memory.code }}</h2>
+            <p>Subject memory, resources, themes, deadlines, and guides - all in one place.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% if guide %}
+            <button type="button" class="button-ghost course-guide-btn" data-profile-id="{{ profile.pk }}" data-course-code="{{ memory.code }}" data-has-guide="true">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                View guide
+            </button>
+            {% else %}
+            <form method="post" action="{% url 'course_guide_generate' profile.pk memory.code %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="button-ghost">Generate guide</button>
+            </form>
+            {% endif %}
+            <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        </div>
+    </section>
+
+    <!-- Stats Row -->
+    <section class="overview-grid">
+        <div class="stat-row" style="grid-column:1/-1;">
+            <div class="stat stat-primary">
+                <div class="value">{{ memory.resource_count }}</div>
+                <div class="label">Resources sorted</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ themes|length }}</div>
+                <div class="label">Focus themes</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ assignments|length }}</div>
+                <div class="label">Assignments</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ reviews_count }}</div>
+                <div class="label">Reviews pending</div>
+            </div>
+            <div class="stat">
+                <div class="value">{% if memory.last_touched_at %}{{ memory.last_touched_at|timesince }} ago{% else %}-{% endif %}</div>
+                <div class="label">Last activity</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Focus Areas / Themes -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Target] Focus themes</h2>
+                    <p class="card-subtitle">Detected topics and concepts from your files</p>
+                </div>
+            </div>
+            {% if themes %}
+            <div class="meta-list" style="margin-top:12px;">
+                {% for theme in themes %}
+                <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
+                    <strong>{{ theme.name }}</strong>
+                    <span class="path-text">({{ theme.weight }})</span>
+                    {% if theme.evidence %}
+                    <span class="path-text" title="From: {{ theme.evidence|join:', ' }}">[Search]</span>
+                    {% endif %}
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:12px;">Themes appear as files and summaries accumulate for this subject.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[List] Assignments</h2>
+                    <p class="card-subtitle">Deadlines and submission status</p>
+                </div>
+            </div>
+            {% if assignments %}
+            <div class="profile-list" style="margin-top:12px;">
+                {% for item in assignments %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ item.title }}</h3>
+                        <span class="path-text">{{ item.notes|default:"No details" }}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">
+                            {% if item.due_at %}
+                                Due: {{ item.due_at|date:"Y-m-d H:i" }}
+                            {% else %}
+                                No deadline
+                            {% endif %}
+                        </span>
+                        <strong>
+                            {% if item.status == "open" %}
+                                <span style="color:var(--cyan);">Open</span>
+                            {% elif item.status == "missed" %}
+                                <span style="color:var(--red);">Missed</span>
+                            {% elif item.status == "submitted" %}
+                                <span style="color:var(--green);">Submitted</span>
+                            {% else %}
+                                {{ item.status }}
+                            {% endif %}
+                        </strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:12px;">No assignments yet. MUELE will sync them automatically.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Recent Resources -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[Doc] Recent resources ({{ resources|length }})</h2>
+                <p class="card-subtitle">Files sorted to this subject, latest first</p>
+            </div>
+        </div>
+        {% if resources %}
+        <div class="table-shell">
+            <table>
+                <tr><th>Time</th><th>File</th><th>Category</th><th>Method</th><th>Summary</th></tr>
+                {% for event in resources %}
+                <tr>
+                    <td>{{ event.timestamp|date:"Y-m-d H:i" }}</td>
+                    <td>{{ event.filename }}</td>
+                    <td>
+                        {% if event.method == "muele_sync" %}
+                            <span class="meta-token">[Books] MUELE</span>
+                        {% else %}
+                            <span class="meta-token">{{ event.get_method_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="path-text">{{ event.get_method_display }}</span></td>
+                    <td>
+                        {% if event.is_summarizable %}
+                            {% if event.summary %}
+                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">
+                                View
+                            </button>
+                            {% else %}
+                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">
+                                Summarize
+                            </button>
+                            {% endif %}
+                        {% else %}
+                            <span class="path-text">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No resources yet</h3>
+                <p>Files sorted to this subject will appear here.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Activity Timeline -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[Chart] Activity timeline</h2>
+                <p class="card-subtitle">Recent learning events for this subject</p>
+            </div>
+        </div>
+        {% if activities %}
+        <div class="profile-list">
+            {% for activity in activities %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ activity.title }}</h3>
+                    <span class="path-text">{{ activity.get_activity_type_display }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ activity.happened_at|date:"Y-m-d H:i" }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text" style="margin-top:12px;">Timeline items appear as files are sorted and summaries are created.</p>
+        {% endif %}
+    </section>
+
+    <!-- Review Queue -->
+    {% if reviews %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[Repeat] Review queue</h2>
+                <p class="card-subtitle">Items due for review</p>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for item in reviews %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">{{ item.reason }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">
+                        {% if item.due_at < now %}Overdue{% else %}Due{% endif %}
+                    </span>
+                    <strong>{{ item.due_at|date:"Y-m-d H:i" }}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

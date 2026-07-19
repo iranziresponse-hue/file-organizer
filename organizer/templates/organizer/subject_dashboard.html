@@ -1,0 +1,381 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Subject Dashboard - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">[Stats] Subject Dashboard</span>
+            <h2>Topic & Theme Explorer</h2>
+            <p>Intelligent topic extraction across all subjects. NLP-powered keywords from filenames and summaries, enhanced with AI topic refinement when available.</p>
+        </div>
+        {% if profile %}
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="refresh_topics">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Refresh All Topics
+                </button>
+            </form>
+            <a class="button-ghost" href="{% url 'study_home' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back to Study
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+    {% if not profile %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No active profile.</h3>
+                <p>Create or activate a profile before the subject dashboard can build topic data.</p>
+            </div>
+        </div>
+    </section>
+    {% else %}
+
+    <!-- Stats overview -->
+    <section class="card">
+        <div class="stat-row">
+            <div class="stat stat-primary">
+                <div class="value">{{ total_subjects }}</div>
+                <div class="label">Subjects</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ total_themes }}</div>
+                <div class="label">Total themes extracted</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ global_themes|length }}</div>
+                <div class="label">Top themes across profile</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global topic cloud -->
+    {% if global_themes %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>☁️ Global Topic Cloud</h2>
+                <p class="card-subtitle">Most prominent themes across all subjects, sized by weight</p>
+            </div>
+        </div>
+        <div class="topic-cloud">
+            {% for theme in global_themes %}
+            <a href="{% url 'subject_memory_detail' code=theme.subject_code %}" class="topic-cloud-item" style="--topic-weight: {{ theme.weight }};">
+                {{ theme.name }}
+                <span class="topic-subject-tag">{{ theme.subject_code }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Per-subject theme panels -->
+    {% for subject in subject_data %}
+    <section class="card subject-dashboard-card">
+        <div class="card-header">
+            <div>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <h2><a href="{% url 'subject_memory_detail' code=subject.code %}" class="subject-link">{{ subject.code }}</a></h2>
+                    {% if subject.top_theme %}
+                    <span class="meta-token" style="font-size:0.82rem;">Top: {{ subject.top_theme }}</span>
+                    {% endif %}
+                    <span class="meta-token" style="font-size:0.78rem; color:var(--faint);">{{ subject.theme_count }} themes</span>
+                </div>
+                <p class="card-subtitle">
+                    <span class="meta-token">{{ subject.resource_count }} file(s)</span>
+                    {% if subject.last_touched_at %}
+                    <span class="meta-token">Last activity: {{ subject.last_touched_at|date:"Y-m-d" }}</span>
+                    {% endif %}
+                    {% if subject.themes %}
+                    <span class="meta-token">Sources: {% for t in subject.themes %}{{ t.source }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+                    {% endif %}
+                </p>
+            </div>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="refresh_topics">
+                <input type="hidden" name="subject_code" value="{{ subject.code }}">
+                <button type="submit" class="button-ghost" title="Refresh topics for {{ subject.code }}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:16px;">
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Refresh
+                </button>
+            </form>
+        </div>
+
+        <!-- Theme bars -->
+        {% if subject.themes %}
+        <div class="theme-bars">
+            {% for theme in subject.themes %}
+            <div class="theme-bar-row" title="{{ theme.name }}">
+                <div class="theme-bar-label">
+                    <span class="theme-name">{{ theme.name }}</span>
+                    <span class="theme-meta">
+                        {% if theme.source == "summary" %}
+                        <span class="source-badge source-ai">AI</span>
+                        {% else %}
+                        <span class="source-badge source-nlp">NLP</span>
+                        {% endif %}
+                        <span class="evidence-count">{{ theme.evidence_count }} file(s)</span>
+                    </span>
+                </div>
+                <div class="theme-bar-track">
+                    <div class="theme-bar-fill" style="width: {{ theme.weight }}%;"></div>
+                </div>
+                <span class="theme-weight-value">{{ theme.weight }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="min-height:120px; padding:24px;">
+            <p>No themes extracted yet. <a href="{% url 'subject_memory_detail' code=subject.code %}">View subject detail</a> or click Refresh above to extract topics.</p>
+        </div>
+        {% endif %}
+
+        <!-- Recent activity -->
+        {% if subject.recent_activity %}
+        <div class="section-gap"></div>
+        <div class="recent-activity">
+            <h3 style="font-size:0.82rem; color:var(--faint); font-weight:700; text-transform:uppercase; margin-bottom:8px;">Recent Activity</h3>
+            <div class="activity-mini-list">
+                {% for act in subject.recent_activity %}
+                <div class="activity-mini-item">
+                    <span class="activity-mini-title">{{ act.title }}</span>
+                    <span class="activity-mini-time">{{ act.time }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+    {% empty %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No subject memories found.</h3>
+                <p>Start sorting files into subjects to build up subject memories and extracted themes. Files routed with a subject code will automatically create a subject memory entry.</p>
+            </div>
+            <a class="button" href="{% url 'study_home' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Go to Study
+            </a>
+        </div>
+    </section>
+    {% endfor %}
+    {% endif %}
+</div>
+
+<style>
+    /* Subject Dashboard specific styles */
+    .topic-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 0;
+    }
+
+    .topic-cloud-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: calc(0.72rem + (var(--topic-weight, 50) * 0.006rem));
+        font-weight: 600;
+        background: rgba(110, 168, 255, calc(0.06 + (var(--topic-weight, 50) * 0.003)));
+        border: 1px solid rgba(110, 168, 255, calc(0.15 + (var(--topic-weight, 50) * 0.004)));
+        color: rgba(232, 236, 242, calc(0.7 + (var(--topic-weight, 50) * 0.004)));
+        transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease), background var(--ease);
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .topic-cloud-item:hover {
+        transform: translateY(-2px) scale(1.04);
+        border-color: rgba(110, 168, 255, 0.6);
+        box-shadow: 0 0 24px rgba(110, 168, 255, 0.24);
+        background: rgba(110, 168, 255, 0.18);
+        color: var(--text);
+    }
+
+    .topic-subject-tag {
+        font-size: 0.65rem;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--faint);
+        font-weight: 500;
+    }
+
+    .subject-link {
+        color: var(--text);
+        transition: color var(--ease), text-shadow var(--ease);
+    }
+
+    .subject-link:hover {
+        color: var(--blue);
+        text-shadow: 0 0 20px rgba(110, 168, 255, 0.3);
+    }
+
+    .subject-dashboard-card {
+        transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease);
+    }
+
+    .theme-bars {
+        display: grid;
+        gap: 8px;
+        padding: 4px 0;
+    }
+
+    .theme-bar-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1.2fr) minmax(160px, 2fr) 36px;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .theme-bar-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .theme-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .theme-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        color: var(--faint);
+    }
+
+    .source-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .source-ai {
+        background: rgba(167, 139, 250, 0.15);
+        color: #C4B5FD;
+        border: 1px solid rgba(167, 139, 250, 0.3);
+    }
+
+    .source-nlp {
+        background: rgba(110, 168, 255, 0.12);
+        color: #93C5FD;
+        border: 1px solid rgba(110, 168, 255, 0.25);
+    }
+
+    .evidence-count {
+        font-size: 0.7rem;
+        color: var(--faint);
+    }
+
+    .theme-bar-track {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .theme-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(110, 168, 255, 0.6), rgba(167, 139, 250, 0.6));
+        transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .theme-weight-value {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-align: right;
+    }
+
+    .recent-activity {
+        border-top: 1px solid var(--stroke-soft);
+        padding-top: 12px;
+    }
+
+    .activity-mini-list {
+        display: grid;
+        gap: 6px;
+    }
+
+    .activity-mini-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 0;
+        font-size: 0.82rem;
+    }
+
+    .activity-mini-title {
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .activity-mini-time {
+        color: var(--faint);
+        font-size: 0.74rem;
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 640px) {
+        .theme-bar-row {
+            grid-template-columns: 1fr 80px;
+        }
+        .theme-bar-label {
+            grid-column: 1 / -1;
+        }
+    }
+</style>
+{% endblock %}

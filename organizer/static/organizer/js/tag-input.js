@@ -1,4 +1,4 @@
-function initTagInput(containerId, entryId, hiddenId, initial) {
+function initTagInput(containerId, entryId, hiddenId, initial, addLabel) {
     var container = document.getElementById(containerId);
     var entry = document.getElementById(entryId);
     var hidden = document.getElementById(hiddenId);
@@ -51,6 +51,18 @@ function initTagInput(containerId, entryId, hiddenId, initial) {
         }
     });
     entry.addEventListener('blur', addFromEntry);
+
+    // Explicit button so adding an entry isn't only discoverable by typing
+    // into the box and pressing Enter -- some users expect a clickable action.
+    var addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'tag-add-button';
+    addButton.textContent = addLabel || '+ Add';
+    addButton.addEventListener('click', function () {
+        addFromEntry();
+        entry.focus();
+    });
+    container.appendChild(addButton);
 
     // Lets external code (e.g. a "this folder already exists" suggestion
     // chip) add a tag without simulating keyboard events.

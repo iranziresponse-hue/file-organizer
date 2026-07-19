@@ -1,0 +1,146 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}MUELE Courses - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-medium">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Makerere MUELE</span>
+            <h2>Your courses</h2>
+            <p>Manage which courses Orch syncs and downloads materials from.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" name="action" value="sync_now" class="button">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Sync now
+                </button>
+            </form>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" name="action" value="refresh_courses" class="button-ghost">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M20.5 6.5A9 9 0 0 0 4.5 9.5M3.5 17.5A9 9 0 0 0 19.5 14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Refresh list
+                </button>
+            </form>
+        </div>
+    </section>
+
+    {% if not token_ok %}
+    <section class="card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No MUELE token configured</h3>
+                <p>Connect your MUELE account to start syncing courses and materials.</p>
+            </div>
+            <a class="button" href="{% url 'muele_connect' %}">Connect MUELE</a>
+        </div>
+    </section>
+    {% elif not courses %}
+    <section class="card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No courses found</h3>
+                <p>Click "Refresh list" to fetch your enrolled courses from MUELE.</p>
+            </div>
+        </div>
+    </section>
+    {% else %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Enrolled courses ({{ courses|length }})</h2>
+                <p class="card-subtitle">Toggle auto-download for each course</p>
+            </div>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr>
+                    <th>Course</th>
+                    <th>Code</th>
+                    <th>Auto-download</th>
+                    <th>Last sync</th>
+                </tr>
+                {% for course in courses %}
+                <tr>
+                    <td>{{ course.course_name }}</td>
+                    <td><span class="meta-token">{{ course.course_code|default:"-" }}</span></td>
+                    <td>
+                        <label class="toggle-switch" style="display:inline-flex; align-items:center; gap:8px; text-transform:none; font-weight:500; color:var(--muted); cursor:pointer;">
+                            <input type="checkbox" class="auto-download-toggle" data-course-id="{{ course.course_id }}" {% if course.auto_download %}checked{% endif %} style="width:auto; accent-color:var(--blue);">
+                            <span>{{ course.auto_download|yesno:"On,Off" }}</span>
+                        </label>
+                    </td>
+                    <td class="path-text">{{ course.last_sync_at|date:"Y-m-d H:i"|default:"Never" }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Sync settings</h2>
+            </div>
+        </div>
+        <form method="post" action="{% url 'muele_connect' %}" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_connection">
+            <div class="field">
+                <label for="username">MUELE username</label>
+                <input type="text" id="username" name="username" value="{{ connection.username|default:'' }}" placeholder="student@mak.ac.ug">
+            </div>
+            <div class="form-actions">
+                <a class="button button-ghost" href="{% url 'study_home' %}">Back to Study</a>
+                <button type="submit">Save settings</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    document.querySelectorAll('.auto-download-toggle').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            var formData = new FormData();
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            formData.append('action', 'toggle_auto_download');
+            formData.append('course_id', this.dataset.courseId);
+            formData.append('enabled', this.checked ? 'true' : 'false');
+
+            fetch('{% url "muele_courses" %}', {
+                method: 'POST',
+                body: formData,
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.ok) {
+                    var label = checkbox.nextElementSibling;
+                    if (label) label.textContent = checkbox.checked ? 'On' : 'Off';
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

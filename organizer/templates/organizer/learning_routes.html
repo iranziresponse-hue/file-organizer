@@ -1,0 +1,94 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Learning Routes - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Learning Route</span>
+            <h2>Turn weak areas into a study path.</h2>
+            <p>Each route links a focused resource, summary task, review checkpoint, and progress check.</p>
+        </div>
+        <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="generate">
+            <select name="subject_code" aria-label="Subject">
+                <option value="">Best next route</option>
+                {% for memory in subject_memories %}
+                <option value="{{ memory.code }}">{{ memory.code }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="theme" placeholder="Optional topic">
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Build route
+            </button>
+        </form>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Routes</h2>
+                <p class="card-subtitle">A guided sequence from topic discovery to follow-up review.</p>
+            </div>
+        </div>
+
+        {% if routes %}
+        <div class="profile-list">
+            {% for route in routes %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ route.title }}</h3>
+                    <span class="path-text">{{ route.get_status_display }} · step {{ route.current_step|add:1 }} of {{ route.steps|length }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ route.theme }}</span>
+                    <strong>{{ route.subject_code }}</strong>
+                </div>
+            </article>
+            <div class="profile-list" style="margin:0 0 20px 24px;">
+                {% for step in route.steps %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ step.title }}</h3>
+                        <span class="path-text">{{ step.detail }}</span>
+                        {% if step.url %}<a href="{{ step.url }}" target="_blank" rel="noopener">Open resource</a>{% endif %}
+                    </div>
+                    <div class="profile-actions">
+                        {% if step.done %}
+                        <span class="path-text">Done</span>
+                        {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="step_done">
+                            <input type="hidden" name="route_pk" value="{{ route.pk }}">
+                            <input type="hidden" name="step_index" value="{{ forloop.counter0 }}">
+                            <button class="button-ghost" type="submit">Mark done</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No routes yet.</h3>
+                <p>Build a route from a weak area or subject theme.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

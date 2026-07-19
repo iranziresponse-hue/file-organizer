@@ -9,6 +9,7 @@ _Unsorted, same as if this module didn't exist.
 """
 
 import json
+from typing import Callable, Any, Optional
 
 import requests
 
@@ -26,7 +27,7 @@ Courses (code: topic keywords):
 Reply with ONLY the course code (e.g. CSC2100) or NONE. No other text."""
 
 
-def load_ai_config():
+def load_ai_config() -> dict | None:
     if not paths.AI_CONFIG_PATH.exists():
         return None
     try:
@@ -35,7 +36,7 @@ def load_ai_config():
         return None
 
 
-def classify(name, curriculum, log=None):
+def classify(name: str, curriculum: list, log: Callable | None = None) -> dict | None:
     ai = load_ai_config()
     if not ai or not ai.get("enabled") or not ai.get("api_key"):
         return None

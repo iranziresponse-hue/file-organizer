@@ -9,41 +9,79 @@ inputs, so this module still doesn't need to know Django exists.
 
 import json
 import re
+import time
 from pathlib import Path
 
 from . import paths
 
 
 class Destination:
-    def __init__(self, path, method, course_code=None):
+    def __init__(self, path: Path | str, method: str, course_code: str | None = None):
         self.path = Path(path)
         self.method = method
         self.course_code = course_code
 
 
-def load_config(profile_root):
-    if not profile_root:
+# ---------------------------------------------------------------------------
+# TTL cache for config/curriculum reads -- re-reads from disk only when the
+# file's mtime changes, so editing them takes effect on the next poll cycle
+# without hammering the filesystem on every single file move.
+# ---------------------------------------------------------------------------
+_CACHE_TTL_SECONDS = 10
+_cache: dict[str, tuple[float, object]] = {}  # path -> (mtime, data)
+
+
+def _cached_read(path: Path, loader):
+    """Generic TTL cache: returns cached data if the file's mtime hasn't
+    changed since the last read, otherwise re-reads via `loader(path)`."""
+    try:
+        current_mtime = path.stat().st_mtime
+    except OSError:
         return None
-    path = paths.config_path(profile_root)
-    if not path.exists():
-        return None
+
+    cache_key = str(path)
+    entry = _cache.get(cache_key)
+    if entry is not None:
+        cached_mtime, cached_data = entry
+        if cached_mtime == current_mtime:
+            return cached_data
+
+    data = loader(path)
+    _cache[cache_key] = (current_mtime, data)
+    return data
+
+
+def _load_config_from_disk(path: Path):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
 
-def load_curriculum(profile_root):
-    if not profile_root:
-        return None
-    path = paths.curriculum_path(profile_root)
-    if not path.exists():
-        return None
+def _load_curriculum_from_disk(path: Path):
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         return data.get("subjects", [])
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def load_config(profile_root: str | None):
+    if not profile_root:
+        return None
+    path = paths.config_path(profile_root)
+    if not path.exists():
+        return None
+    return _cached_read(path, _load_config_from_disk)
+
+
+def load_curriculum(profile_root: str | None):
+    if not profile_root:
+        return None
+    path = paths.curriculum_path(profile_root)
+    if not path.exists():
+        return None
+    return _cached_read(path, _load_curriculum_from_disk)
 
 
 def find_course_by_topic(name, curriculum):

@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
@@ -48,3 +50,61 @@ class AdminCockpitTests(SandboxedPathsTestCase):
         self.assertContains(response, "CSC2100 notes.pdf")
         self.assertContains(response, "Review CSC2100 notes")
         self.assertContains(response, "File decisions")
+
+
+class OwnerAccessTests(SandboxedPathsTestCase):
+    def test_owner_console_is_hidden_when_owner_mode_is_off(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=False):
+            response = self.client.get(reverse("owner_console"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_console_rejects_non_local_requests(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.get(reverse("owner_console"), REMOTE_ADDR="10.0.0.12")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_console_opens_first_owner_setup_when_no_staff_exists(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.get(reverse("owner_console"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertRedirects(response, reverse("owner_setup"), fetch_redirect_response=False)
+
+    def test_owner_setup_page_renders_for_local_owner_mode(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.get(reverse("owner_setup"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Create owner access")
+        self.assertContains(response, "Local owner mode")
+
+    def test_owner_setup_creates_real_staff_account(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.post(
+                reverse("owner_setup"),
+                {
+                    "username": "owner",
+                    "email": "owner@example.com",
+                    "password": "OrchOwnerPass2026!",
+                    "confirm_password": "OrchOwnerPass2026!",
+                },
+                REMOTE_ADDR="127.0.0.1",
+            )
+
+        self.assertRedirects(response, reverse("admin:index"), fetch_redirect_response=False)
+        user = get_user_model().objects.get(username="owner")
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+
+    def test_owner_console_redirects_to_admin_after_staff_exists(self):
+        get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="OrchOwnerPass2026!",
+        )
+
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.get(reverse("owner_console"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertRedirects(response, reverse("admin:index"), fetch_redirect_response=False)

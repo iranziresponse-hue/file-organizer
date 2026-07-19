@@ -1,0 +1,67 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Setup Checklist - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-narrow">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Getting started</span>
+            <h2>[Launch] Setup checklist</h2>
+            <p>Track what's configured, what's missing, and what's active. {{ done_count }} of {{ total_count }} complete.</p>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Setup progress</h2>
+            </div>
+            <span class="meta-token">{{ done_count }}/{{ total_count }}</span>
+        </div>
+        <div style="height:8px;border-radius:999px;overflow:hidden;background:var(--stroke-soft);margin-bottom:24px;">
+            <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--purple));transition:width var(--ease);width:{% widthratio done_count total_count 100 %}%;"></div>
+        </div>
+        <div class="profile-list">
+            {% for item in checklist %}
+            <div class="profile-row" style="grid-template-columns:32px minmax(160px,1fr) auto;{% if item.warning %}border-color:rgba(255,107,107,0.3);{% endif %}">
+                <div style="font-size:1.2rem;text-align:center;">
+                    {% if item.done %}[Done]{% else %}[Todo]{% endif %}
+                </div>
+                <div class="profile-main">
+                    <h3>{{ item.label }}</h3>
+                    <span class="path-text">{{ item.detail }}</span>
+                    {% if item.warning %}<span class="path-text" style="color:var(--red);">[Warning] Path may not exist</span>{% endif %}
+                    {% if item.info %}<span class="path-text">{{ item.info }}</span>{% endif %}
+                </div>
+                <div class="profile-actions">
+                    {% if item.url %}
+                    <a href="{% url item.url %}" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;{% if item.done %}opacity:0.6;{% endif %}">
+                        {% if item.done %}Edit{% else %}Set up{% endif %}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Two setup paths</h2>
+            </div>
+        </div>
+        <div class="choice-list">
+            <a href="{% url 'makerere_wizard' %}" class="choice-option" style="justify-content:center;text-align:center;padding:20px;">
+                <strong>[University] Makerere University</strong>
+                <span style="font-size:0.85rem;color:var(--muted);">Guided setup with college, school, program, and MUELE integration</span>
+            </a>
+            <a href="{% url 'profile_wizard' %}" class="choice-option" style="justify-content:center;text-align:center;padding:20px;">
+                <strong>[Note] Manual setup</strong>
+                <span style="font-size:0.85rem;color:var(--muted);">Create your own profile with custom labels and subjects</span>
+            </a>
+        </div>
+    </section>
+</div>
+{% endblock %}

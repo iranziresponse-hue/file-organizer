@@ -10,6 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import json
+import os
+from pathlib import Path
+
 from runtime import app_dir
 
 # Project root in development; the folder containing the exe once frozen by
@@ -19,14 +23,30 @@ from runtime import app_dir
 BASE_DIR = app_dir()
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# ---------------------------------------------------------------------------
+# Secret config (gitignored) -- django_secret_key, debug, etc.
+# Falls back to safe defaults if the file doesn't exist (e.g. first run).
+# ---------------------------------------------------------------------------
+_SECRET_CONFIG_PATH = BASE_DIR / "secret_config.json"
+
+def _load_secret_config():
+    try:
+        with open(_SECRET_CONFIG_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+_secret_config = _load_secret_config()
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-++m(k_o&f$6!b^#axe(4r(fb66=cjbw_5a7kwvyyn1w=&s2jmo'
+# If no secret_config.json exists, generate a random one on first run.
+SECRET_KEY = _secret_config.get(
+    "django_secret_key",
+    os.environ.get("DJANGO_SECRET_KEY", "django-insecure-++m(k_o&f$6!b^#axe(4r(fb66=cjbw_5a7kwvyyn1w=&s2jmo"),
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _secret_config.get("debug", os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes"))
 
 ALLOWED_HOSTS = []
 

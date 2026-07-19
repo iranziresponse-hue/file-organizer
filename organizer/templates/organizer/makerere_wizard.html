@@ -136,7 +136,7 @@
 <script src="{% static 'organizer/js/tag-input.js' %}"></script>
 <script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
 <script>
-    initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
+    initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value, '+ Add course unit');
     initFolderSuggestions();
 
     (function () {
@@ -159,12 +159,15 @@
             var year = years ? years['Year ' + yearInput.value] : null;
             var units = year ? year['Semester ' + semesterInput.value] : null;
 
+            groupsSuggestions.innerHTML = '';
+
             if (!units || !units.length) {
-                curriculumHelp.textContent = 'Type each course code from your real timetable this semester and press Enter. Only you know exactly what you\'re registered for this semester, so Orch asks rather than guesses.';
+                curriculumHelp.classList.add('placeholder-note');
+                curriculumHelp.textContent = 'Orch doesn\'t have a verified curriculum for this program, year, and semester yet. Type each course code from your real timetable and click "+ Add course unit" below -- what you add here also helps Orch\'s admin add real, sourced data for future students.';
                 return;
             }
 
-            groupsSuggestions.innerHTML = '';
+            curriculumHelp.classList.remove('placeholder-note');
             units.forEach(function (unit) {
                 var code = unit.split(' ')[0];
                 var btn = document.createElement('button');
@@ -177,7 +180,7 @@
                 });
                 groupsSuggestions.appendChild(btn);
             });
-            curriculumHelp.textContent = 'These are Orch\'s verified course units for this program, year, and semester (source noted in organizer/core/makerere_curricula.py) -- click one to add it, or type your own if something is missing or different for you.';
+            curriculumHelp.textContent = 'These are Orch\'s verified course units for this program, year, and semester (source noted in organizer/core/makerere_curricula.py) -- click one to add it, or use "+ Add course unit" if something is missing or different for you.';
         }
 
         function findCollege(name) {

@@ -1,0 +1,133 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Resource Radar - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Resource Radar</span>
+            <h2>Find better study material.</h2>
+            <p>Recommendations are built from your subject memory, themes, weak areas, and recent files. Orch links to real discovery sources without inventing rankings.</p>
+        </div>
+        <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="generate">
+            <select name="subject_code" aria-label="Subject filter">
+                <option value="">All subjects</option>
+                {% for memory in subject_memories %}
+                <option value="{{ memory.code }}" {% if current_subject == memory.code %}selected{% endif %}>{{ memory.code }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 9a7 7 0 0 0-12.1-4.8L4 8M4 15a7 7 0 0 0 12.1 4.8L20 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Refresh radar
+            </button>
+        </form>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Signal</h2>
+                    <p class="card-subtitle">What Orch uses before suggesting anything.</p>
+                </div>
+            </div>
+            <div class="profile-list">
+                {% for memory in subject_memories %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ memory.code }}</h3>
+                        <span class="path-text">{{ memory.resource_count }} resources tracked</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">{{ memory.weak_areas|length }} weak areas</span>
+                        <strong>{{ memory.current_focus|length }} focus</strong>
+                    </div>
+                </article>
+                {% empty %}
+                <p class="help-text">Add subjects or sort files before generating recommendations.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Saved</h2>
+                    <p class="card-subtitle">Resources you marked for later.</p>
+                </div>
+            </div>
+            <div class="metric-grid">
+                <div class="metric">
+                    <span class="label">Saved resources</span>
+                    <span class="value">{{ saved_count }}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Visible recommendations</span>
+                    <span class="value">{{ recommendations|length }}</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Recommended discovery links</h2>
+                <p class="card-subtitle">Open the source, compare results, then save or dismiss the recommendation.</p>
+            </div>
+        </div>
+
+        {% if recommendations %}
+        <div class="profile-list">
+            {% for item in recommendations %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">{{ item.reason }}</span>
+                    <span class="path-text">Query: {{ item.query }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ item.subject_code|default:"General" }}</span>
+                    <strong>{{ item.get_source_type_display }}</strong>
+                </div>
+                <div class="profile-actions">
+                    <a class="button-ghost" href="{{ item.url }}" target="_blank" rel="noopener">Open</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="recommendation_pk" value="{{ item.pk }}">
+                        <input type="hidden" name="action" value="{% if item.status == 'saved' %}suggested{% else %}saved{% endif %}">
+                        <button class="button-ghost" type="submit">{% if item.status == 'saved' %}Unsave{% else %}Save{% endif %}</button>
+                    </form>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="recommendation_pk" value="{{ item.pk }}">
+                        <input type="hidden" name="action" value="dismissed">
+                        <button class="button-ghost" type="submit">Dismiss</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 19.5V5.8C4 4.8 4.8 4 5.8 4h5.4c1 0 1.8.8 1.8 1.8v13.7c0-.9-.7-1.5-1.6-1.5H5.8c-1 0-1.8.7-1.8 1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M20 19.5V5.8c0-1-.8-1.8-1.8-1.8h-5.4c-1 0-1.8.8-1.8 1.8v13.7c0-.9.7-1.5 1.6-1.5h5.6c1 0 1.8.7 1.8 1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No recommendations yet.</h3>
+                <p>Refresh the radar after adding subjects, themes, weak areas, or sorted files.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

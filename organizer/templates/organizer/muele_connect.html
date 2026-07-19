@@ -1,0 +1,140 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Connect MUELE - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-narrow">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Makerere MUELE</span>
+            <h2>Connect to MUELE</h2>
+            <p>Link your MUELE account to automatically download course materials, track assignments, and stay on top of deadlines.</p>
+        </div>
+    </section>
+
+    <!-- Method 1: Automatic login -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Option A: Log in with your MUELE account</h3>
+                <p class="card-subtitle">Enter your Makerere login credentials. Orch generates a secure token automatically - your password is never stored.</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="login">
+            <div class="form-two">
+                <div class="field">
+                    <label for="login_username">MUELE username or email</label>
+                    <input type="text" id="login_username" name="login_username" placeholder="student@mak.ac.ug or 21007xxxxx" required>
+                </div>
+                <div class="field">
+                    <label for="login_password">MUELE password</label>
+                    <input type="password" id="login_password" name="login_password" placeholder="Your MUELE password" autocomplete="off" required>
+                    <p class="help-text">Sent once to MUELE to generate a token. Never stored or logged.</p>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Log in to MUELE
+                </button>
+            </div>
+        </form>
+        {% if token_status == "valid" and user_info %}
+        <div class="help-text" style="color: var(--green); margin-top: 12px;">
+            [Done] Logged in as <strong>{{ user_info.fullname }}</strong> ({{ user_info.username }})
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Method 2: Manual token entry -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Option B: Use an existing token</h3>
+                <p class="card-subtitle">If you already have a MUELE web service token, paste it below.</p>
+            </div>
+        </div>
+        <details style="color: var(--muted); margin-bottom: 16px;">
+            <summary style="cursor:pointer; font-size:0.9rem;">How to generate a token manually</summary>
+            <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
+                <li>Log in to <a href="{{ muele_url }}" target="_blank" rel="noopener">{{ muele_url }}</a></li>
+                <li>Go to your profile menu (top right) → <strong>Preferences</strong></li>
+                <li>Under <strong>User account</strong>, click <strong>Security keys</strong></li>
+                <li>Click <strong>Create a token</strong>, name it "Orch", and copy the token</li>
+            </ol>
+        </details>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="verify_token">
+            <div class="field">
+                <label for="token">MUELE web service token</label>
+                <div class="field-control">
+                    <input type="text" id="token" name="token" value="{{ request.POST.token }}" placeholder="Paste your token here" autocomplete="off" style="font-family: monospace;">
+                    <button type="submit">Verify</button>
+                </div>
+            </div>
+            {% if token_status == "invalid" %}
+            <div class="help-text" style="color: var(--red);">
+                [Fail] Token verification failed. Check it was copied correctly.
+            </div>
+            {% endif %}
+        </form>
+    </section>
+
+    <!-- Step 3: Save connection and configure sync -->
+    {% if token_status == "valid" %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Configure sync</h3>
+                <p class="card-subtitle">Choose what to sync from MUELE. You can change this later.</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_connection">
+            <div class="field">
+                <label for="username">Display name (optional)</label>
+                <input type="text" id="username" name="username" value="{{ connection.username|default:user_info.fullname|default:'' }}" placeholder="Your name">
+            </div>
+            <div class="field">
+                <label for="college">College (optional)</label>
+                <input type="text" id="college" name="college" value="{{ connection.config.college|default:'' }}" placeholder="COCIS, CHS, COBAMS...">
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="course_files" style="width:auto;" checked>
+                Download course files automatically
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="assignments" style="width:auto;" checked>
+                Track assignments and deadlines
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="calendar" style="width:auto;" checked>
+                Sync calendar events
+            </label>
+            <div class="form-actions">
+                <a class="button button-ghost" href="{% url 'study_home' %}">Skip for now</a>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Save & fetch courses
+                </button>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+</div>
+
+<style>
+details summary { color: var(--faint); }
+details[open] summary { margin-bottom: 8px; }
+details ol li { margin-bottom: 4px; }
+</style>
+{% endblock %}

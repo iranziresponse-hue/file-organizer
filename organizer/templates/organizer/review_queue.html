@@ -1,0 +1,194 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Review Queue - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Repeat] Smart Review Queue</h2>
+            <p>Spaced repetition review items scheduled from your study materials. Complete a review to schedule the next one at the right interval.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" action="{% url 'review_queue' %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="auto_schedule">
+                <button type="submit" class="button-ghost">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                        <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Auto-schedule from files
+                </button>
+            </form>
+            <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        </div>
+    </section>
+
+    <!-- Stats row -->
+    <section class="stat-row" style="grid-column:1/-1;">
+        <div class="stat stat-primary">
+            <div class="value">{{ stats.queued }}</div>
+            <div class="label">Queued</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ stats.overdue }}</div>
+            <div class="label" style="color:var(--red);">Overdue</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ stats.due_today }}</div>
+            <div class="label">Due today</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ stats.done }}</div>
+            <div class="label">Completed</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ stats.skipped }}</div>
+            <div class="label">Skipped</div>
+        </div>
+    </section>
+
+    <!-- Priority breakdown -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>By priority</h2>
+                </div>
+            </div>
+            <div class="stat-row">
+                <div class="stat">
+                    <div class="value" style="color:var(--red);">{{ stats.by_priority.high }}</div>
+                    <div class="label">High</div>
+                </div>
+                <div class="stat">
+                    <div class="value" style="color:var(--cyan);">{{ stats.by_priority.normal }}</div>
+                    <div class="label">Normal</div>
+                </div>
+                <div class="stat">
+                    <div class="value" style="color:var(--muted);">{{ stats.by_priority.low }}</div>
+                    <div class="label">Low</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>By subject</h2>
+                </div>
+            </div>
+            {% if stats.by_subject %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for item in stats.by_subject %}
+                <span class="suggestion-token">
+                    <strong>{{ item.subject_code }}</strong>
+                    <span class="path-text">({{ item.count }})</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:8px;">No subjects with queued reviews yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Due reviews -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Due now</h2>
+                <p class="card-subtitle">Items ready for review, ordered by urgency</p>
+            </div>
+        </div>
+        {% if due_items %}
+        <div class="profile-list">
+            {% for item in due_items %}
+            <article class="profile-row" style="grid-template-columns: minmax(180px, 1.5fr) minmax(120px, 0.8fr) minmax(100px, 0.6fr) auto;">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">{{ item.reason|default:"Study material" }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">
+                        {% if item.due_at < now %}
+                            <span style="color:var(--red);">Overdue</span>
+                        {% else %}
+                            Due
+                        {% endif %}
+                    </span>
+                    <strong>{{ item.due_at|date:"Y-m-d H:i" }}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Subject</span>
+                    {% if item.subject_code %}
+                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code }}</a>
+                    {% else %}
+                        <span class="path-text">-</span>
+                    {% endif %}
+                </div>
+                <div class="profile-actions" style="display:flex; gap:6px;">
+                    <form method="post" action="{% url 'review_mark_done' item.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="button" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">
+                            <svg viewBox="0 0 24 24" fill="none" style="width:14px;">
+                                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Done
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'review_skip' item.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">
+                            Skip
+                        </button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No reviews due</h3>
+                <p>All caught up! Auto-schedule reviews from your recent files, or they'll appear as you sort new material.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Recent completed -->
+    {% if recent_done %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Recently completed</h2>
+                <p class="card-subtitle">Items you've marked as done</p>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for item in recent_done %}
+            <article class="profile-row" style="opacity:0.7;">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">Completed {{ item.completed_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Subject</span>
+                    {% if item.subject_code %}
+                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code }}</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

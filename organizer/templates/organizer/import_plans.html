@@ -1,0 +1,107 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Import Plans - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Import] Import from Existing Folders</h2>
+            <p>Scan an existing folder structure, review what Orch found, then approve subjects/rules and apply the folder layout.</p>
+        </div>
+        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Scan a folder</h2></div></div>
+            <form method="post" class="form-grid">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="scan">
+                <div class="field">
+                    <label for="root_path">Folder path to scan</label>
+                    <div class="field-control">
+                        <input type="text" id="root_path" name="root_path" placeholder="C:\Users\...\ExistingFolder" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('root_path')">Browse</button>
+                    </div>
+                </div>
+                <div class="form-actions"><button type="submit">Scan folder</button></div>
+            </form>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Import workflow</h2></div></div>
+            <ol style="color:var(--muted);font-size:0.9rem;line-height:1.8;margin:0;padding-left:18px;">
+                <li><strong>Scan</strong> - Orch reads the folder, discovers subjects and files</li>
+                <li><strong>Approve</strong> - Adopts subjects into your profile, creates routing rules</li>
+                <li><strong>Apply</strong> - Creates the folder structure under your profile root</li>
+            </ol>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Plans ({{ plans|length }})</h2></div></div>
+        {% if plans %}
+        <div class="profile-list">
+            {% for plan in plans %}
+            <article class="profile-row" style="grid-template-columns: minmax(180px,1.5fr) minmax(100px,0.5fr) minmax(80px,0.3fr) auto;">
+                <div class="profile-main">
+                    <h3>{{ plan.root_path }}</h3>
+                    <span class="path-text">
+                        {{ plan.proposed_subjects|length }} subjects •
+                        {{ plan.proposed_rules|length }} rules •
+                        {{ plan.discovered_files|length }} files
+                    </span>
+                    {% if plan.notes %}<span class="path-text" style="font-size:0.78rem;">{{ plan.notes }}</span>{% endif %}
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Status</span>
+                    <strong>
+                        {% if plan.status == "draft" %}[Note] Draft
+                        {% elif plan.status == "scanned" %}[Search] Scanned
+                        {% elif plan.status == "approved" %}[Done] Approved
+                        {% elif plan.status == "imported" %}[Box] Imported
+                        {% elif plan.status == "rejected" %}[Fail] Rejected
+                        {% else %}{{ plan.get_status_display }}{% endif %}
+                    </strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Updated</span>
+                    <strong>{{ plan.updated_at|date:"Y-m-d H:i" }}</strong>
+                </div>
+                <div class="profile-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    {% if plan.status == "scanned" %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve">
+                        <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
+                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Approve</button>
+                    </form>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
+                        <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reject</button>
+                    </form>
+                    {% elif plan.status == "approved" %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="apply">
+                        <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
+                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Apply folders</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <div><h3>No import plans</h3><p>Scan an existing folder to create your first import plan.</p></div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

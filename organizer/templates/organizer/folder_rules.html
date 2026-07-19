@@ -1,0 +1,192 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Folder Rules - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Tools] Folder Rule Builder</h2>
+            <p>Create visual rules that route, review, or ignore files automatically. Rules run in priority order.</p>
+        </div>
+        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Create rule</h2></div></div>
+            <form method="post" class="form-grid">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="field">
+                    <label for="name">Rule name</label>
+                    <input type="text" id="name" name="name" placeholder="e.g. Route CSC2100 PDFs" required>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="match_field">Match field</label>
+                        <select id="match_field" name="match_field">
+                            <option value="filename">Filename</option>
+                            <option value="extension">Extension</option>
+                            <option value="source_path">Source path</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="operator">Operator</label>
+                        <select id="operator" name="operator">
+                            <option value="contains">Contains</option>
+                            <option value="equals">Equals</option>
+                            <option value="starts_with">Starts with</option>
+                            <option value="ends_with">Ends with</option>
+                            <option value="regex">Regex</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="pattern">Pattern</label>
+                    <input type="text" id="pattern" name="pattern" placeholder="e.g. CSC2100" required>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="action_type">Action</label>
+                        <select id="action_type" name="action_type">
+                            <option value="route">Route file</option>
+                            <option value="review">Send to inbox</option>
+                            <option value="ignore">Ignore</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="priority">Priority (lower = first)</label>
+                        <input type="number" id="priority" name="priority" value="100" min="1" max="9999">
+                    </div>
+                </div>
+                <div class="form-two">
+                    <div class="field">
+                        <label for="subject_code">Subject code</label>
+                        <input type="text" id="subject_code" name="subject_code" placeholder="e.g. CSC2100">
+                    </div>
+                    <div class="field">
+                        <label for="category">Category</label>
+                        <input type="text" id="category" name="category" placeholder="e.g. Lecture Notes">
+                    </div>
+                </div>
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;font-weight:500;color:var(--muted);">
+                <input type="checkbox" name="enabled" style="width:auto;" checked> Enable rule immediately
+            </label>
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Test this rule</h3>
+                    <p>Enter a sample filename to check if this rule matches before saving.</p>
+                </div>
+                <div class="field-control" style="margin-bottom:8px;">
+                    <input type="text" id="test-filename" placeholder="e.g. CSC2100_Assignment.pdf" style="font-family:monospace;">
+                    <button type="button" id="test-rule-btn" class="button-ghost">Test</button>
+                </div>
+                <div id="test-result" class="help-text" style="display:none;padding:8px 12px;border-radius:10px;"></div>
+            </div>
+            <div class="form-actions"><button type="submit">Create rule</button></div>
+            </form>
+        </div>
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Rules ({{ rules|length }})</h2></div></div>
+            {% if rules %}
+            <div class="profile-list">
+                {% for rule in rules %}
+                <article class="profile-row" style="grid-template-columns: minmax(140px,1.2fr) minmax(80px,0.5fr) minmax(60px,0.3fr) auto;">
+                    <div class="profile-main">
+                        <h3>{{ rule.name }}</h3>
+                        <span class="path-text">
+                            {% if rule.file_extensions %}[{{ rule.file_extensions|join:", " }}] {% endif %}
+                            If {{ rule.get_match_field_display|lower }} {{ rule.get_operator_display|lower }} "{{ rule.pattern }}"
+                        </span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Priority {{ rule.priority }}</span>
+                        <strong>{{ rule.get_action_display }}</strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Status</span>
+                        <strong>{% if rule.enabled %}[Done] Active{% else %}⏸️ Paused{% endif %}</strong>
+                    </div>
+                    <div class="profile-actions" style="display:flex;gap:6px;">
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle">
+                            <input type="hidden" name="rule_pk" value="{{ rule.pk }}">
+                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                                {{ rule.enabled|yesno:"Pause,Activate" }}
+                            </button>
+                        </form>
+                        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this rule?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="rule_pk" value="{{ rule.pk }}">
+                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Delete</button>
+                        </form>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:12px;">No rules yet. Create your first rule above.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% block extra_js %}
+<script>
+(function() {
+    var testBtn = document.getElementById('test-rule-btn');
+    var testInput = document.getElementById('test-filename');
+    var resultDiv = document.getElementById('test-result');
+
+    if (!testBtn || !testInput || !resultDiv) return;
+
+    testBtn.addEventListener('click', function() {
+        var filename = testInput.value.trim();
+        if (!filename) {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = 'rgba(255,107,107,0.1)';
+            resultDiv.style.borderColor = 'rgba(255,107,107,0.3)';
+            resultDiv.textContent = 'Enter a filename to test.';
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('name', document.getElementById('name').value || 'Test rule');
+        formData.append('match_field', document.getElementById('match_field').value);
+        formData.append('operator', document.getElementById('operator').value);
+        formData.append('pattern', document.getElementById('pattern').value);
+        formData.append('subject_code', document.getElementById('subject_code').value);
+        formData.append('category', document.getElementById('category').value);
+        formData.append('action_type', document.getElementById('action_type').value);
+        formData.append('test_filename', filename);
+
+        fetch('{% url "rule_test" %}', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            resultDiv.style.display = 'block';
+            if (data.matched) {
+                resultDiv.style.background = 'rgba(74,222,128,0.1)';
+                resultDiv.style.borderColor = 'rgba(74,222,128,0.3)';
+                resultDiv.innerHTML = '[Done] <strong>Match!</strong> ' + data.action;
+            } else {
+                resultDiv.style.background = 'rgba(255,107,107,0.1)';
+                resultDiv.style.borderColor = 'rgba(255,107,107,0.3)';
+                resultDiv.textContent = '[Fail] No match. ' + data.action;
+            }
+        })
+        .catch(function() {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = 'rgba(255,107,107,0.1)';
+            resultDiv.textContent = 'Error testing rule.';
+        });
+    });
+})();
+</script>
+{% endblock %}

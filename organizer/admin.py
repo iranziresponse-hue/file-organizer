@@ -20,13 +20,16 @@ from .models import (
     IntegrationConnection,
     LearningActivity,
     LearningDigest,
+    LearningRoute,
     MoveEvent,
     Profile,
+    ResourceRecommendation,
     ReviewItem,
     SortingInboxItem,
     SubjectMemory,
     SubjectTheme,
     StudyGoal,
+    SuggestedCourseUnit,
 )
 
 
@@ -58,8 +61,14 @@ def _percent(part, whole):
 
 
 def _operations_context():
+    from datetime import timedelta
+
+    from django.db.models import Count, Q
+
     now = timezone.now()
-    today_start = now - timezone.timedelta(hours=24)
+    today_start = now - timedelta(hours=24)
+    week_start = now - timedelta(days=7)
+    month_start = now - timedelta(days=30)
     settings = AppSettings.objects.first()
     active_profile = Profile.get_active()
     total_moves = MoveEvent.objects.count()
@@ -73,6 +82,7 @@ def _operations_context():
     enabled_rules = FolderRule.objects.filter(enabled=True).count()
     planned_integrations = IntegrationConnection.objects.filter(status="planned").count()
     errored_integrations = IntegrationConnection.objects.filter(status="error").count()
+    unreviewed_suggestions = SuggestedCourseUnit.objects.filter(reviewed=False).count()
 
     method_rows = []
     for row in MoveEvent.objects.values("method").annotate(total=Count("id")).order_by("-total")[:8]:
@@ -115,7 +125,111 @@ def _operations_context():
             "detail": "No profile is currently active.",
         })
 
+    # Deep analytics
+    weekly_moves = MoveEvent.objects.filter(timestamp__gte=week_start).count()
+    monthly_moves = MoveEvent.objects.filter(timestamp__gte=month_start).count()
+    weekly_activities = LearningActivity.objects.filter(happened_at__gte=week_start).count()
+    monthly_activities = LearningActivity.objects.filter(happened_at__gte=month_start).count()
+    weekly_digests = LearningDigest.objects.filter(period_end__gte=week_start).count()
+    monthly_exports = ExportBundle.objects.filter(created_at__gte=month_start).count()
+
+    # Subject analytics
+    subject_count = SubjectMemory.objects.count()
+    subjects_with_resources = SubjectMemory.objects.filter(resource_count__gt=0).count()
+    themes_count = SubjectTheme.objects.count()
+    total_activities = LearningActivity.objects.count()
+
+    # MUELE analytics
+    muele_connections = IntegrationConnection.objects.filter(provider="muele")
+    muele_connected = muele_connections.filter(status="connected").count()
+    muele_syncs = LearningActivity.objects.filter(activity_type="muele_sync").count()
+    muele_files = MoveEvent.objects.filter(method="muele_sync").count()
+
+    # Digest analytics
+    total_digests = LearningDigest.objects.count()
+    total_knowledge_packs = ExportBundle.objects.filter(status="ready").count()
+
+    # Review/Inbox analytics
+    total_reviews = ReviewItem.objects.count()
+    completed_reviews = ReviewItem.objects.filter(status="done").count()
+
+    # Activity trend (last 7 days)
+    activity_trend = []
+    for i in range(7):
+        day = now - timedelta(days=i)
+        day_end = day + timedelta(days=1)
+        count = LearningActivity.objects.filter(
+            happened_at__gte=day, happened_at__lt=day_end
+        ).count()
+        activity_trend.append({
+            "label": day.strftime("%a"),
+            "count": count,
+        })
+    activity_trend.reverse()
+
+    # Method trend (last 7 days)
+    method_trend = []
+    for row in MoveEvent.objects.filter(
+        timestamp__gte=week_start
+    ).values("method").annotate(
+        total=Count("id")
+    ).order_by("-total")[:5]:
+        method_trend.append({
+            "label": dict(MoveEvent.METHOD_CHOICES).get(row["method"], row["method"]),
+            "count": row["total"],
+        })
+
+    # Diagnostics
+    try:
+        from .core import diagnostics
+
+        watcher_status = diagnostics.get_watcher_status()
+        error_summary = diagnostics.get_error_summary()
+        db_health = diagnostics.get_database_health()
+        folder_permissions = diagnostics.check_all_watched_folders()
+        integration_failures = diagnostics.get_integration_failures()
+        recent_errors = diagnostics.get_recent_errors(days=1, limit=10)
+        backups = diagnostics.list_backups()
+    except Exception:
+        watcher_status = {"running": False, "recent_errors": [], "files_watched_24h": 0}
+        error_summary = {"total_failed": 0, "total_success": 0, "failure_rate": 0}
+        db_health = {"exists": False, "size_mb": 0, "warnings": ["Diagnostics unavailable"]}
+        folder_permissions = []
+        integration_failures = []
+        recent_errors = []
+        backups = []
+
     return {
+        "orch_diagnostics": {
+            "watcher": watcher_status,
+            "errors": error_summary,
+            "database": db_health,
+            "permissions": folder_permissions,
+            "integration_failures": integration_failures,
+            "recent_errors": recent_errors,
+            "backups": backups,
+        },
+        "orch_analytics": {
+            "weekly_moves": weekly_moves,
+            "monthly_moves": monthly_moves,
+            "weekly_activities": weekly_activities,
+            "monthly_activities": monthly_activities,
+            "weekly_digests": weekly_digests,
+            "monthly_exports": monthly_exports,
+            "subject_count": subject_count,
+            "subjects_with_resources": subjects_with_resources,
+            "themes_count": themes_count,
+            "total_activities": total_activities,
+            "muele_connected": muele_connected,
+            "muele_syncs": muele_syncs,
+            "muele_files": muele_files,
+            "total_digests": total_digests,
+            "total_knowledge_packs": total_knowledge_packs,
+            "total_reviews": total_reviews,
+            "completed_reviews": completed_reviews,
+            "activity_trend": activity_trend,
+            "method_trend": method_trend,
+        },
         "orch_cards": [
             {
                 "label": "Profiles",
@@ -165,6 +279,12 @@ def _operations_context():
                 "detail": f"{planned_integrations} planned, {errored_integrations} need attention",
                 "url": _admin_changelist(IntegrationConnection),
             },
+            {
+                "label": "Curriculum contributions",
+                "value": SuggestedCourseUnit.objects.count(),
+                "detail": f"{unreviewed_suggestions} awaiting review",
+                "url": _admin_changelist(SuggestedCourseUnit),
+            },
         ],
         "orch_active_profile": active_profile,
         "orch_method_rows": method_rows,
@@ -185,11 +305,39 @@ def _operations_context():
             "integrations": _admin_changelist(IntegrationConnection),
             "digests": _admin_changelist(LearningDigest),
             "exports": _admin_changelist(ExportBundle),
+            "suggestions": _admin_changelist(SuggestedCourseUnit),
         },
     }
 
 
 def _orch_index(self, request, extra_context=None):
+    from django.contrib import messages
+
+    if request.method == "POST" and "_orch_action" in request.POST:
+        action = request.POST["_orch_action"]
+        from .core import diagnostics as diag
+
+        if action == "create_backup":
+            result = diag.create_backup()
+            if result.get("path"):
+                messages.success(request, f"Backup created: {result.get('size_kb', 0)} KB")
+            else:
+                messages.error(request, f"Backup failed: {result.get('error', 'Unknown error')}")
+
+        elif action == "vacuum_db":
+            result = diag.vacuum_database()
+            if result.get("success"):
+                messages.success(request, f"Database vacuumed: {result.get('before_mb', 0)}MB -> {result.get('after_mb', 0)}MB ({result.get('reclaimed_kb', 0)} KB reclaimed)")
+            else:
+                messages.error(request, f"Vacuum failed: {result.get('error', 'Unknown error')}")
+
+        elif action == "reindex_db":
+            result = diag.reindex_database()
+            if result.get("success"):
+                messages.success(request, "Database reindexed successfully.")
+            else:
+                messages.error(request, f"Reindex failed: {result.get('error', 'Unknown error')}")
+
     context = {}
     if extra_context:
         context.update(extra_context)
@@ -335,12 +483,41 @@ class IntegrationConnectionAdmin(admin.ModelAdmin):
     search_fields = ("display_name", "base_url", "username")
 
 
+@admin.register(ResourceRecommendation)
+class ResourceRecommendationAdmin(admin.ModelAdmin):
+    list_display = ("updated_at", "profile", "subject_code", "source_type", "status", "score", "title")
+    list_filter = ("profile", "source_type", "status", "subject_code")
+    search_fields = ("title", "query", "theme", "reason")
+    date_hierarchy = "updated_at"
+
+
+@admin.register(LearningRoute)
+class LearningRouteAdmin(admin.ModelAdmin):
+    list_display = ("updated_at", "profile", "subject_code", "theme", "status", "current_step", "title")
+    list_filter = ("profile", "status", "subject_code")
+    search_fields = ("title", "theme", "subject_code")
+    date_hierarchy = "updated_at"
+
+
 @admin.register(ExportBundle)
 class ExportBundleAdmin(admin.ModelAdmin):
     list_display = ("updated_at", "profile", "scope", "subject_code", "title", "status")
     list_filter = ("profile", "scope", "status")
     search_fields = ("title", "subject_code", "output_path")
     date_hierarchy = "updated_at"
+
+
+@admin.register(SuggestedCourseUnit)
+class SuggestedCourseUnitAdmin(admin.ModelAdmin):
+    list_display = ("code", "program", "primary_value", "secondary_value", "reviewed", "submitted_at")
+    list_filter = ("reviewed", "program")
+    search_fields = ("code", "program")
+    date_hierarchy = "submitted_at"
+    actions = ["mark_reviewed"]
+
+    @admin.action(description="Mark selected as reviewed")
+    def mark_reviewed(self, request, queryset):
+        queryset.update(reviewed=True)
 
 
 admin.site.site_header = "Orch System Admin"

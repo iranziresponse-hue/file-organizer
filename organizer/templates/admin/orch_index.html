@@ -290,6 +290,90 @@
         <div class="orch-updated">Updated {{ orch_updated_at|date:"Y-m-d H:i:s" }}</div>
     </section>
 
+    <!-- Deep analytics summary -->
+    <div class="orch-two">
+        <div class="orch-panel">
+            <h3>Weekly trend</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Files sorted</strong><small>Last 7 days</small></div>
+                    <span class="orch-state good">{{ orch_analytics.weekly_moves }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Learning activities</strong><small>Last 7 days</small></div>
+                    <span class="orch-state">{{ orch_analytics.weekly_activities }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Digests generated</strong><small>Last 7 days</small></div>
+                    <span class="orch-state">{{ orch_analytics.weekly_digests }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Knowledge packs</strong><small>This month</small></div>
+                    <span class="orch-state">{{ orch_analytics.monthly_exports }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>Activity detail</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Subjects tracked</strong><small>{{ orch_analytics.subjects_with_resources }} with resources</small></div>
+                    <span class="orch-state good">{{ orch_analytics.subject_count }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Focus themes</strong><small>Extracted from filenames</small></div>
+                    <span class="orch-state">{{ orch_analytics.themes_count }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Total activities</strong><small>All learning events</small></div>
+                    <span class="orch-state">{{ orch_analytics.total_activities }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Reviews completed</strong><small>Of {{ orch_analytics.total_reviews }} total</small></div>
+                    <span class="orch-state good">{{ orch_analytics.completed_reviews }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MUELE integration status panel -->
+    <div class="orch-two">
+        <div class="orch-panel">
+            <h3>MUELE Integration Status</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Connected accounts</strong><small>Makerere MUELE</small></div>
+                    <span class="orch-state {% if orch_analytics.muele_connected > 0 %}good{% else %}warning{% endif %}">{{ orch_analytics.muele_connected }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>MUELE sync events</strong><small>Total sync activities</small></div>
+                    <span class="orch-state">{{ orch_analytics.muele_syncs }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>MUELE files downloaded</strong><small>Through auto-sync</small></div>
+                    <span class="orch-state">{{ orch_analytics.muele_files }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>Digests & Packs</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Study digests</strong><small>Daily and weekly reports</small></div>
+                    <span class="orch-state">{{ orch_analytics.total_digests }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Knowledge packs</strong><small>Ready for download</small></div>
+                    <span class="orch-state good">{{ orch_analytics.total_knowledge_packs }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Monthly file volume</strong><small>Last 30 days</small></div>
+                    <span class="orch-state">{{ orch_analytics.monthly_moves }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <section class="orch-grid" aria-label="Live system metrics">
         {% for card in orch_cards %}
         <a class="orch-card" href="{{ card.url }}">
@@ -420,6 +504,197 @@
             </div>
         </div>
     </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>[Search] Watcher Status</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Running</strong></div>
+                    <span class="orch-state {% if orch_diagnostics.watcher.running %}good{% else %}bad{% endif %}">
+                        {{ orch_diagnostics.watcher.running|yesno:"Active,Inactive" }}
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Last activity</strong></div>
+                    <span class="orch-state">{{ orch_diagnostics.watcher.last_activity|default:"Never" }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Files in 24h</strong></div>
+                    <span class="orch-state">{{ orch_diagnostics.watcher.files_watched_24h }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Uptime</strong></div>
+                    <span class="orch-state">{{ orch_diagnostics.watcher.uptime_hours|default:"0" }}h</span>
+                </div>
+                {% if orch_diagnostics.watcher.recent_errors %}
+                <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
+                    <div>
+                        <strong style="color:var(--orch-bad);">Recent errors</strong>
+                        {% for err in orch_diagnostics.watcher.recent_errors %}
+                        <small style="color:var(--orch-bad);">{{ err|truncatechars:80 }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>[Warning] Error Summary</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Failed moves</strong><small>Last 7 days</small></div>
+                    <span class="orch-state {% if orch_diagnostics.errors.total_failed > 0 %}bad{% else %}good{% endif %}">
+                        {{ orch_diagnostics.errors.total_failed }}
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Failure rate</strong></div>
+                    <span class="orch-state {% if orch_diagnostics.errors.failure_rate > 5 %}bad{% elif orch_diagnostics.errors.failure_rate > 0 %}warning{% else %}good{% endif %}">
+                        {{ orch_diagnostics.errors.failure_rate }}%
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Successful moves</strong><small>Last 7 days</small></div>
+                    <span class="orch-state good">{{ orch_diagnostics.errors.total_success }}</span>
+                </div>
+                {% if orch_diagnostics.recent_errors %}
+                <div style="margin-top:8px;max-height:200px;overflow-y:auto;">
+                    {% for err in orch_diagnostics.recent_errors %}
+                    <div class="orch-row" style="padding:8px;border-color:rgba(255,107,107,0.2);">
+                        <div>
+                            <strong style="font-size:0.82rem;color:var(--orch-bad);">{{ err.filename }}</strong>
+                            <small style="font-size:0.72rem;">{{ err.error|truncatechars:100 }}</small>
+                        </div>
+                        <span class="orch-state bad" style="font-size:0.72rem;">{{ err.timestamp|slice:":10" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>[Saved] Database Health</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Database exists</strong></div>
+                    <span class="orch-state {% if orch_diagnostics.database.exists %}good{% else %}bad{% endif %}">
+                        {{ orch_diagnostics.database.exists|yesno:"Yes,No" }}
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Size</strong></div>
+                    <span class="orch-state">{{ orch_diagnostics.database.size_mb }} MB</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Tables</strong></div>
+                    <span class="orch-state">{{ orch_diagnostics.database.table_counts|length }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Connection</strong></div>
+                    <span class="orch-state {% if orch_diagnostics.database.connection_ok %}good{% else %}bad{% endif %}">
+                        {{ orch_diagnostics.database.connection_ok|yesno:"OK,Failed" }}
+                    </span>
+                </div>
+                {% if orch_diagnostics.database.warnings %}
+                {% for warn in orch_diagnostics.database.warnings %}
+                <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
+                    <div><small style="color:var(--orch-warn);">[Warning] {{ warn }}</small></div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>[Folder] Folder Permissions</h3>
+            <div class="orch-list">
+                {% for perm in orch_diagnostics.permissions %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ perm.label }}</strong>
+                        <small>{{ perm.path|truncatechars:50 }}</small>
+                    </div>
+                    <span class="orch-state {% if perm.readable and perm.writable %}good{% else %}bad{% endif %}">
+                        {% if perm.exists %}
+                            {{ perm.readable|yesno:"R," }}{{ perm.writable|yesno:"W," }}
+                        {% else %}
+                            Missing
+                        {% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="orch-note">No folders configured.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {% if orch_diagnostics.integration_failures %}
+    <div class="orch-panel">
+        <h3>[Plug] Integration Issues</h3>
+        <div class="orch-list">
+            {% for fail in orch_diagnostics.integration_failures %}
+            <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
+                <div>
+                    <strong>{{ fail.display_name }}</strong>
+                    <small>{{ fail.provider }} · {{ fail.profile }}</small>
+                    {% for issue in fail.issues %}
+                    <small style="color:var(--orch-warn);">[Warning] {{ issue }}</small>
+                    {% endfor %}
+                </div>
+                <span class="orch-state bad">{{ fail.status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="orch-two">
+        <div class="orch-panel">
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent Backups</h3>
+            <div class="orch-list">
+                {% if orch_diagnostics.backups %}
+                {% for backup in orch_diagnostics.backups|slice:":5" %}
+                <div class="orch-row">
+                    <div>
+                        <strong>{{ backup.filename }}</strong>
+                        <small>{{ backup.size_kb }} KB</small>
+                    </div>
+                    <span class="orch-state good">{{ backup.modified|slice:":10" }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="orch-note">No backups available. Use maintenance tools below.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Maintenance Actions</h3>
+            <div class="orch-links" style="margin-top:8px;">
+                <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="_orch_action" value="create_backup" class="orch-link" style="cursor:pointer;">
+                        Create backup
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="_orch_action" value="vacuum_db" class="orch-link" style="cursor:pointer;">
+                        Vacuum database
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="_orch_action" value="reindex_db" class="orch-link" style="cursor:pointer;">
+                        Reindex database
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <section class="orch-panel">
         <h3>Admin Workspaces</h3>

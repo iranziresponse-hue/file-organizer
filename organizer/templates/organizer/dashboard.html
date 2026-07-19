@@ -124,6 +124,86 @@
         </div>
     </section>
 
+    {% if muele_connection %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>[Books] MUELE Live Panel</h2>
+                <p class="card-subtitle">Makerere University course sync status</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <a class="button-ghost" href="{% url 'muele_courses' %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    Manage courses
+                </a>
+            </div>
+        </div>
+        <div class="stat-row">
+            <div class="stat">
+                <div class="value">{{ muele_courses_count }}</div>
+                <div class="label">Active courses</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ muele_upcoming_deadlines|length }}</div>
+                <div class="label">Upcoming deadlines</div>
+            </div>
+            <div class="stat">
+                <div class="value">
+                    {% if muele_connection.last_sync_at %}
+                        {{ muele_connection.last_sync_at|timesince }} ago
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="label">Last sync</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ muele_connection.status|title }}</div>
+                <div class="label">Status</div>
+            </div>
+        </div>
+        {% if muele_upcoming_deadlines %}
+        <div class="section-gap"></div>
+        <div class="card-header">
+            <div>
+                <h3>Upcoming deadlines</h3>
+            </div>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr><th>Assignment</th><th>Subject</th><th>Due</th><th>Status</th></tr>
+                {% for item in muele_upcoming_deadlines %}
+                <tr>
+                    <td>{{ item.title }}</td>
+                    <td><span class="meta-token">{{ item.subject_code|default:"-" }}</span></td>
+                    <td>
+                        {% if item.due_at %}
+                            <span {% if item.due_at < now %}style="color:var(--red);"{% endif %}>
+                                {{ item.due_at|date:"Y-m-d H:i" }}
+                            </span>
+                        {% else %}
+                            No deadline
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.status == "open" %}
+                            <span class="status-dot">Open</span>
+                        {% elif item.status == "missed" %}
+                            <span class="status-dot is-error">Missed</span>
+                        {% else %}
+                            {{ item.status }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
     {% if course_counts %}
     <section class="card">
         <div class="card-header">
@@ -150,15 +230,15 @@
         <div class="card-header">
             <div>
                 <h2>Recent Moves</h2>
-                <p class="card-subtitle">Latest 50 file decisions for {{ profile.name }}</p>
+                <p class="card-subtitle">File decisions for {{ profile.name }}</p>
             </div>
-            <span class="meta-token">{{ recent_events|length }} shown</span>
+            <span class="meta-token">{{ page_obj.paginator.count }} total</span>
         </div>
-        {% if recent_events %}
+        {% if page_obj.object_list %}
             <div class="table-shell">
                 <table>
                     <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th>Summary</th></tr>
-                    {% for event in recent_events %}
+                    {% for event in page_obj.object_list %}
                     <tr>
                         <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
                         <td>{{ event.filename }}</td>
@@ -198,6 +278,23 @@
                     {% endfor %}
                 </table>
             </div>
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a class="button-ghost" href="?page=1">&laquo; first</a>
+                        <a class="button-ghost" href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    {% if page_obj.has_next %}
+                        <a class="button-ghost" href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a class="button-ghost" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
         {% else %}
             <div class="empty-state">
                 <span class="empty-icon" aria-hidden="true">

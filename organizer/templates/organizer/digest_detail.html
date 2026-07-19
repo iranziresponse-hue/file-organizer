@@ -1,0 +1,136 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Digest - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-medium">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Stats] {{ digest.title }}</h2>
+            <p>{{ digest.period_start|date:"F j, Y H:i" }} to {{ digest.period_end|date:"F j, Y H:i" }}</p>
+        </div>
+        <a class="button-ghost" href="{% url 'digest_overview' %}">Back to digests</a>
+    </section>
+
+    <!-- Metrics row -->
+    <section class="stat-row">
+        <div class="stat stat-primary">
+            <div class="value">{{ digest.metrics.files_sorted|default:"0" }}</div>
+            <div class="label">Files sorted</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ digest.metrics.summaries_ready|default:"0" }}</div>
+            <div class="label">Summaries</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ digest.metrics.active_subjects|default:"0" }}</div>
+            <div class="label">Active subjects</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ digest.metrics.reviews_due|default:"0" }}</div>
+            <div class="label">Reviews due</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ digest.metrics.open_assignments|default:"0" }}</div>
+            <div class="label">Open assignments</div>
+        </div>
+    </section>
+
+    <!-- Full content -->
+    <section class="card compact-card">
+        <div class="summary-body">
+            {% for line in digest.content %}
+                {% if line.startswith("# ") %}
+                    <h1>{{ line|slice:"2:" }}</h1>
+                {% elif line.startswith("## ") %}
+                    <h2>{{ line|slice:"3:" }}</h2>
+                {% elif line.startswith("- ") %}
+                    <li>{{ line|slice:"2:" }}</li>
+                {% elif line == "" %}
+                    <br>
+                {% else %}
+                    <p>{{ line }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Detail metrics -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Folder] Files breakdown</h2>
+                </div>
+            </div>
+            {% if digest.metrics.methods %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for method in digest.metrics.methods %}
+                <span class="suggestion-token">
+                    <strong>{{ method.total }}</strong>
+                    <span class="path-text">{{ method.label }}</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:8px;">No files sorted in this period.</p>
+            {% endif %}
+            {% if digest.metrics.muele_downloads %}
+            <p class="help-text" style="margin-top:8px;">[Books] {{ digest.metrics.muele_downloads }} from MUELE</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>[Books] Subjects</h2>
+                </div>
+            </div>
+            {% if digest.metrics.subjects %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for subject in digest.metrics.subjects %}
+                <span class="suggestion-token">
+                    <strong>{{ subject.course_code }}</strong>
+                    <span class="path-text">({{ subject.total }})</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:8px;">No subject activity this period.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Next steps -->
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>[List] Next steps</h2>
+            </div>
+        </div>
+        <div class="meta-list" style="margin-top:8px;">
+            {% if digest.metrics.unsorted_items %}
+            <p class="help-text">[Warning] {{ digest.metrics.unsorted_items }} file(s) need sorting attention.</p>
+            {% endif %}
+            {% if digest.metrics.reviews_overdue %}
+            <p class="help-text">[Warning] {{ digest.metrics.reviews_overdue }} review(s) are overdue.</p>
+            {% endif %}
+            {% if digest.metrics.missed_assignments %}
+            <p class="help-text">[Warning] {{ digest.metrics.missed_assignments }} assignment(s) missed.</p>
+            {% endif %}
+            {% if not digest.metrics.unsorted_items and not digest.metrics.reviews_overdue and not digest.metrics.missed_assignments %}
+            <p class="help-text">[Done] Everything is in order. Keep learning!</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<style>
+.summary-body h1 { font-size: 1.4rem; margin-bottom: 12px; }
+.summary-body h2 { font-size: 1.1rem; margin: 20px 0 8px; color: #A5F3FC; }
+.summary-body p { color: rgba(232,236,242,0.88); line-height: 1.7; margin-bottom: 10px; }
+.summary-body li { color: var(--muted); margin-left: 18px; padding: 2px 0; }
+.summary-body br { display: block; content: ""; margin-top: 8px; }
+</style>
+{% endblock %}

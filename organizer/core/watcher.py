@@ -9,6 +9,7 @@ few seconds is simple, reliably testable, and fast enough that "instant"
 from a human's perspective is unaffected.
 """
 
+import os
 import shutil
 import time
 from datetime import datetime, timedelta
@@ -18,11 +19,35 @@ from . import ai_classify, paths, rules
 
 SKIP_NAMES = {"_config.json", "desktop.ini"}
 
+# Rotate log when it exceeds this size (5 MB)
+_LOG_MAX_BYTES = 5 * 1024 * 1024
+# Keep this many rotated copies
+_LOG_BACKUP_COUNT = 3
+
+
+def _rotate_log():
+    """Rotate the log file if it exceeds the maximum size, keeping up to
+    _LOG_BACKUP_COUNT numbered backups (organize-log.txt, organize-log.txt.1,
+    organize-log.txt.2, organize-log.txt.3). Oldest backup is deleted.""" 
+    try:
+        if paths.LOG_PATH.exists() and paths.LOG_PATH.stat().st_size > _LOG_MAX_BYTES:
+            # Shift backups: .2 -> .3, .1 -> .2, etc.
+            for i in range(_LOG_BACKUP_COUNT - 1, 0, -1):
+                src = Path(f"{paths.LOG_PATH}.{i}")
+                dst = Path(f"{paths.LOG_PATH}.{i + 1}")
+                if src.exists():
+                    shutil.move(str(src), str(dst))
+            # Rotate current -> .1
+            shutil.move(str(paths.LOG_PATH), str(Path(f"{paths.LOG_PATH}.1")))
+    except OSError:
+        pass
+
 
 def write_log(message):
     line = f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {message}\n"
     try:
         paths.LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _rotate_log()
         with paths.LOG_PATH.open("a", encoding="utf-8") as f:
             f.write(line)
     except OSError:
@@ -37,25 +62,30 @@ def _record_event(**fields):
     MoveEvent.objects.create(**fields)
 
 
-def is_ready(file_path: Path, attempts=10):
+def is_ready(file_path: Path, max_attempts=3):
     """Two independent checks that a file is actually done downloading, not
     one -- either alone has a gap:
 
-    1. Lock check: if still locked after retrying, skip this cycle entirely,
-       don't force the move (forcing a move on a file still open for writing
-       yanks it out from under the download).
+    1. Lock check: if still locked, skip this cycle entirely -- don't force
+       the move (forcing a move on a file still open for writing yanks it out
+       from under the download).
     2. Size-stability check: some browsers/downloaders release and briefly
        re-acquire the file handle BETWEEN write chunks. The lock check alone
        can catch a file during exactly one of those gaps and grab a file
        that's genuinely still growing -- worse, since that can abort the
        download outright rather than just corrupting the tail end.
+
+    Non-blocking: instead of sleeping up to 20 seconds holding up the entire
+    watcher loop, this does at most 3 quick attempts (~1.5s total) and
+    returns False if the file isn't ready yet. The caller will retry on the
+    next poll cycle.
     """
-    for _ in range(attempts):
+    for _ in range(max_attempts):
         try:
             with open(file_path, "rb"):
                 pass
             size_a = file_path.stat().st_size
-            time.sleep(1)
+            time.sleep(0.5)
             if not file_path.exists():
                 return False
             size_b = file_path.stat().st_size
@@ -63,7 +93,7 @@ def is_ready(file_path: Path, attempts=10):
                 return True
         except OSError:
             pass  # still locked -- fall through to the retry wait below
-        time.sleep(1)
+        time.sleep(0.5)
     return False
 
 
@@ -93,12 +123,42 @@ def move_downloaded_file(file_path: Path, ai_enabled=None):
     def _ai_classify(n, curriculum):
         return ai_classify.classify(n, curriculum, log=write_log)
 
-    dest = rules.get_destination(
-        file_path,
-        profile_root=profile_root,
-        library_inbox=Path(settings.library_inbox_path),
-        ai_classify=_ai_classify if use_ai else None,
-    )
+    # First, check if any user-defined FolderRules apply to this file.
+    # Rules take priority over the default routing logic.
+    rule_dest = None
+    if profile:
+        from . import sorting as sorting_module
+
+        rule_dest, rule_name = sorting_module.execute_rules_for_file(
+            file_path, profile, log=write_log
+        )
+        if rule_dest == "__IGNORE__":
+            write_log(f"Ignored '{name}' by rule '{rule_name}'")
+            return
+        if rule_dest == "__INBOX__":
+            # Send file to the decision inbox for manual review
+            sorting_module.create_inbox_item(
+                filename=name,
+                source_path=str(file_path),
+                profile=profile,
+                reason=f"File matched rule '{rule_name}' and needs review",
+            )
+            write_log(f"Sent '{name}' to inbox by rule '{rule_name}'")
+            return
+
+    # Use the rule destination if one was found, otherwise fall back
+    # to the default routing logic from rules.py.
+    if rule_dest:
+        dest_path = Path(rule_dest)
+        dest = rules.Destination(dest_path, "course_code")
+    else:
+        dest = rules.get_destination(
+            file_path,
+            profile_root=profile_root,
+            library_inbox=Path(settings.library_inbox_path),
+            ai_classify=_ai_classify if use_ai else None,
+        )
+
     if dest is None:
         return
 

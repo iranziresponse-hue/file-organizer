@@ -10,3 +10,6 @@ icalendar
 python-dateutil
 keyring
 cryptography
+scikit-learn>=1.4.0
+nltk>=3.8.0
+psutil>=5.9.0

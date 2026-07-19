@@ -3,7 +3,7 @@ import json
 from django.urls import reverse
 
 from organizer.core import paths
-from organizer.models import CourseConfig, Profile
+from organizer.models import CourseConfig, Profile, SuggestedCourseUnit
 
 from .helpers import SandboxedPathsTestCase
 
@@ -56,6 +56,49 @@ class MakerereWizardViewTests(SandboxedPathsTestCase):
 
         written = json.loads(paths.config_path(profile.root_path).read_text())
         self.assertEqual(written["groups"], ["CSC2100", "BIT2202"])
+
+        # This program/year/semester has verified data, so what the student
+        # typed shouldn't be queued for admin review as unverified.
+        self.assertEqual(SuggestedCourseUnit.objects.count(), 0)
+
+    def test_unverified_program_queues_manual_course_units_for_admin_review(self):
+        response = self.client.post(reverse("makerere_wizard"), {
+            "college": "College of Computing and Information Sciences",
+            "school": "School of Computing and Informatics Technology",
+            "program": "Bachelor of Library and Information Science",
+            "year_value": "1",
+            "semester_value": "1",
+            "root_path": str(self.profile_root),
+            "groups": "LIS1101, LIS1102",
+        })
+
+        self.assertRedirects(response, reverse("dashboard"))
+
+        suggestions = SuggestedCourseUnit.objects.order_by("code")
+        self.assertEqual(
+            list(suggestions.values_list("code", "program", "primary_value", "secondary_value")),
+            [
+                ("LIS1101", "Bachelor of Library and Information Science", "Year 1", "Semester 1"),
+                ("LIS1102", "Bachelor of Library and Information Science", "Year 1", "Semester 1"),
+            ],
+        )
+        self.assertTrue(all(not reviewed for reviewed in suggestions.values_list("reviewed", flat=True)))
+
+    def test_resubmitting_the_same_unverified_course_unit_does_not_duplicate(self):
+        payload = {
+            "college": "College of Computing and Information Sciences",
+            "school": "School of Computing and Informatics Technology",
+            "program": "Bachelor of Records and Archives Management",
+            "year_value": "1",
+            "semester_value": "1",
+            "root_path": str(self.profile_root),
+            "groups": "RAM1101",
+        }
+        self.client.post(reverse("makerere_wizard"), payload)
+        payload["root_path"] = str(self.profile_root / "second")
+        self.client.post(reverse("makerere_wizard"), payload)
+
+        self.assertEqual(SuggestedCourseUnit.objects.count(), 1)
 
     def test_program_not_in_the_verified_list_is_still_accepted(self):
         # The wizard must accept a typed program even when it isn't one

@@ -1,0 +1,124 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Owner Setup - Orch{% endblock %}
+
+{% block content %}
+<style>
+    .owner-setup {
+        min-height: calc(100vh - 180px);
+        display: grid;
+        place-items: center;
+        padding: 24px 0 48px;
+    }
+
+    .owner-panel {
+        width: min(100%, 560px);
+    }
+
+    .owner-panel .card-header {
+        margin-bottom: 24px;
+    }
+
+    .owner-icon {
+        width: 48px;
+        height: 48px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 16px;
+        color: #E8ECF2;
+        background: linear-gradient(180deg, rgba(110, 168, 255, 0.2), rgba(167, 139, 250, 0.1));
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 24px rgba(110, 168, 255, 0.22);
+    }
+
+    .owner-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .owner-note {
+        margin-top: 16px;
+        color: rgba(232, 236, 242, 0.58);
+        font-size: 0.84rem;
+    }
+
+    .owner-errors {
+        display: grid;
+        gap: 8px;
+        margin: 0 0 20px;
+        padding: 0;
+        list-style: none;
+    }
+
+    .owner-errors li {
+        border: 1px solid rgba(255, 107, 107, 0.34);
+        background: rgba(255, 107, 107, 0.08);
+        color: #FFD0D0;
+        border-radius: 14px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="owner-setup">
+    <section class="card compact-card owner-panel">
+        <div class="card-header">
+            <span class="owner-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3l7 3v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M9.5 12.2l1.7 1.7 3.6-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <span class="eyebrow">Local owner mode</span>
+                <h2>Create owner access</h2>
+                <p class="card-subtitle">This creates the first staff account for the local troubleshooting console.</p>
+            </div>
+        </div>
+
+        {% if errors %}
+        <ul class="owner-errors" role="alert">
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="field">
+                <label for="username">Owner username</label>
+                <input id="username" name="username" value="{{ values.username }}" autocomplete="username" required>
+            </div>
+
+            <div class="field">
+                <label for="email">Email address</label>
+                <input id="email" type="email" name="email" value="{{ values.email }}" autocomplete="email">
+            </div>
+
+            <div class="form-two">
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" name="password" autocomplete="new-password" required>
+                </div>
+                <div class="field">
+                    <label for="confirm_password">Confirm password</label>
+                    <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3l7 3v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M9.5 12.2l1.7 1.7 3.6-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Create owner
+                </button>
+            </div>
+        </form>
+
+        <p class="owner-note">Owner mode is active only when {{ owner_config_path }} enables it or ORCH_OWNER_MODE is set for this machine.</p>
+    </section>
+</div>
+{% endblock %}

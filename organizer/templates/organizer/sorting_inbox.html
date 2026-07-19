@@ -1,0 +1,111 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Decision Inbox - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Inbox] Decision Inbox</h2>
+            <p>Review files that rules flagged for manual approval. Approve, reroute, or ignore each item.</p>
+        </div>
+        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ stats.pending }}</div><div class="label">Pending</div></div>
+        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
+        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.rerouted }}</div><div class="label">Rerouted</div></div>
+        <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.ignored }}</div><div class="label">Ignored</div></div>
+    </section>
+
+    {% if pending_items %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Pending items ({{ pending_items|length }})</h2></div></div>
+        <div class="profile-list">
+            {% for item in pending_items %}
+            <article class="profile-row" style="grid-template-columns: minmax(180px,1.5fr) minmax(100px,0.6fr) minmax(80px,0.3fr) auto;">
+                <div class="profile-main">
+                    <h3>{{ item.filename }}</h3>
+                    <span class="path-text">{{ item.reason|default:"Awaiting review" }}</span>
+                    {% if item.source_path %}<span class="path-text" style="font-size:0.78rem;">{{ item.source_path }}</span>{% endif %}
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Suggested</span>
+                    <strong>{{ item.suggested_subject|default:"-" }}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Confidence</span>
+                    <strong>{{ item.confidence }}</strong>
+                </div>
+                <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <form method="post" action="{% url 'inbox_approve' item.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                            <svg viewBox="0 0 24 24" fill="none" style="width:14px;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Approve
+                        </button>
+                    </form>
+                    <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reroute</button>
+                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Ignore</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Reroute form (hidden, shown via JS) -->
+    <div id="reroute-form" class="guide-overlay" hidden>
+        <div class="guide-panel" style="max-width:500px;">
+            <button type="button" class="guide-close" id="reroute-close"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+            <h3>Reroute file</h3>
+            <p class="help-text" id="reroute-filename" style="margin-bottom:16px;"></p>
+            <form method="post" id="reroute-form-inner">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reroute">
+                <div class="field">
+                    <label for="new_destination">New destination folder</label>
+                    <div class="field-control">
+                        <input type="text" id="new_destination" name="new_destination" placeholder="C:\Users\...\Subject\Category" required>
+                        <button type="button" class="button-ghost" onclick="openFolderBrowser('new_destination')">Browse</button>
+                    </div>
+                </div>
+                <div class="form-actions" style="margin-top:12px;">
+                    <button type="submit">Reroute & approve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <div><h3>No pending items</h3><p>The inbox is empty. Files with review rules will appear here.</p></div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+(function(){
+    document.querySelectorAll('.reroute-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var overlay = document.getElementById('reroute-form');
+            var filename = document.getElementById('reroute-filename');
+            var form = document.getElementById('reroute-form-inner');
+            var pk = this.dataset.itemPk;
+            filename.textContent = 'Rerouting: ' + this.dataset.filename;
+            form.action = '/study/inbox/' + pk + '/reroute/';
+            overlay.hidden = false;
+        });
+    });
+    document.getElementById('reroute-close').addEventListener('click', function(){
+        document.getElementById('reroute-form').hidden = true;
+    });
+})();
+</script>
+{% endblock %}

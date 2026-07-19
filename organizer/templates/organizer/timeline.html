@@ -1,0 +1,179 @@
+{% extends "organizer/base.html" %}
+{% load static %}
+
+{% block title %}Timeline - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <h2>[Chart] Learning timeline</h2>
+            <p>A rich visual history of everything that's happened - sorted files, summaries, reviews, syncs, and digests.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="meta-list" style="gap:4px;">
+                {% for type_key, type_label in activity_types %}
+                <a href="?type={% if current_filter == type_key %}{% else %}{{ type_key }}{% endif %}&days={{ days }}" 
+                   class="button-ghost" 
+                   style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
+                          {% if current_filter == type_key %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
+                    {{ type_label }}
+                </a>
+                {% endfor %}
+                {% if current_filter %}
+                <a href="?days={{ days }}" class="button-ghost" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">Clear filter</a>
+                {% endif %}
+            </div>
+            <div class="meta-list" style="gap:4px;">
+                {% for d in day_options %}
+                <a href="?days={% if days == d|slugify %}{% else %}{{ d }}{% endif %}{% if current_filter %}&type={{ current_filter }}{% endif %}"
+                   class="button-ghost"
+                   style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
+                          {% if days == d|slugify %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
+                    {% if d == 7 %}Week{% elif d == 30 %}Month{% elif d == 90 %}Quarter{% else %}All{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {% if not timeline_groups %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No timeline events yet</h3>
+                <p>The timeline starts filling as Orch sorts files, creates summaries, syncs MUELE, and generates digests.</p>
+            </div>
+        </div>
+    </section>
+    {% else %}
+        {% for group_label, events in timeline_groups %}
+        <section class="card compact-card">
+            <div class="card-header" style="margin-bottom:16px;">
+                <div>
+                    <h2 style="font-size:1.1rem;">{{ group_label }}</h2>
+                    <p class="card-subtitle">{{ events|length }} event{{ events|length|pluralize }}</p>
+                </div>
+            </div>
+            <div class="timeline-rail">
+                {% for event in events %}
+                <div class="timeline-item">
+                    <div class="timeline-marker {{ event.marker_class }}">
+                        <span class="timeline-icon">{{ event.icon }}</span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <strong>{{ event.title }}</strong>
+                            <span class="path-text" style="white-space:nowrap;">{{ event.time }}</span>
+                        </div>
+                        <div class="timeline-meta">
+                            {% if event.type_label %}
+                            <span class="meta-token" style="font-size:0.72rem;">{{ event.type_label }}</span>
+                            {% endif %}
+                            {% if event.subject_code %}
+                            <a href="{% url 'subject_memory_detail' event.subject_code %}" class="meta-token" style="font-size:0.72rem; text-decoration:none;">
+                                {{ event.subject_code }}
+                            </a>
+                            {% endif %}
+                            {% if event.details %}
+                            <span class="path-text" style="font-size:0.82rem;">{{ event.details }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<style>
+.timeline-rail {
+    position: relative;
+    padding-left: 32px;
+}
+.timeline-rail::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--stroke-soft);
+}
+.timeline-item {
+    position: relative;
+    display: flex;
+    gap: 16px;
+    padding-bottom: 20px;
+}
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+.timeline-marker {
+    position: absolute;
+    left: -32px;
+    width: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.timeline-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.9rem;
+    border: 2px solid var(--stroke);
+    background: var(--bg-mid);
+    z-index: 1;
+}
+.timeline-marker.file .timeline-icon { border-color: rgba(110,168,255,0.5); }
+.timeline-marker.summary .timeline-icon { border-color: rgba(167,139,250,0.5); }
+.timeline-marker.review .timeline-icon { border-color: rgba(74,222,128,0.5); }
+.timeline-marker.digest .timeline-icon { border-color: rgba(251,191,36,0.5); }
+.timeline-marker.muele .timeline-icon { border-color: rgba(56,189,248,0.5); }
+.timeline-marker.note .timeline-icon { border-color: rgba(248,113,113,0.5); }
+.timeline-content {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--stroke-soft);
+    transition: background var(--ease), border-color var(--ease);
+}
+.timeline-content:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(110,168,255,0.3);
+}
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.timeline-header strong {
+    font-size: 0.92rem;
+    line-height: 1.3;
+}
+.timeline-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 4px;
+}
+</style>
+{% endblock %}

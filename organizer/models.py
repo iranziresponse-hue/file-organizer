@@ -26,15 +26,16 @@ class AppSettings(models.Model):
 
     @classmethod
     def get_solo(cls):
-        obj = cls.objects.first()
-        if obj:
-            return obj
         from .core import paths
 
-        return cls.objects.create(
-            downloads_path=str(paths.DEFAULT_DOWNLOADS),
-            library_inbox_path=str(paths.DEFAULT_LIBRARY_INBOX),
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                "downloads_path": str(paths.DEFAULT_DOWNLOADS),
+                "library_inbox_path": str(paths.DEFAULT_LIBRARY_INBOX),
+            },
         )
+        return obj
 
 
 class Profile(models.Model):
@@ -229,6 +230,33 @@ class CurriculumEntry(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class SuggestedCourseUnit(models.Model):
+    """A course unit a Makerere student typed in by hand during setup for a
+    program/year/semester Orch has no verified official curriculum for yet
+    (organizer/core/makerere_curricula.py has no entry, or that year/semester
+    is missing from it). Not shown to other students as verified fact -- this
+    is a raw student report, surfaced in Django admin so it can be checked
+    against an official Makerere source and, if confirmed, added by hand to
+    makerere_curricula.py. Never auto-promoted."""
+
+    program = models.CharField(max_length=255)
+    primary_value = models.CharField(max_length=64)
+    secondary_value = models.CharField(max_length=64)
+    code = models.CharField(max_length=32)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed = models.BooleanField(
+        default=False,
+        help_text="Checked against an official Makerere source. Does not affect what other students see.",
+    )
+
+    class Meta:
+        unique_together = ("program", "primary_value", "secondary_value", "code")
+        ordering = ["-submitted_at"]
+
+    def __str__(self):
+        return f"{self.code} -- {self.program} ({self.primary_value}, {self.secondary_value})"
 
 
 class MoveEvent(models.Model):
@@ -579,6 +607,119 @@ class IntegrationConnection(models.Model):
 
     def __str__(self):
         return self.display_name
+
+
+class MueleCourse(models.Model):
+    """A MUELE course the student is enrolled in and has chosen to sync
+    with Orch. Each course maps to an IntegrationConnection (the MUELE
+    integration) and tracks sync state per course."""
+
+    connection = models.ForeignKey(
+        IntegrationConnection, on_delete=models.CASCADE, related_name="muele_courses"
+    )
+    course_id = models.IntegerField(help_text="MUELE/Moodle internal course ID")
+    course_name = models.CharField(max_length=255)
+    course_code = models.CharField(max_length=64, blank=True, help_text="e.g. CSC2100, BSE202")
+    auto_download = models.BooleanField(
+        default=True,
+        help_text="Automatically download new files from this course",
+    )
+    enrolled = models.BooleanField(default=True)
+    last_sync_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["course_name"]
+        unique_together = ("connection", "course_id")
+        indexes = [
+            models.Index(fields=["connection", "auto_download"]),
+        ]
+
+    def __str__(self):
+        return f"{self.course_code or self.course_name} (MUELE #{self.course_id})"
+
+
+class ResourceRecommendation(models.Model):
+    """Learning resource suggestions grounded in the user's own subject
+    memory, themes, weak areas, and recent files. These rows are transparent
+    discovery links, not fabricated claims about a specific video or book."""
+
+    SOURCE_CHOICES = [
+        ("youtube", "YouTube"),
+        ("book", "Book"),
+        ("article", "Article"),
+    ]
+    STATUS_CHOICES = [
+        ("suggested", "Suggested"),
+        ("saved", "Saved"),
+        ("dismissed", "Dismissed"),
+        ("opened", "Opened"),
+    ]
+
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="resource_recommendations")
+    subject_code = models.CharField(max_length=32, blank=True)
+    theme = models.CharField(max_length=140)
+    source_type = models.CharField(max_length=16, choices=SOURCE_CHOICES)
+    title = models.CharField(max_length=220)
+    query = models.CharField(max_length=260)
+    url = models.URLField(max_length=1024)
+    reason = models.CharField(max_length=280, blank=True)
+    score = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="suggested")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["status", "-score", "-updated_at"]
+        unique_together = ("profile", "subject_code", "source_type", "query")
+        indexes = [
+            models.Index(fields=["profile", "status", "-score"]),
+            models.Index(fields=["profile", "subject_code", "source_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_source_type_display()}: {self.title}"
+
+
+class LearningRoute(models.Model):
+    """A guided sequence from weak area to action: resource, summary,
+    review, and progress check. Routes let Orch behave like a study coach
+    while still keeping every step inspectable."""
+
+    STATUS_CHOICES = [
+        ("planned", "Planned"),
+        ("active", "Active"),
+        ("done", "Done"),
+        ("paused", "Paused"),
+    ]
+
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="learning_routes")
+    subject_code = models.CharField(max_length=32)
+    theme = models.CharField(max_length=140)
+    title = models.CharField(max_length=220)
+    steps = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="planned")
+    current_step = models.PositiveIntegerField(default=0)
+    recommendation = models.ForeignKey(
+        ResourceRecommendation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="learning_routes",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["status", "subject_code", "-updated_at"]
+        unique_together = ("profile", "subject_code", "theme")
+        indexes = [
+            models.Index(fields=["profile", "status", "subject_code"]),
+        ]
+
+    def __str__(self):
+        return self.title
 
 
 class ExportBundle(models.Model):
