@@ -1,0 +1,66 @@
+"""System tray icon and menu. No custom .ico asset needed -- reuses a
+standard Qt style icon so the app has no binary assets to ship or for
+PyInstaller to bundle."""
+
+import os
+import webbrowser
+
+from PyQt6.QtWidgets import QMenu, QMessageBox, QStyle, QSystemTrayIcon
+
+from organizer.core import paths
+
+from .server import dashboard_url
+from .watcher_controller import WatcherController
+
+
+class OrganizerTray(QSystemTrayIcon):
+    def __init__(self, app):
+        icon = app.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+        super().__init__(icon, app)
+
+        self.app = app
+        self.watcher = WatcherController()
+
+        self.setToolTip("Iranzi File Organizer")
+
+        self.menu = QMenu()
+        self.toggle_action = self.menu.addAction("Start watching")
+        self.toggle_action.triggered.connect(self._toggle_watcher)
+
+        self.menu.addAction("Open dashboard", self._open_dashboard)
+        self.menu.addAction("Open log", self._open_log)
+        self.menu.addSeparator()
+        self.menu.addAction("Quit", self._quit)
+        self.setContextMenu(self.menu)
+
+        self.activated.connect(self._on_activated)
+
+        self.watcher.start()
+        self._refresh_toggle_label()
+
+    def _on_activated(self, reason):
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            self._open_dashboard()
+
+    def _toggle_watcher(self):
+        if self.watcher.running:
+            self.watcher.stop()
+        else:
+            self.watcher.start()
+        self._refresh_toggle_label()
+
+    def _refresh_toggle_label(self):
+        self.toggle_action.setText("Stop watching" if self.watcher.running else "Start watching")
+
+    def _open_dashboard(self):
+        webbrowser.open(dashboard_url())
+
+    def _open_log(self):
+        if not paths.LOG_PATH.exists():
+            QMessageBox.information(None, "Iranzi File Organizer", "No log file yet -- nothing has been sorted.")
+            return
+        os.startfile(paths.LOG_PATH)
+
+    def _quit(self):
+        self.watcher.stop()
+        self.app.quit()
