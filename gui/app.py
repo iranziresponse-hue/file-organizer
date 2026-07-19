@@ -31,12 +31,16 @@ def main():
 
     call_command("migrate", run_syncdb=True, verbosity=0)
 
+    from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
 
+    from .assets import ORCH_ICON_PATH
     from .server import start_dashboard_server
     from .tray import OrganizerTray
 
     app = QApplication(sys.argv)
+    app.setApplicationName("Orch")
+    app.setWindowIcon(QIcon(str(ORCH_ICON_PATH)))
     app.setQuitOnLastWindowClosed(False)
 
     start_dashboard_server()

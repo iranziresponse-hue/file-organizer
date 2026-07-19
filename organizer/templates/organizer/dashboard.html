@@ -1,61 +1,148 @@
 {% extends "organizer/base.html" %}
 
-{% block title %}Dashboard - Iranzi File Organizer{% endblock %}
+{% block title %}Dashboard - Orch{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Current semester</h2>
-    {% if config %}
-        <p>{{ config.current_year }} / {{ config.current_semester }}</p>
-        <p>Courses: {% for c in config.courses %}<span class="badge">{{ c }}</span> {% endfor %}</p>
-    {% else %}
-        <p>No config loaded yet. <a href="{% url 'config_edit' %}">Set it up</a>.</p>
+<div class="page-stack">
+    <section class="overview-grid">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="eyebrow">Dashboard</span>
+                    <h2>Current Semester</h2>
+                    <p class="card-subtitle">Active routing context</p>
+                </div>
+                <a class="button" href="{% url 'config_edit' %}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Edit
+                </a>
+            </div>
+            {% if config %}
+                <div class="stat stat-primary">
+                    <div class="value">{{ config.current_year }}</div>
+                    <div class="label">{{ config.current_semester }}</div>
+                </div>
+                <div class="section-gap"></div>
+                <div class="badge-list" aria-label="Courses">
+                    {% for c in config.courses %}
+                    <span class="badge">{{ c }}</span>
+                    {% empty %}
+                    <span class="badge">No courses</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <span class="empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M9 13h6M12 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h3>Set your semester first.</h3>
+                        <p>Add your first folder context to start sorting files into the right course paths.</p>
+                    </div>
+                    <a class="button" href="{% url 'config_edit' %}">Add your first folder</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2>Sorting Pulse</h2>
+                    <p class="card-subtitle">Files handled by route method</p>
+                </div>
+            </div>
+            <div class="stat-row">
+                <div class="stat stat-primary">
+                    <div class="value">{{ total_moves }}</div>
+                    <div class="label">Total files sorted</div>
+                </div>
+                {% for row in method_counts %}
+                <div class="stat">
+                    <div class="value">{{ row.total }}</div>
+                    <div class="label">{{ row.label }}</div>
+                </div>
+                {% empty %}
+                <div class="stat">
+                    <div class="value">0</div>
+                    <div class="label">Waiting for first move</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {% if course_counts %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Course Distribution</h2>
+                <p class="card-subtitle">Which courses are receiving files</p>
+            </div>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr><th>Course</th><th>Files</th></tr>
+                {% for row in course_counts %}
+                <tr>
+                    <td><span class="badge">{{ row.course_code }}</span></td>
+                    <td>{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
     {% endif %}
-</div>
 
-<div class="card">
-    <h2>Stats</h2>
-    <div class="stat-row">
-        <div class="stat">
-            <div class="value">{{ total_moves }}</div>
-            <div class="label">Total files sorted</div>
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Recent Moves</h2>
+                <p class="card-subtitle">Latest 50 file decisions</p>
+            </div>
+            <span class="badge">{{ recent_events|length }} shown</span>
         </div>
-        {% for row in method_counts %}
-        <div class="stat">
-            <div class="value">{{ row.total }}</div>
-            <div class="label">{{ row.method }}</div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-{% if course_counts %}
-<div class="card">
-    <h2>By course</h2>
-    <table>
-        <tr><th>Course</th><th>Files</th></tr>
-        {% for row in course_counts %}
-        <tr><td>{{ row.course_code }}</td><td>{{ row.total }}</td></tr>
-        {% endfor %}
-    </table>
-</div>
-{% endif %}
-
-<div class="card">
-    <h2>Recent moves</h2>
-    <table>
-        <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>OK</th></tr>
-        {% for event in recent_events %}
-        <tr>
-            <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
-            <td>{{ event.filename }}</td>
-            <td>{{ event.destination_path }}</td>
-            <td>{{ event.get_method_display }}</td>
-            <td>{% if event.success %}yes{% else %}no{% endif %}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5">Nothing sorted yet.</td></tr>
-        {% endfor %}
-    </table>
+        {% if recent_events %}
+            <div class="table-shell">
+                <table>
+                    <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th></tr>
+                    {% for event in recent_events %}
+                    <tr>
+                        <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ event.filename }}</td>
+                        <td class="path-text">{{ event.destination_path }}</td>
+                        <td>{{ event.get_method_display }}</td>
+                        <td>
+                            {% if event.success %}
+                            <span class="status-dot">Sorted</span>
+                            {% else %}
+                            <span class="status-dot is-error">Failed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <span class="empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div>
+                    <h3>No files sorted yet.</h3>
+                    <p>Add your first folder to start sorting and see each move appear here.</p>
+                </div>
+                <a class="button" href="{% url 'config_edit' %}">Add your first folder</a>
+            </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

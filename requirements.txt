@@ -1,3 +1,4 @@
 Django==6.0.6
 requests
 PyQt6==6.11.0
+pyinstaller

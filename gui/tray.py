@@ -1,27 +1,27 @@
-"""System tray icon and menu. No custom .ico asset needed -- reuses a
-standard Qt style icon so the app has no binary assets to ship or for
-PyInstaller to bundle."""
+"""System tray icon and menu."""
 
 import os
 import webbrowser
 
-from PyQt6.QtWidgets import QMenu, QMessageBox, QStyle, QSystemTrayIcon
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QMenu, QMessageBox, QSystemTrayIcon
 
 from organizer.core import paths
 
+from .assets import ORCH_ICON_PATH
 from .server import dashboard_url
 from .watcher_controller import WatcherController
 
 
 class OrganizerTray(QSystemTrayIcon):
     def __init__(self, app):
-        icon = app.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+        icon = QIcon(str(ORCH_ICON_PATH))
         super().__init__(icon, app)
 
         self.app = app
         self.watcher = WatcherController()
 
-        self.setToolTip("Iranzi File Organizer")
+        self.setToolTip("Orch")
 
         self.menu = QMenu()
         self.toggle_action = self.menu.addAction("Start watching")
@@ -57,7 +57,7 @@ class OrganizerTray(QSystemTrayIcon):
 
     def _open_log(self):
         if not paths.LOG_PATH.exists():
-            QMessageBox.information(None, "Iranzi File Organizer", "No log file yet -- nothing has been sorted.")
+            QMessageBox.information(None, "Orch", "No log file yet -- nothing has been sorted.")
             return
         os.startfile(paths.LOG_PATH)
 

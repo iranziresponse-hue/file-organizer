@@ -17,6 +17,7 @@ ai_config.json
 build/
 dist/
 *.spec
+!Orch.spec
 
 # Editors
 .vscode/

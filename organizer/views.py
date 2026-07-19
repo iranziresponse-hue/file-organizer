@@ -10,7 +10,10 @@ from .models import CourseConfig, MoveEvent
 
 def dashboard(request):
     recent_events = MoveEvent.objects.all()[:50]
-    method_counts = MoveEvent.objects.values("method").annotate(total=Count("id")).order_by("-total")
+    method_counts = list(MoveEvent.objects.values("method").annotate(total=Count("id")).order_by("-total"))
+    method_labels = dict(MoveEvent.METHOD_CHOICES)
+    for row in method_counts:
+        row["label"] = method_labels.get(row["method"], row["method"])
     course_counts = (
         MoveEvent.objects.exclude(course_code__isnull=True)
         .exclude(course_code="")
@@ -52,9 +55,8 @@ def config_edit(request):
         payload = {
             "_comment": (
                 "Edit this file at the start of every semester, or use the "
-                "Iranzi File Organizer dashboard instead. current_year/"
-                "current_semester must match a folder name that already "
-                "exists under D:\\School."
+                "Orch dashboard instead. current_year/current_semester must "
+                "match a folder name that already exists under D:\\School."
             ),
             "current_year": config.current_year,
             "current_semester": config.current_semester,

@@ -1,23 +1,52 @@
 {% extends "organizer/base.html" %}
 
-{% block title %}Config - Iranzi File Organizer{% endblock %}
+{% block title %}Config - Orch{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Semester config</h2>
-    <p>This edits the same _config.json the watcher reads. Update it at the start of every semester.</p>
-    <form method="post">
-        {% csrf_token %}
-        <label for="current_year">Current year</label>
-        <input type="text" id="current_year" name="current_year" value="{{ config.current_year|default:'' }}" placeholder="Year 2">
+<div class="page-stack">
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <span class="eyebrow">Semester routing</span>
+                <h2>Semester Config</h2>
+                <p class="card-subtitle">Writes to the same _config.json read by the watcher.</p>
+            </div>
+            <a class="button button-ghost" href="{% url 'dashboard' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 12H5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="m12 19-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back
+            </a>
+        </div>
 
-        <label for="current_semester">Current semester</label>
-        <input type="text" id="current_semester" name="current_semester" value="{{ config.current_semester|default:'' }}" placeholder="Semester 1">
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="current_year">Current Year</label>
+                    <input type="text" id="current_year" name="current_year" value="{{ config.current_year|default:'' }}" placeholder="Year 2">
+                </div>
 
-        <label for="courses">Courses (comma separated)</label>
-        <input type="text" id="courses" name="courses" value="{{ config.courses|join:', ' }}" placeholder="BSE2105, BSE2106, CSC2100">
+                <div class="field">
+                    <label for="current_semester">Current Semester</label>
+                    <input type="text" id="current_semester" name="current_semester" value="{{ config.current_semester|default:'' }}" placeholder="Semester 1">
+                </div>
+            </div>
 
-        <button type="submit">Save</button>
-    </form>
+            <div class="field">
+                <label for="courses">Courses</label>
+                <input type="text" id="courses" name="courses" value="{{ config.courses|join:', ' }}" placeholder="BSE2105, BSE2106, CSC2100">
+            </div>
+
+            <button type="submit">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                Save Config
+            </button>
+        </form>
+    </section>
 </div>
 {% endblock %}
