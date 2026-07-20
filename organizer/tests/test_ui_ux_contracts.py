@@ -29,6 +29,10 @@ class UserFacingCopyContractTests(SimpleTestCase):
         "]"
     )
     long_dash_pattern = re.compile("[\u2013\u2014]")
+    # A bare double-hyphen used as an em-dash substitute in prose (whitespace
+    # on both sides). Deliberately does NOT match CSS custom-property syntax
+    # (--name: ... or var(--name)), which has no whitespace before the dashes.
+    double_hyphen_pattern = re.compile(r"\s--\s")
     mojibake_pattern = re.compile("[\u00e2\u00f0]|\u00ef\u00b8")
 
     def test_templates_do_not_use_emoji_or_symbol_badges(self):
@@ -42,6 +46,12 @@ class UserFacingCopyContractTests(SimpleTestCase):
             with self.subTest(template=str(path.relative_to(PROJECT_ROOT))):
                 content = path.read_text(encoding="utf-8")
                 self.assertIsNone(self.long_dash_pattern.search(content))
+
+    def test_templates_do_not_use_double_hyphen_as_a_dash(self):
+        for path in _template_files():
+            with self.subTest(template=str(path.relative_to(PROJECT_ROOT))):
+                content = path.read_text(encoding="utf-8")
+                self.assertIsNone(self.double_hyphen_pattern.search(content))
 
     def test_templates_do_not_contain_mojibake(self):
         for path in _template_files():

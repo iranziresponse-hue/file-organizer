@@ -6,7 +6,7 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
+            <span class="eyebrow">{{ profile.name }}</span>
             <h2>{{ memory.code }}: {{ memory.title|default:memory.code }}</h2>
             <p>Subject memory, resources, themes, deadlines, and guides - all in one place.</p>
         </div>
@@ -24,7 +24,7 @@
                 <button type="submit" class="button-ghost">Generate guide</button>
             </form>
             {% endif %}
-            <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
         </div>
     </section>
 
@@ -59,7 +59,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[Target] Focus themes</h2>
+                    <h2>Focus themes</h2>
                     <p class="card-subtitle">Detected topics and concepts from your files</p>
                 </div>
             </div>
@@ -70,7 +70,9 @@
                     <strong>{{ theme.name }}</strong>
                     <span class="path-text">({{ theme.weight }})</span>
                     {% if theme.evidence %}
-                    <span class="path-text" title="From: {{ theme.evidence|join:', ' }}">[Search]</span>
+                    <span class="path-text" title="From: {{ theme.evidence|join:', ' }}" style="display:inline-flex;">
+                        <svg viewBox="0 0 24 24" fill="none" style="width:13px;" aria-label="Evidence"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
                     {% endif %}
                 </span>
                 {% endfor %}
@@ -83,7 +85,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[List] Assignments</h2>
+                    <h2>Assignments</h2>
                     <p class="card-subtitle">Deadlines and submission status</p>
                 </div>
             </div>
@@ -128,7 +130,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>[Doc] Recent resources ({{ resources|length }})</h2>
+                <h2>Recent resources ({{ resources|length }})</h2>
                 <p class="card-subtitle">Files sorted to this subject, latest first</p>
             </div>
         </div>
@@ -142,7 +144,7 @@
                     <td>{{ event.filename }}</td>
                     <td>
                         {% if event.method == "muele_sync" %}
-                            <span class="meta-token">[Books] MUELE</span>
+                            <span class="meta-token">MUELE</span>
                         {% else %}
                             <span class="meta-token">{{ event.get_method_display }}</span>
                         {% endif %}
@@ -151,11 +153,11 @@
                     <td>
                         {% if event.is_summarizable %}
                             {% if event.summary %}
-                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">
+                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">
                                 View
                             </button>
                             {% else %}
-                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">
+                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">
                                 Summarize
                             </button>
                             {% endif %}
@@ -187,7 +189,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>[Chart] Activity timeline</h2>
+                <h2>Activity timeline</h2>
                 <p class="card-subtitle">Recent learning events for this subject</p>
             </div>
         </div>
@@ -215,7 +217,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>[Repeat] Review queue</h2>
+                <h2>Review queue</h2>
                 <p class="card-subtitle">Items due for review</p>
             </div>
         </div>

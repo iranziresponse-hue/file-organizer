@@ -84,9 +84,11 @@
                     <td>{{ course.course_name }}</td>
                     <td><span class="meta-token">{{ course.course_code|default:"-" }}</span></td>
                     <td>
-                        <label class="toggle-switch" style="display:inline-flex; align-items:center; gap:8px; text-transform:none; font-weight:500; color:var(--muted); cursor:pointer;">
-                            <input type="checkbox" class="auto-download-toggle" data-course-id="{{ course.course_id }}" {% if course.auto_download %}checked{% endif %} style="width:auto; accent-color:var(--blue);">
-                            <span>{{ course.auto_download|yesno:"On,Off" }}</span>
+                        <label class="toggle-switch" style="display:inline-flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted); cursor:pointer;">
+                            <input type="checkbox" class="auto-download-toggle" data-course-id="{{ course.course_id }}" {% if course.auto_download %}checked{% endif %}>
+                            <span class="toggle-track" aria-hidden="true"></span>
+                            <span class="toggle-label">{{ course.auto_download|yesno:"On,Off" }}</span>
+                            <span class="toggle-save-flash"></span>
                         </label>
                     </td>
                     <td class="path-text">{{ course.last_sync_at|date:"Y-m-d H:i"|default:"Never" }}</td>
@@ -101,15 +103,32 @@
         <div class="card-header">
             <div>
                 <h2>Sync settings</h2>
+                <p class="card-subtitle">What Orch downloads and tracks from MUELE for this profile.</p>
             </div>
         </div>
         <form method="post" action="{% url 'muele_connect' %}" class="form-grid">
             {% csrf_token %}
             <input type="hidden" name="action" value="save_connection">
             <div class="field">
-                <label for="username">MUELE username</label>
-                <input type="text" id="username" name="username" value="{{ connection.username|default:'' }}" placeholder="student@mak.ac.ug">
+                <label for="username">Display name (optional)</label>
+                <input type="text" id="username" name="username" value="{{ connection.username|default:'' }}" placeholder="Your name">
             </div>
+            <div class="field">
+                <label for="college">College (optional)</label>
+                <input type="text" id="college" name="college" value="{{ connection.config.college|default:'' }}" placeholder="COCIS, CHS, COBAMS...">
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="course_files" style="width:auto;" {% if "course_files" in connection.config.sync_targets %}checked{% endif %}>
+                Download course files automatically
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="assignments" style="width:auto;" {% if "assignments" in connection.config.sync_targets %}checked{% endif %}>
+                Track assignments and deadlines
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
+                <input type="checkbox" name="sync_targets" value="calendar" style="width:auto;" {% if "calendar" in connection.config.sync_targets %}checked{% endif %}>
+                Sync calendar events
+            </label>
             <div class="form-actions">
                 <a class="button button-ghost" href="{% url 'study_home' %}">Back to Study</a>
                 <button type="submit">Save settings</button>
@@ -122,8 +141,24 @@
 {% block extra_js %}
 <script>
 (function() {
+    function flash(flashEl, message, isError) {
+        flashEl.textContent = message;
+        flashEl.classList.toggle('error', !!isError);
+        flashEl.classList.add('show');
+        clearTimeout(flashEl._hideTimer);
+        flashEl._hideTimer = setTimeout(function () {
+            flashEl.classList.remove('show');
+        }, isError ? 4000 : 1800);
+    }
+
     document.querySelectorAll('.auto-download-toggle').forEach(function(checkbox) {
         checkbox.addEventListener('change', function() {
+            var wasChecked = !checkbox.checked; // the state before this change
+            var label = checkbox.parentElement.querySelector('.toggle-label');
+            var flashEl = checkbox.parentElement.querySelector('.toggle-save-flash');
+
+            checkbox.disabled = true;
+
             var formData = new FormData();
             formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
             formData.append('action', 'toggle_auto_download');
@@ -133,12 +168,23 @@
             fetch('{% url "muele_courses" %}', {
                 method: 'POST',
                 body: formData,
-            }).then(function(r) { return r.json(); }).then(function(data) {
-                if (data.ok) {
-                    var label = checkbox.nextElementSibling;
-                    if (label) label.textContent = checkbox.checked ? 'On' : 'Off';
-                }
-            });
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    checkbox.disabled = false;
+                    if (data.ok) {
+                        if (label) label.textContent = checkbox.checked ? 'On' : 'Off';
+                        flash(flashEl, 'Saved', false);
+                    } else {
+                        checkbox.checked = wasChecked;
+                        flash(flashEl, data.error || 'Could not save. Try again.', true);
+                    }
+                })
+                .catch(function () {
+                    checkbox.disabled = false;
+                    checkbox.checked = wasChecked;
+                    flash(flashEl, 'Could not reach Orch. Try again.', true);
+                });
         });
     });
 })();

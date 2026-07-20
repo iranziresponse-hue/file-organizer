@@ -6,11 +6,11 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Import] Import from Existing Folders</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Import from existing folders</h2>
             <p>Scan an existing folder structure, review what Orch found, then approve subjects/rules and apply the folder layout.</p>
         </div>
-        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
     </section>
 
     <section class="overview-grid">
@@ -58,11 +58,11 @@
                 <div class="profile-detail">
                     <span class="path-text">Status</span>
                     <strong>
-                        {% if plan.status == "draft" %}[Note] Draft
-                        {% elif plan.status == "scanned" %}[Search] Scanned
-                        {% elif plan.status == "approved" %}[Done] Approved
-                        {% elif plan.status == "imported" %}[Box] Imported
-                        {% elif plan.status == "rejected" %}[Fail] Rejected
+                        {% if plan.status == "draft" %}Draft
+                        {% elif plan.status == "scanned" %}Scanned
+                        {% elif plan.status == "approved" %}Approved
+                        {% elif plan.status == "imported" %}Imported
+                        {% elif plan.status == "rejected" %}Rejected
                         {% else %}{{ plan.get_status_display }}{% endif %}
                     </strong>
                 </div>

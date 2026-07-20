@@ -13,6 +13,7 @@ staticfiles/
 # App-local secrets/config
 ai_config.json
 secret_config.json
+support_email.json
 .autostart_initialized
 
 # Claude Code harness state

@@ -241,7 +241,7 @@ class PauseDialog(QDialog):
                     self.status_label.setStyleSheet("color: #FFD38A;")
                     self.pause_btn.setText("Resume now")
                 else:
-                    self.status_label.setText("Not on battery -- watcher still running")
+                    self.status_label.setText("Not on battery, watcher still running")
         else:
             self._resume()
 
@@ -266,7 +266,7 @@ class StatusWindow(QDialog):
     def __init__(self, watcher_controller, parent=None):
         super().__init__(parent)
         self.watcher = watcher_controller
-        self.setWindowTitle("Orch — Status")
+        self.setWindowTitle("Orch: Status")
         self.setFixedSize(520, 500)
         self.setWindowIcon(QIcon(str(ORCH_ICON_PATH)))
 

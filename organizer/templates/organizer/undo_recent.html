@@ -6,11 +6,11 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Undo] Undo recent moves</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Undo recent moves</h2>
             <p>Restore files that Orch has moved back to their original locations. Every move is reversible.</p>
         </div>
-        <a class="button-ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+        <a class="button button-ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
     </section>
 
     <section class="stat-row">
@@ -53,7 +53,7 @@
                             <input type="hidden" name="action" value="restore">
                             <input type="hidden" name="move_pk" value="{{ event.pk }}">
                             <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
-                                [Undo] Restore
+                                Restore
                             </button>
                         </form>
                     </td>
@@ -74,7 +74,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>[Idea] How undo works</h2>
+                <h2>How undo works</h2>
             </div>
         </div>
         <ul style="color:var(--muted);font-size:0.9rem;line-height:1.7;margin:0;padding-left:18px;">

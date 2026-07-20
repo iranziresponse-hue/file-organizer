@@ -11,6 +11,7 @@ a = Analysis(
     datas=[
         ("organizer/templates", "organizer/templates"),
         ("organizer/static", "organizer/static"),
+        ("organizer/core/certs", "organizer/core/certs"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -45,4 +46,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon="organizer/static/organizer/img/orch-mark.ico",
+    version="version_info.txt",
 )

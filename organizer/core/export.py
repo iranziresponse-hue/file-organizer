@@ -117,7 +117,7 @@ def _build_folder_map(files: list) -> dict:
 def _build_reading_list(files: list, profile_name: str) -> str:
     """Build a formatted reading list (Markdown)."""
     lines = [
-        f"# Reading List — {profile_name}",
+        f"# Reading List: {profile_name}",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",
         f"Total files: {len(files)}",
@@ -139,7 +139,7 @@ def _build_reading_list(files: list, profile_name: str) -> str:
         lines.append("")
         for f in sorted(subject_files, key=lambda x: x["filename"]):
             size_kb = f["size_bytes"] / 1024
-            lines.append(f"- **{f['filename']}** ({size_kb:.0f} KB) — {f['method']}")
+            lines.append(f"- **{f['filename']}** ({size_kb:.0f} KB, {f['method']})")
             if f.get("timestamp"):
                 lines.append(f"  - Sorted: {f['timestamp']}")
             if f.get("summary"):
@@ -236,13 +236,13 @@ def _generate_study_guide_pdf(
         for f in sorted(subject_files, key=lambda x: x["filename"]):
             size_kb = f["size_bytes"] / 1024
             story.append(Paragraph(
-                f"{f['filename']} — {size_kb:.0f} KB ({f['method']})",
+                f"{f['filename']} ({size_kb:.0f} KB, {f['method']})",
                 body,
             ))
             if f.get("timestamp"):
                 story.append(Paragraph(f"Sorted: {f['timestamp']}", small))
             if f.get("summary"):
-                story.append(Paragraph("✅ AI summary available", small))
+                story.append(Paragraph("AI summary available", small))
         story.append(Spacer(1, 8))
 
     # Summaries section
@@ -296,9 +296,9 @@ def create_knowledge_pack(
     # Auto-generate title
     if not title:
         if scope == "subject" and subject_code:
-            title = f"{subject_code} — Knowledge Pack"
+            title = f"{subject_code}: Knowledge Pack"
         else:
-            title = f"{profile.name} — Knowledge Pack"
+            title = f"{profile.name}: Knowledge Pack"
 
     # Create the export bundle database record
     bundle = ExportBundle.objects.create(

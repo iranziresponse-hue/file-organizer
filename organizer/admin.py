@@ -22,7 +22,9 @@ from .models import (
     LearningDigest,
     LearningRoute,
     MoveEvent,
+    Notification,
     Profile,
+    SupportMessage,
     ResourceRecommendation,
     ReviewItem,
     SortingInboxItem,
@@ -312,6 +314,7 @@ def _operations_context():
 
 def _orch_index(self, request, extra_context=None):
     from django.contrib import messages
+    from django.shortcuts import redirect
 
     if request.method == "POST" and "_orch_action" in request.POST:
         action = request.POST["_orch_action"]
@@ -323,6 +326,17 @@ def _orch_index(self, request, extra_context=None):
                 messages.success(request, f"Backup created: {result.get('size_kb', 0)} KB")
             else:
                 messages.error(request, f"Backup failed: {result.get('error', 'Unknown error')}")
+
+        elif action == "restore_backup":
+            backup_path = request.POST.get("backup_path", "").strip()
+            if not backup_path:
+                messages.error(request, "Pick a backup to restore first.")
+            else:
+                result = diag.restore_backup(backup_path)
+                if result.get("success"):
+                    messages.success(request, "Database restored. The previous database was backed up first.")
+                else:
+                    messages.error(request, f"Restore failed: {result.get('error', 'Unknown error')}")
 
         elif action == "vacuum_db":
             result = diag.vacuum_database()
@@ -337,6 +351,10 @@ def _orch_index(self, request, extra_context=None):
                 messages.success(request, "Database reindexed successfully.")
             else:
                 messages.error(request, f"Reindex failed: {result.get('error', 'Unknown error')}")
+
+        # Redirect after processing so a page refresh never resubmits a
+        # backup/vacuum/reindex action.
+        return redirect("admin:index")
 
     context = {}
     if extra_context:
@@ -518,6 +536,21 @@ class SuggestedCourseUnitAdmin(admin.ModelAdmin):
     @admin.action(description="Mark selected as reviewed")
     def mark_reviewed(self, request, queryset):
         queryset.update(reviewed=True)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "profile", "urgency", "created_at", "read_at")
+    list_filter = ("urgency", "profile")
+    search_fields = ("title", "message")
+    date_hierarchy = "created_at"
+
+
+@admin.register(SupportMessage)
+class SupportMessageAdmin(admin.ModelAdmin):
+    list_display = ("sender_name", "sender_email", "created_at", "emailed_at", "email_error")
+    search_fields = ("sender_name", "sender_email", "message")
+    date_hierarchy = "created_at"
 
 
 admin.site.site_header = "Orch System Admin"

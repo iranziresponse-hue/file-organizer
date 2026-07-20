@@ -1,3 +1,5 @@
+import re
+
 from django.db import IntegrityError, transaction
 from django.urls import reverse
 
@@ -141,6 +143,20 @@ class LearningRouteViewTests(SandboxedPathsTestCase):
         self.assertRedirects(response, reverse("learning_routes"))
         self.assertTrue(LearningRoute.objects.filter(profile=self.profile, subject_code="MTH100").exists())
 
+    def test_route_renders_with_stable_hooks_for_the_ajax_layer(self):
+        route = learning_route.create_or_refresh_route(self.profile, subject_code="MTH100", theme="limits")
+
+        response = self.client.get(reverse("learning_routes"))
+        content = response.content.decode()
+
+        # Hooks learning-route-actions.js depends on to find a step, submit
+        # it, and patch in the server's own response without a page reload.
+        self.assertIn('data-route-pk="%d"' % route.pk, content)
+        self.assertIn('data-step-index="0"', content)
+        self.assertIn('id="step-actions-%d-0"' % route.pk, content)
+        self.assertIn('id="route-summary-%d"' % route.pk, content)
+        self.assertIn('data-learning-action', content)
+
     def test_mark_step_done_from_page(self):
         route = learning_route.create_or_refresh_route(self.profile, subject_code="MTH100", theme="limits")
 
@@ -153,6 +169,39 @@ class LearningRouteViewTests(SandboxedPathsTestCase):
         self.assertRedirects(response, reverse("learning_routes"))
         route.refresh_from_db()
         self.assertTrue(route.steps[0]["done"])
+
+    def test_mark_step_done_response_shows_the_step_as_done(self):
+        # This is exactly what learning-route-actions.js checks to decide
+        # whether the action actually succeeded server-side: it reads the
+        # step-actions block for this route/step and looks for the
+        # "Mark done" form to be gone.
+        route = learning_route.create_or_refresh_route(self.profile, subject_code="MTH100", theme="limits")
+
+        response = self.client.post(reverse("learning_routes"), {
+            "action": "step_done",
+            "route_pk": route.pk,
+            "step_index": "0",
+        }, follow=True)
+
+        match = re.search(
+            r'id="step-actions-%d-0">(.*?)</div>' % route.pk,
+            response.content.decode(),
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        self.assertNotIn("data-learning-action", match.group(1))
+        self.assertIn("Done", match.group(1))
+
+    def test_mark_step_done_with_bad_index_leaves_page_showing_the_error(self):
+        route = learning_route.create_or_refresh_route(self.profile, subject_code="MTH100", theme="limits")
+
+        response = self.client.post(reverse("learning_routes"), {
+            "action": "step_done",
+            "route_pk": route.pk,
+            "step_index": "99",
+        }, follow=True)
+
+        self.assertContains(response, "no longer exists")
 
     def test_learning_routes_requires_active_profile(self):
         self.profile.is_active = False

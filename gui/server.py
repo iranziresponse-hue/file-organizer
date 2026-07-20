@@ -17,7 +17,11 @@ def start_dashboard_server(host=DASHBOARD_HOST, port=DASHBOARD_PORT):
     thread = threading.Thread(
         target=call_command,
         args=("runserver", f"{host}:{port}"),
-        kwargs={"use_reloader": False},
+        # insecure=True keeps runserver's static-file serving on even with
+        # DEBUG=False (its default off-switch). Orch has no separate web
+        # server in front of it -- runserver serving static assets IS how
+        # this app serves static assets, in dev and in the packaged exe.
+        kwargs={"use_reloader": False, "insecure": True},
         daemon=True,
         name="organizer-dashboard",
     )

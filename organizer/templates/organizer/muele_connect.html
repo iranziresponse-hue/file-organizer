@@ -10,7 +10,28 @@
             <h2>Connect to MUELE</h2>
             <p>Link your MUELE account to automatically download course materials, track assignments, and stay on top of deadlines.</p>
         </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
     </section>
+
+    {% if connection.status == "connected" %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>MUELE is connected</h3>
+                <p class="card-subtitle">
+                    {% if connection.username %}Connected as <strong>{{ connection.username }}</strong>.{% else %}Your MUELE account is linked.{% endif %}
+                    {% if connection.last_sync_at %}Last synced {{ connection.last_sync_at|date:"M j, Y, g:i A" }}.{% else %}Not synced yet.{% endif %}
+                </p>
+            </div>
+            <a class="button" href="{% url 'muele_courses' %}">Manage courses</a>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <details>
+            <summary style="cursor:pointer; color: var(--muted);">Reconnect MUELE (if your session expired)</summary>
+            <div style="margin-top:16px;">
+    {% endif %}
 
     <!-- Method 1: Automatic login -->
     <section class="card compact-card">
@@ -45,7 +66,7 @@
         </form>
         {% if token_status == "valid" and user_info %}
         <div class="help-text" style="color: var(--green); margin-top: 12px;">
-            [Done] Logged in as <strong>{{ user_info.fullname }}</strong> ({{ user_info.username }})
+            Logged in as <strong>{{ user_info.fullname }}</strong> ({{ user_info.username }})
         </div>
         {% endif %}
     </section>
@@ -74,16 +95,22 @@
                 <label for="token">MUELE web service token</label>
                 <div class="field-control">
                     <input type="text" id="token" name="token" value="{{ request.POST.token }}" placeholder="Paste your token here" autocomplete="off" style="font-family: monospace;">
-                    <button type="submit">Verify</button>
+                    <button type="submit" class="button-ghost">Verify</button>
                 </div>
             </div>
             {% if token_status == "invalid" %}
             <div class="help-text" style="color: var(--red);">
-                [Fail] Token verification failed. Check it was copied correctly.
+                Token verification failed. Check it was copied correctly.
             </div>
             {% endif %}
         </form>
     </section>
+
+    {% if connection.status == "connected" %}
+            </div>
+        </details>
+    </section>
+    {% endif %}
 
     <!-- Step 3: Save connection and configure sync -->
     {% if token_status == "valid" %}

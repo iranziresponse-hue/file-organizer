@@ -256,7 +256,7 @@ class SuggestedCourseUnit(models.Model):
         ordering = ["-submitted_at"]
 
     def __str__(self):
-        return f"{self.code} -- {self.program} ({self.primary_value}, {self.secondary_value})"
+        return f"{self.code} ({self.program}, {self.primary_value}, {self.secondary_value})"
 
 
 class MoveEvent(models.Model):
@@ -270,8 +270,8 @@ class MoveEvent(models.Model):
         ("installer", "Installer"),
         ("archive", "Archive file"),
         ("work_unsorted", "Code/project file"),
-        ("unsorted", "No match -- _Unsorted"),
-        ("needs_sorting", "No match -- _NeedsSorting"),
+        ("unsorted", "No match (Unsorted)"),
+        ("needs_sorting", "No match (Needs sorting)"),
     ]
 
     profile = models.ForeignKey(
@@ -458,6 +458,10 @@ class AssignmentItem(models.Model):
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Tracks the most severe deadline-warning stage already notified about
+    # ("warning", "urgent", "missed"), so check_deadlines can run on every
+    # dashboard/study page load without sending the same warning twice.
+    deadline_notified_stage = models.CharField(max_length=16, blank=True)
 
     class Meta:
         ordering = ["status", "due_at", "-created_at"]
@@ -750,6 +754,58 @@ class ExportBundle(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class Notification(models.Model):
+    """A notification event, persisted so it survives even if the tray's
+    toast popup is missed or the desktop app wasn't running to show it.
+    organizer.core.notifications still pushes a live toast via the tray
+    icon; this table is what backs the notifications page in the web UI."""
+
+    URGENCY_CHOICES = [
+        ("low", "Low"),
+        ("normal", "Normal"),
+        ("critical", "Critical"),
+    ]
+
+    profile = models.ForeignKey(
+        Profile, on_delete=models.CASCADE, null=True, blank=True, related_name="notifications"
+    )
+    title = models.CharField(max_length=180)
+    message = models.CharField(max_length=500, blank=True)
+    urgency = models.CharField(max_length=16, choices=URGENCY_CHOICES, default="normal")
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class SupportMessage(models.Model):
+    """A message sent through the "Contact support" popup. Always saved
+    here first, then emailed to the admin (config.settings.SUPPORT_INBOX_ADDRESS)
+    if support_email.json is configured -- so a message is never lost even
+    if the email send fails or hasn't been set up yet."""
+
+    sender_name = models.CharField(max_length=120, blank=True)
+    sender_email = models.CharField(max_length=254, blank=True)
+    message = models.TextField()
+    page_url = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    emailed_at = models.DateTimeField(null=True, blank=True)
+    email_error = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.sender_name or self.sender_email or 'Anonymous'}: {self.message[:40]}"
 
     def __str__(self):
         return self.title

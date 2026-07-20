@@ -339,7 +339,7 @@
     <!-- MUELE integration status panel -->
     <div class="orch-two">
         <div class="orch-panel">
-            <h3>MUELE Integration Status</h3>
+            <h3>MUELE integration status</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Connected accounts</strong><small>Makerere MUELE</small></div>
@@ -356,7 +356,7 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Digests & Packs</h3>
+            <h3>Digests & packs</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Study digests</strong><small>Daily and weekly reports</small></div>
@@ -386,7 +386,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>System Health</h3>
+            <h3>System health</h3>
             <div class="orch-list">
                 {% for item in orch_health %}
                 <div class="orch-row">
@@ -401,7 +401,7 @@
         </div>
 
         <div class="orch-panel">
-            <h3>Routing Methods</h3>
+            <h3>Routing methods</h3>
             <div class="orch-list">
                 {% for row in orch_method_rows %}
                 <div class="orch-row">
@@ -420,13 +420,13 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Recent File Decisions</h3>
+            <h3>Recent file decisions</h3>
             <div class="orch-list">
                 {% for move in orch_recent_moves %}
                 <div class="orch-row">
                     <div>
                         <strong>{{ move.filename }}</strong>
-                        <small>{{ move.get_method_display }}{% if move.course_code %} for {{ move.course_code }}{% endif %}</small>
+                        <small>{{ move.profile.name|default:"No profile" }} &middot; {{ move.get_method_display }}{% if move.course_code %} for {{ move.course_code }}{% endif %}</small>
                         <small>{{ move.destination_path|default:"No destination recorded" }}</small>
                     </div>
                     <span class="orch-state {% if move.success %}good{% else %}bad{% endif %}">
@@ -440,7 +440,7 @@
         </div>
 
         <div class="orch-panel">
-            <h3>Pending Work</h3>
+            <h3>Pending work</h3>
             <div class="orch-list">
                 {% for item in orch_reviews %}
                 <div class="orch-row">
@@ -468,7 +468,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Profile Paths</h3>
+            <h3>Profile paths</h3>
             <div class="orch-list">
                 {% for row in orch_profile_rows %}
                 <div class="orch-row">
@@ -507,7 +507,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>[Search] Watcher Status</h3>
+            <h3>Watcher status</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Running</strong></div>
@@ -540,7 +540,7 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3>[Warning] Error Summary</h3>
+            <h3>Error summary</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Failed moves</strong><small>Last 7 days</small></div>
@@ -577,7 +577,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>[Saved] Database Health</h3>
+            <h3>Database health</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Database exists</strong></div>
@@ -599,17 +599,15 @@
                         {{ orch_diagnostics.database.connection_ok|yesno:"OK,Failed" }}
                     </span>
                 </div>
-                {% if orch_diagnostics.database.warnings %}
                 {% for warn in orch_diagnostics.database.warnings %}
                 <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
-                    <div><small style="color:var(--orch-warn);">[Warning] {{ warn }}</small></div>
+                    <div><small style="color:var(--orch-warn);">{{ warn }}</small></div>
                 </div>
                 {% endfor %}
-                {% endif %}
             </div>
         </div>
         <div class="orch-panel">
-            <h3>[Folder] Folder Permissions</h3>
+            <h3>Folder permissions</h3>
             <div class="orch-list">
                 {% for perm in orch_diagnostics.permissions %}
                 <div class="orch-row">
@@ -632,29 +630,29 @@
         </div>
     </section>
 
-    {% if orch_diagnostics.integration_failures %}
     <div class="orch-panel">
-        <h3>[Plug] Integration Issues</h3>
+        <h3>Integration failures</h3>
         <div class="orch-list">
             {% for fail in orch_diagnostics.integration_failures %}
             <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
                 <div>
                     <strong>{{ fail.display_name }}</strong>
-                    <small>{{ fail.provider }} · {{ fail.profile }}</small>
+                    <small>{{ fail.provider }} &middot; {{ fail.profile }}</small>
                     {% for issue in fail.issues %}
-                    <small style="color:var(--orch-warn);">[Warning] {{ issue }}</small>
+                    <small style="color:var(--orch-warn);">{{ issue }}</small>
                     {% endfor %}
                 </div>
                 <span class="orch-state bad">{{ fail.status }}</span>
             </div>
+            {% empty %}
+            <p class="orch-note">No integration issues detected.</p>
             {% endfor %}
         </div>
     </div>
-    {% endif %}
 
     <div class="orch-two">
         <div class="orch-panel">
-            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent Backups</h3>
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent backups</h3>
             <div class="orch-list">
                 {% if orch_diagnostics.backups %}
                 {% for backup in orch_diagnostics.backups|slice:":5" %}
@@ -672,12 +670,26 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Maintenance Actions</h3>
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Maintenance actions</h3>
             <div class="orch-links" style="margin-top:8px;">
                 <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" name="_orch_action" value="create_backup" class="orch-link" style="cursor:pointer;">
                         Create backup
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admin:index' %}" style="display:inline-flex; gap:8px; align-items:center;" onsubmit="return confirm('Restore this backup? The current database will be backed up first, then replaced.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="_orch_action" value="restore_backup">
+                    <select name="backup_path" style="height:36px; border-radius:12px;" {% if not orch_diagnostics.backups %}disabled{% endif %}>
+                        {% for backup in orch_diagnostics.backups %}
+                        <option value="{{ backup.path }}">{{ backup.filename }} ({{ backup.size_kb }} KB)</option>
+                        {% empty %}
+                        <option value="">No backups yet</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="orch-link" style="cursor:pointer;" {% if not orch_diagnostics.backups %}disabled{% endif %}>
+                        Restore backup
                     </button>
                 </form>
                 <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
@@ -697,7 +709,7 @@
     </div>
 
     <section class="orch-panel">
-        <h3>Admin Workspaces</h3>
+        <h3>Admin workspaces</h3>
         <div class="orch-links">
             <a class="orch-link" href="{{ orch_links.profiles }}">Profiles</a>
             <a class="orch-link" href="{{ orch_links.moves }}">File decisions</a>

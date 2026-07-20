@@ -1,0 +1,73 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Notifications - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Notifications</h2>
+            <p>Deadline warnings, MUELE sync results, and anything else Orch has alerted about. The tray icon shows these as toast popups when they happen; this page is the permanent record.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary">
+            <div class="value">{{ notifications|length }}</div>
+            <div class="label">Recent notifications</div>
+        </div>
+        <div class="stat">
+            <div class="value">{{ unread_count }}</div>
+            <div class="label">Unread</div>
+        </div>
+    </section>
+
+    {% if notifications %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Recent notifications</h2>
+            </div>
+            {% if unread_count %}
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_all_read">
+                <button type="submit" class="button-ghost">Mark all as read</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="profile-list">
+            {% for item in notifications %}
+            <article class="profile-row" style="{% if not item.read_at %}border-color:rgba(110,168,255,0.35);{% endif %}">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">{{ item.message|default:"No details" }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">
+                        {% if item.urgency == "critical" %}
+                            <span style="color:var(--red);">Critical</span>
+                        {% elif item.urgency == "low" %}
+                            Low priority
+                        {% else %}
+                            Normal
+                        {% endif %}
+                    </span>
+                    <strong>{{ item.created_at|date:"M j, Y, g:i A" }}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4a5 5 0 0 0-5 5v3.5L5 16h14l-2-3.5V9a5 5 0 0 0-5-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <div><h3>No notifications yet</h3><p>Deadline warnings and MUELE sync results will show up here as they happen.</p></div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

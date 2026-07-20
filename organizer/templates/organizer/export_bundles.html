@@ -6,11 +6,11 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Box] Portable Knowledge Packs</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Portable knowledge packs</h2>
             <p>Export your study materials, summaries, and guides as a standalone ZIP bundle - perfect for offline access, sharing, or archive.</p>
         </div>
-        <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
     </section>
 
     <!-- Create new pack -->
@@ -18,7 +18,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[Target] Export your profile</h2>
+                    <h2>Export your profile</h2>
                     <p class="card-subtitle">All files, summaries, and guides for your entire {{ profile.name }} context.</p>
                 </div>
             </div>
@@ -43,7 +43,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[Books] Export a subject</h2>
+                    <h2>Export a subject</h2>
                     <p class="card-subtitle">Files, summaries, course guide, and study-guide PDF for one subject.</p>
                 </div>
             </div>
@@ -143,32 +143,32 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>[List] What's inside a Knowledge Pack</h2>
+                <h2>What's inside a knowledge pack</h2>
             </div>
         </div>
         <div class="stat-row" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
             <div class="stat">
-                <div class="value">[Folder]</div>
+                <div class="value">Files</div>
                 <div class="label">File copies<br><span class="path-text">Preserved folder structure</span></div>
             </div>
             <div class="stat">
-                <div class="value">[Tree]</div>
+                <div class="value">Map</div>
                 <div class="label">Folder map<br><span class="path-text">JSON tree view</span></div>
             </div>
             <div class="stat">
-                <div class="value">[Book]</div>
+                <div class="value">Reading</div>
                 <div class="label">Reading list<br><span class="path-text">Markdown index by subject</span></div>
             </div>
             <div class="stat">
-                <div class="value">[Note]</div>
+                <div class="value">Summaries</div>
                 <div class="label">Summaries<br><span class="path-text">HTML for each document</span></div>
             </div>
             <div class="stat">
-                <div class="value">[Doc]</div>
+                <div class="value">Guide</div>
                 <div class="label">Study-guide PDF<br><span class="path-text">With course guide + file index</span></div>
             </div>
             <div class="stat">
-                <div class="value">[List]</div>
+                <div class="value">Manifest</div>
                 <div class="label">Manifest<br><span class="path-text">metadata.json</span></div>
             </div>
         </div>

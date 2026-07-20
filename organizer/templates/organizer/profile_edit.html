@@ -122,6 +122,22 @@
             </div>
         </form>
     </section>
+
+    {% if config.groups %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Subject folders</h3>
+                <p class="card-subtitle">Saving this profile already does this automatically. Use this if you added subjects elsewhere and want to check now, without changing anything else.</p>
+            </div>
+        </div>
+        <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync_folders">
+            <button type="submit" class="button-ghost">Check for missing subject folders</button>
+        </form>
+    </section>
+    {% endif %}
 </div>
 
 <script src="{% static 'organizer/js/tag-input.js' %}"></script>

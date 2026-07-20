@@ -72,23 +72,26 @@ class MoveDownloadedFileTests(SandboxedPathsTestCase):
         self.assertEqual(event.destination_path, str(expected))
 
     def test_doc_file_routes_into_active_profile_and_records_it(self):
+        # TST1000 is a made-up code (not a real Makerere course), so the
+        # destination folder stays bare -- see test_rules.py for the
+        # "real course code gets its real name" behavior.
         profile = self.make_profile()
         paths.config_path(profile.root_path).write_text(json.dumps({
             "primary_value": "Year 2",
             "secondary_value": "Semester 1",
-            "groups": ["CSC2100"],
+            "groups": ["TST1000"],
         }))
-        target = self._aged_file("CSC2100 Assignment 1.docx")
+        target = self._aged_file("TST1000 Assignment 1.docx")
 
         watcher.move_downloaded_file(target, ai_enabled=False)
 
-        expected = self.profile_root / "Year 2" / "Semester 1" / "CSC2100" / "02 Assignments and Coursework" / "CSC2100 Assignment 1.docx"
+        expected = self.profile_root / "Year 2" / "Semester 1" / "TST1000" / "02 Assignments and Coursework" / "TST1000 Assignment 1.docx"
         self.assertTrue(expected.exists())
 
         event = MoveEvent.objects.get()
         self.assertEqual(event.profile, profile)
         self.assertEqual(event.method, "course_code")
-        self.assertEqual(event.course_code, "CSC2100")
+        self.assertEqual(event.course_code, "TST1000")
 
     def test_brand_new_file_is_left_alone_this_cycle(self):
         target = self.downloads / "still-writing.png"

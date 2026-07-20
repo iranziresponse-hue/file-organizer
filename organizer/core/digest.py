@@ -75,7 +75,7 @@ def _build_content(metrics, profile_name, period_label) -> str:
     """Build rich digest content text with sections."""
     lines = []
     lines.append(f"# {profile_name}")
-    lines.append(f"## Study Digest — {period_label}")
+    lines.append(f"## Study Digest ({period_label})")
     lines.append("")
 
     # Overview
@@ -118,7 +118,7 @@ def _build_content(metrics, profile_name, period_label) -> str:
     lines.append("## Review Queue")
     lines.append(f"{metrics['reviews_due']} review(s) due.")
     if metrics['reviews_overdue'] > 0:
-        lines.append(f"{metrics['reviews_overdue']} review(s) are overdue — check the review queue.")
+        lines.append(f"{metrics['reviews_overdue']} review(s) are overdue. Check the review queue.")
     if metrics['reviews_completed'] > 0:
         lines.append(f"{metrics['reviews_completed']} review(s) completed.")
     lines.append("")
@@ -142,7 +142,7 @@ def _build_content(metrics, profile_name, period_label) -> str:
     if metrics["muele_downloads"] > 0:
         next_steps.append("Review new MUELE course materials.")
     if not next_steps:
-        next_steps.append("Keep learning — everything is in order.")
+        next_steps.append("Keep learning. Everything is in order.")
     for step in next_steps:
         lines.append(f"- {step}")
 
@@ -169,14 +169,14 @@ def generate_daily_digest(
     if metrics["files_sorted"] == 0 and metrics["activities"] == 0:
         return None
 
-    period_label = start.strftime("%b %d") + " – " + end.strftime("%b %d, %Y")
+    period_label = start.strftime("%b %d") + " to " + end.strftime("%b %d, %Y")
     content = _build_content(metrics, profile.name, period_label)
 
     digest = LearningDigest.objects.create(
         profile=profile,
         period_start=start,
         period_end=end,
-        title=f"{profile.name} — Daily Digest ({period_label})",
+        title=f"{profile.name}: Daily Digest ({period_label})",
         content=content,
         metrics=metrics,
     )
@@ -194,7 +194,7 @@ def generate_daily_digest(
         from .notifications import notify
 
         notify(
-            f"📊 Daily digest — {profile.name}",
+            f"Daily digest: {profile.name}",
             f"{metrics['files_sorted']} files sorted, "
             f"{metrics['reviews_due']} reviews due, "
             f"{metrics['open_assignments']} assignments open",
@@ -218,14 +218,14 @@ def generate_weekly_digest(
 
     metrics = _gather_metrics(profile, start, end)
 
-    period_label = start.strftime("%b %d") + " – " + end.strftime("%b %d, %Y")
+    period_label = start.strftime("%b %d") + " to " + end.strftime("%b %d, %Y")
     content = _build_content(metrics, profile.name, period_label)
 
     digest = LearningDigest.objects.create(
         profile=profile,
         period_start=start,
         period_end=end,
-        title=f"{profile.name} — Weekly Digest ({period_label})",
+        title=f"{profile.name}: Weekly Digest ({period_label})",
         content=content,
         metrics=metrics,
     )
@@ -242,7 +242,7 @@ def generate_weekly_digest(
     from .notifications import notify
 
     notify(
-        f"📊 Weekly digest — {profile.name}",
+        f"Weekly digest: {profile.name}",
         f"{metrics['files_sorted']} files, "
         f"{metrics['active_subjects']} subjects active, "
         f"{metrics['reviews_due']} reviews due, "

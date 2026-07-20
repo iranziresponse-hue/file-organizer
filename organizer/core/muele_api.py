@@ -18,6 +18,22 @@ from typing import Any, Callable
 
 import requests
 
+from . import paths
+
+# mak.ac.ug's web server doesn't send its intermediate CA certificate, only
+# the leaf -- confirmed directly (openssl s_client reports "unable to verify
+# the first certificate"). Browsers paper over this via cached intermediates
+# and AIA chasing; Python's ssl module does neither by default, so a plain
+# `requests` call to any mak.ac.ug host fails TLS verification even though
+# the certificate itself is genuine. This bundle is certifi's normal CA
+# roots plus that one missing intermediate (Sectigo Public Server
+# Authentication CA OV R36), so verification here is strengthened, not
+# weakened -- never pass verify=False instead. If this starts failing again,
+# the university's certificate chain likely changed; re-fetch the current
+# intermediate from the CA Issuers URL in muele.mak.ac.ug's leaf certificate
+# and regenerate organizer/core/certs/mak_ac_ug_chain.pem.
+MUELE_CA_BUNDLE = str(paths.resource_path("organizer/core/certs/mak_ac_ug_chain.pem"))
+
 MUELE_BASE_URL = "https://muele.mak.ac.ug"
 _WS_ENDPOINT = f"{MUELE_BASE_URL}/webservice/rest/server.php"
 _LOGIN_URL = f"{MUELE_BASE_URL}/login/index.php"
@@ -36,28 +52,56 @@ logger = logging.getLogger("organizer.muele")
 _KEYRING_SERVICE = "iranzi-file-organizer-muele"
 
 
-def store_token(token: str) -> None:
-    """Store a MUELE web service token in the OS keyring."""
-    import keyring
+def store_token(token: str) -> tuple[bool, str | None]:
+    """Store a MUELE web service token in the OS keyring.
 
-    keyring.set_password(_KEYRING_SERVICE, "muele_token", token)
+    Returns (True, None) on success or (False, error_message) if the
+    keyring package is missing or no OS credential backend is available.
+    """
+    try:
+        import keyring
+
+        keyring.set_password(_KEYRING_SERVICE, "muele_token", token)
+        return True, None
+    except ImportError:
+        logger.warning("keyring package not installed; cannot store MUELE token.")
+        return False, "The keyring package is not installed, so the token can't be saved securely."
+    except Exception as exc:
+        logger.warning("Could not store MUELE token in the OS keyring: %s", exc)
+        return False, f"Could not save the token to your OS credential store: {exc}"
 
 
 def load_token() -> str | None:
-    """Load the MUELE token from the OS keyring. Returns None if not set."""
-    import keyring
+    """Load the MUELE token from the OS keyring.
 
-    return keyring.get_password(_KEYRING_SERVICE, "muele_token")
+    Returns None if not set, and also if the keyring package is missing or
+    no OS credential backend is available -- an unreachable token store is
+    treated the same as no token, rather than crashing whatever page asked.
+    """
+    try:
+        import keyring
+
+        return keyring.get_password(_KEYRING_SERVICE, "muele_token")
+    except ImportError:
+        logger.warning("keyring package not installed; treating MUELE as disconnected.")
+        return None
+    except Exception as exc:
+        logger.warning("Could not read MUELE token from the OS keyring: %s", exc)
+        return None
 
 
 def clear_token() -> None:
-    """Remove the MUELE token from the OS keyring."""
-    import keyring
-
+    """Remove the MUELE token from the OS keyring. Never throws."""
     try:
+        import keyring
+
         keyring.delete_password(_KEYRING_SERVICE, "muele_token")
+    except ImportError:
+        logger.warning("keyring package not installed; nothing to clear.")
     except keyring.errors.PasswordDeleteError:
         pass
+    except Exception as exc:
+        logger.warning("Could not clear MUELE token from the OS keyring: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -68,13 +112,18 @@ def clear_token() -> None:
 def generate_token(
     username: str,
     password: str,
-    service: str = "Orch",
+    service: str = "moodle_mobile_app",
     log: Callable | None = None,
 ) -> tuple[str | None, str | None]:
     """Generate a MUELE web service token using username/password login.
 
-    This calls MUELE's login/token.php endpoint directly, which is the
-    standard Moodle token generation API. The token is automatically stored
+    `service` must be the shortname of a web service actually enabled on
+    the Moodle site -- confirmed directly against muele.mak.ac.ug that a
+    made-up shortname ("Orch") gets rejected with "Web service is not
+    available", while Moodle's own built-in mobile-app service works, since
+    that's the one MUELE has enabled. This calls MUELE's login/token.php
+    endpoint directly, which is the standard Moodle token generation API.
+    The token is automatically stored
     in the keyring on success.
 
     Returns (token, None) on success or (None, error_message) on failure.
@@ -92,6 +141,7 @@ def generate_token(
                 "service": service,
             },
             timeout=_DEFAULT_TIMEOUT,
+            verify=MUELE_CA_BUNDLE,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -117,7 +167,9 @@ def generate_token(
         return None, "MUELE did not return a token. Check your credentials."
 
     # Store the token in the keyring
-    store_token(token)
+    stored, store_error = store_token(token)
+    if not stored:
+        return None, f"Logged in, but the token could not be saved: {store_error}"
     return token, None
 
 
@@ -171,6 +223,7 @@ def _api_call(
                 _WS_ENDPOINT,
                 data=payload,
                 timeout=timeout,
+                verify=MUELE_CA_BUNDLE,
             )
             resp.raise_for_status()
             data = resp.json()

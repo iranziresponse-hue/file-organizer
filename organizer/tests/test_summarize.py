@@ -244,7 +244,49 @@ class GenerateSummaryTests(SimpleTestCase):
         content, error = summarize.generate_summary(target)
 
         self.assertIsNone(content)
-        self.assertIn("Couldn't reach the summary service", error)
+        self.assertIn("Couldn't reach", error)
+
+    @mock.patch("organizer.core.summarize.requests.post")
+    def test_request_too_large_reports_the_real_reason_not_a_connection_error(self, mock_post):
+        # Regression test: a real request against Groq that exceeded their
+        # tokens-per-minute limit came back as HTTP 413, but the old
+        # catch-all exception handler reported it as "couldn't reach the
+        # summary service", which was never true, the service was reached
+        # and responded. This must be reported honestly instead.
+        self._write_ai_config()
+        target = self.tmp_path / "notes.pdf"
+        _write_pdf(target, "Data Structures " * 40)
+        mock_post.return_value.status_code = 413
+
+        content, error = summarize.generate_summary(target)
+
+        self.assertIsNone(content)
+        self.assertIn("too long", error)
+        self.assertNotIn("Couldn't reach", error)
+
+    @mock.patch("organizer.core.summarize.requests.post")
+    def test_rate_limit_is_reported_as_a_rate_limit(self, mock_post):
+        self._write_ai_config()
+        target = self.tmp_path / "notes.pdf"
+        _write_pdf(target, "Data Structures " * 40)
+        mock_post.return_value.status_code = 429
+
+        content, error = summarize.generate_summary(target)
+
+        self.assertIsNone(content)
+        self.assertIn("rate limit", error.lower())
+
+    @mock.patch("organizer.core.summarize.requests.post")
+    def test_bad_api_key_is_reported_as_a_bad_key(self, mock_post):
+        self._write_ai_config()
+        target = self.tmp_path / "notes.pdf"
+        _write_pdf(target, "Data Structures " * 40)
+        mock_post.return_value.status_code = 401
+
+        content, error = summarize.generate_summary(target)
+
+        self.assertIsNone(content)
+        self.assertIn("API key", error)
 
     @mock.patch("organizer.core.summarize.requests.post")
     def test_related_files_are_included_in_the_prompt(self, mock_post):
@@ -259,6 +301,25 @@ class GenerateSummaryTests(SimpleTestCase):
 
         sent_prompt = mock_post.call_args.kwargs["json"]["messages"][0]["content"]
         self.assertIn("related.pdf", sent_prompt)
+
+
+class RequestSizeStaysUnderGroqFreeTierLimitTests(SimpleTestCase):
+    def test_worst_case_prompt_leaves_real_margin_under_the_confirmed_6000_tpm_limit(self):
+        # Groq's own API confirmed (directly, not guessed) a 6000
+        # tokens-per-minute limit for this model on the free tier. This is
+        # a rough-but-real guard against silently raising the size caps
+        # back to something that reliably 413s again, using the same
+        # approximately-4-chars-per-token estimate the caps were sized
+        # against, with margin for estimation error.
+        worst_case_chars = (
+            len(summarize.PROMPT_TEMPLATE)
+            + summarize.MAX_SOURCE_CHARS
+            + (summarize.MAX_RELATED_FILES * summarize.MAX_RELATED_CHARS)
+        )
+        estimated_prompt_tokens = worst_case_chars / 4
+        response_budget = 2000  # matches the max_tokens generate_summary requests
+
+        self.assertLess(estimated_prompt_tokens + response_budget, 5500)
 
 
 class RenderPdfTests(SimpleTestCase):

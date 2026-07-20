@@ -35,7 +35,7 @@ class MakerereCurriculaIntegrityTests(SimpleTestCase):
 class GetCourseUnitsTests(SimpleTestCase):
     def test_known_programme_year_and_semester(self):
         units = makerere_curricula.get_course_units("Bachelor of Laws", "Year 1", "Semester 1")
-        self.assertIn("LAW1106 Introducing Law", units)
+        self.assertIn("LAW1106 - Introducing Law", units)
 
     def test_unknown_programme_returns_empty_list(self):
         self.assertEqual(makerere_curricula.get_course_units("Not A Real Programme", "Year 1", "Semester 1"), [])

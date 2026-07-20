@@ -6,8 +6,8 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Repeat] Smart Review Queue</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Smart review queue</h2>
             <p>Spaced repetition review items scheduled from your study materials. Complete a review to schedule the next one at the right interval.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -21,7 +21,7 @@
                     Auto-schedule from files
                 </button>
             </form>
-            <a class="button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
         </div>
     </section>
 

@@ -12,57 +12,87 @@
         </div>
         {% if profile %}
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="button-ghost" href="{% url 'export_bundles' %}">
+            <a class="button button-ghost" href="{% url 'export_bundles' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
                 Packs
             </a>
-            <a class="button-ghost" href="{% url 'digest_overview' %}">
+            <a class="button button-ghost" href="{% url 'digest_overview' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
                 </svg>
                 Digests
             </a>
-            <a class="button-ghost" href="{% url 'subject_dashboard' %}">
+            <a class="button button-ghost" href="{% url 'subject_dashboard' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                     <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Subjects
             </a>
-            <a class="button-ghost" href="{% url 'resource_radar' %}">
+            <a class="button button-ghost" href="{% url 'resource_radar' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M4 19.5V5.8C4 4.8 4.8 4 5.8 4h5.4c1 0 1.8.8 1.8 1.8v13.7c0-.9-.7-1.5-1.6-1.5H5.8c-1 0-1.8.7-1.8 1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                     <path d="M20 19.5V5.8c0-1-.8-1.8-1.8-1.8h-5.4c-1 0-1.8.8-1.8 1.8v13.7c0-.9.7-1.5 1.6-1.5h5.6c1 0 1.8.7 1.8 1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                 </svg>
                 Resources
             </a>
-            <a class="button-ghost" href="{% url 'learning_routes' %}">
+            <a class="button button-ghost" href="{% url 'learning_routes' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Routes
             </a>
-            <a class="button-ghost" href="{% url 'review_queue' %}">
+            <a class="button button-ghost" href="{% url 'review_queue' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                 </svg>
                 Reviews
             </a>
-            <a class="button-ghost" href="{% url 'first_run' %}">
+            <a class="button button-ghost" href="{% url 'sorting_inbox' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <path d="M4 12l3-7a2 2 0 0 1 1.8-1.2h6.4A2 2 0 0 1 17 5l3 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6h-4.5a1 1 0 0 0-.9.6L14 15h-4l-.6-1.4a1 1 0 0 0-.9-.6H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                Inbox
+            </a>
+            <a class="button button-ghost" href="{% url 'folder_rules' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <path d="M4 6h10M4 12h16M4 18h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="17" cy="6" r="2" stroke="currentColor" stroke-width="1.8"/>
+                    <circle cx="14" cy="18" r="2" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+                Rules
+            </a>
+            <a class="button button-ghost" href="{% url 'import_plans' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M12 9v5m0 0-2-2m2 2 2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Imports
+            </a>
+            <a class="button button-ghost" href="{% url 'first_run' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
                 Setup
             </a>
-            <a class="button-ghost" href="{% url 'timeline' %}">
+            <a class="button button-ghost" href="{% url 'timeline' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
                     <path d="M3 3v18h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="m7 16 4-6 4 4 4-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Timeline
+            </a>
+            <a class="button button-ghost" href="{% url 'notifications' %}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <path d="M12 4a5 5 0 0 0-5 5v3.5L5 16h14l-2-3.5V9a5 5 0 0 0-5-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                Notifications
+                {% if unread_notification_count %}<span class="meta-token" style="margin-left:2px;">{{ unread_notification_count }}</span>{% endif %}
             </a>
         </div>
         {% endif %}
@@ -160,7 +190,7 @@
                         <strong>{% if memory.last_touched_at %}{{ memory.last_touched_at|date:"Y-m-d H:i" }}{% else %}Waiting for files{% endif %}</strong>
                     </div>
                     <div class="profile-actions">
-                        <span class="button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
+                        <span class="button button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
                             View →
                         </span>
                     </div>
@@ -230,6 +260,7 @@
                     <h2>Folder rules</h2>
                     <p class="card-subtitle">Visual rule-builder records seeded from your subjects.</p>
                 </div>
+                <a class="button button-ghost" href="{% url 'folder_rules' %}">Open rules</a>
             </div>
             <div class="profile-list">
                 {% for rule in folder_rules %}
@@ -281,7 +312,7 @@
                     <h2>Integrations</h2>
                     <p class="card-subtitle">MUELE and future learning sources attach here.</p>
                 </div>
-                <a class="button button-ghost" href="{% url 'muele_connection' %}">MUELE setup</a>
+                <a class="button button-ghost" href="{% url 'muele_connect' %}">{% if muele_connected %}MUELE connected{% else %}MUELE setup{% endif %}</a>
             </div>
             <div class="profile-list">
                 {% for connection in connections %}
@@ -309,6 +340,7 @@
                     <h2>Decision inbox</h2>
                     <p class="card-subtitle">The trust layer for uncertain files.</p>
                 </div>
+                <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Open inbox</a>
             </div>
             {% if inbox_items %}
             <div class="profile-list">
@@ -336,6 +368,7 @@
                     <h2>Folder imports</h2>
                     <p class="card-subtitle">Read-only scans that map messy folders before Orch changes anything.</p>
                 </div>
+                <a class="button button-ghost" href="{% url 'import_plans' %}">Open imports</a>
             </div>
             {% if import_plans %}
             <div class="profile-list">

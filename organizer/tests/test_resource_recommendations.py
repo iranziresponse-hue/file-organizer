@@ -208,3 +208,43 @@ class ResourceRadarViewTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("resource_radar"))
 
         self.assertRedirects(response, reverse("dashboard"), fetch_redirect_response=False)
+
+    def test_recommendation_renders_with_stable_hooks_for_the_ajax_layer(self):
+        item = resources.sync_recommendations(self.profile, limit=1)[0]
+
+        response = self.client.get(reverse("resource_radar"))
+        content = response.content.decode()
+
+        # Hooks resource-radar-actions.js depends on to find a row, submit
+        # its action, and patch in the server's own response.
+        self.assertIn('data-pk="%d"' % item.pk, content)
+        self.assertIn('id="rec-actions-%d"' % item.pk, content)
+        self.assertIn('data-radar-action', content)
+        self.assertIn('id="saved-count"', content)
+        self.assertIn('id="visible-count"', content)
+
+    def test_dismiss_response_no_longer_lists_the_item(self):
+        # This is exactly what resource-radar-actions.js checks to decide
+        # whether the dismiss actually succeeded server-side.
+        item = resources.sync_recommendations(self.profile, limit=1)[0]
+
+        response = self.client.post(
+            reverse("resource_radar"),
+            {"action": "dismissed", "recommendation_pk": item.pk},
+            follow=True,
+        )
+
+        self.assertNotIn('data-pk="%d"' % item.pk, response.content.decode())
+
+    def test_save_response_still_lists_the_item_with_updated_action(self):
+        item = resources.sync_recommendations(self.profile, limit=1)[0]
+
+        response = self.client.post(
+            reverse("resource_radar"),
+            {"action": "saved", "recommendation_pk": item.pk},
+            follow=True,
+        )
+        content = response.content.decode()
+
+        self.assertIn('data-pk="%d"' % item.pk, content)
+        self.assertIn("Unsave", content)

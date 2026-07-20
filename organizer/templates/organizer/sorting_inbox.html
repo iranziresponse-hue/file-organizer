@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load static %}
 
 {% block title %}Decision Inbox - Orch{% endblock %}
 
@@ -6,26 +7,26 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Inbox] Decision Inbox</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Decision inbox</h2>
             <p>Review files that rules flagged for manual approval. Approve, reroute, or ignore each item.</p>
         </div>
-        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
     </section>
 
-    <section class="stat-row">
-        <div class="stat stat-primary"><div class="value">{{ stats.pending }}</div><div class="label">Pending</div></div>
-        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
-        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.rerouted }}</div><div class="label">Rerouted</div></div>
-        <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.ignored }}</div><div class="label">Ignored</div></div>
+    <section class="stat-row" id="inbox-stats">
+        <div class="stat stat-primary"><div class="value" id="stat-pending">{{ stats.pending }}</div><div class="label">Pending</div></div>
+        <div class="stat"><div class="value" id="stat-approved" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
+        <div class="stat"><div class="value" id="stat-rerouted" style="color:var(--cyan);">{{ stats.rerouted }}</div><div class="label">Rerouted</div></div>
+        <div class="stat"><div class="value" id="stat-ignored" style="color:var(--muted);">{{ stats.ignored }}</div><div class="label">Ignored</div></div>
     </section>
 
     {% if pending_items %}
     <section class="card compact-card">
-        <div class="card-header"><div><h2>Pending items ({{ pending_items|length }})</h2></div></div>
-        <div class="profile-list">
+        <div class="card-header"><div><h2>Pending items (<span id="pending-count">{{ pending_items|length }}</span>)</h2></div></div>
+        <div class="profile-list" id="pending-list">
             {% for item in pending_items %}
-            <article class="profile-row" style="grid-template-columns: minmax(180px,1.5fr) minmax(100px,0.6fr) minmax(80px,0.3fr) auto;">
+            <article class="profile-row" data-pk="{{ item.pk }}" style="grid-template-columns: minmax(180px,1.5fr) minmax(100px,0.6fr) minmax(80px,0.3fr) auto;">
                 <div class="profile-main">
                     <h3>{{ item.filename }}</h3>
                     <span class="path-text">{{ item.reason|default:"Awaiting review" }}</span>
@@ -40,7 +41,7 @@
                     <strong>{{ item.confidence }}</strong>
                 </div>
                 <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <form method="post" action="{% url 'inbox_approve' item.pk %}" style="display:inline;">
+                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
                             <svg viewBox="0 0 24 24" fill="none" style="width:14px;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -48,7 +49,7 @@
                         </button>
                     </form>
                     <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reroute</button>
-                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" style="display:inline;">
+                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Ignore</button>
                     </form>
@@ -64,7 +65,7 @@
             <button type="button" class="guide-close" id="reroute-close"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             <h3>Reroute file</h3>
             <p class="help-text" id="reroute-filename" style="margin-bottom:16px;"></p>
-            <form method="post" id="reroute-form-inner">
+            <form method="post" id="reroute-form-inner" data-inbox-action>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="reroute">
                 <div class="field">
@@ -100,6 +101,7 @@
             var pk = this.dataset.itemPk;
             filename.textContent = 'Rerouting: ' + this.dataset.filename;
             form.action = '/study/inbox/' + pk + '/reroute/';
+            form.dataset.itemPk = pk;
             overlay.hidden = false;
         });
     });
@@ -108,4 +110,5 @@
     });
 })();
 </script>
+<script src="{% static 'organizer/js/inbox-actions.js' %}"></script>
 {% endblock %}

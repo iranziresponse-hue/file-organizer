@@ -170,6 +170,13 @@
             justify-content: space-between;
             align-items: center;
             gap: 16px;
+            transform: translateY(0);
+            transition: transform var(--ease-slow), opacity var(--ease-slow);
+        }
+
+        .topbar.topbar-hidden {
+            transform: translateY(-140%);
+            opacity: 0;
         }
 
         .brand {
@@ -268,6 +275,75 @@
 
         .page-wide {
             --page-width: 1080px;
+        }
+
+        /* Lets one page (the dashboard) break out of <main>'s normal
+           1248px cap and use the full window width, without affecting
+           every other page's comfortable reading width. */
+        main:has(.page-full) {
+            width: 100%;
+            max-width: none;
+            padding-inline: clamp(16px, 3vw, 40px);
+        }
+
+        /* Full-height, centered "login page" style stage for onboarding
+           choices (start.html): vertically and horizontally centered,
+           independent of the topbar and any surrounding page chrome. */
+        .auth-stage {
+            min-height: calc(100vh - 140px);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .auth-card {
+            width: min(440px, 100%);
+            background: var(--glass);
+            border: 1px solid var(--stroke);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 40px;
+            text-align: center;
+            animation: panelIn var(--ease-slow) both;
+        }
+
+        .auth-card .brand-mark {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 20px;
+        }
+
+        .auth-card .brand-mark img {
+            width: 56px;
+            height: 56px;
+        }
+
+        .auth-card .eyebrow {
+            display: block;
+        }
+
+        .auth-card h2 {
+            font-size: 1.6rem;
+            margin: 8px 0;
+        }
+
+        .auth-subtitle {
+            color: var(--muted);
+            margin-bottom: 28px;
+        }
+
+        .auth-choices {
+            display: grid;
+            gap: 12px;
+        }
+
+        .button-large {
+            width: 100%;
+            height: 52px;
+            border-radius: 16px;
+            font-size: 0.98rem;
         }
 
         .page-heading {
@@ -454,6 +530,7 @@
             font: 500 0.9rem/1 "Inter", sans-serif;
             cursor: pointer;
             letter-spacing: 0;
+            white-space: nowrap;
             transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
         }
 
@@ -584,6 +661,18 @@
             text-transform: uppercase;
         }
 
+        .stat-detail {
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: none;
+            letter-spacing: 0;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .stat .detail {
             font-size: 0.72rem;
             color: var(--muted);
@@ -596,7 +685,7 @@
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(110, 168, 255, 0.12);
         }
 
-        input, select {
+        input, select, textarea {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--stroke);
             color: var(--text);
@@ -608,14 +697,22 @@
             transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
         }
 
+        textarea {
+            font-family: "Inter", sans-serif;
+            resize: vertical;
+            min-height: 100px;
+        }
+
         input:focus,
-        select:focus {
+        select:focus,
+        textarea:focus {
             border-color: rgba(110, 168, 255, 0.58);
             background: rgba(255, 255, 255, 0.12);
             box-shadow: 0 0 0 4px rgba(110, 168, 255, 0.1);
         }
 
-        input::placeholder {
+        input::placeholder,
+        textarea::placeholder {
             color: rgba(232, 236, 242, 0.38);
         }
 
@@ -717,6 +814,27 @@
             transform: translateY(-1px);
         }
 
+        .btn-spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            margin-right: 7px;
+            vertical-align: -2px;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: btn-spin 0.6s linear infinite;
+        }
+
+        @keyframes btn-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        button[aria-busy="true"] {
+            cursor: progress;
+            opacity: 0.85;
+        }
+
         .guide-btn {
             all: unset;
             display: grid;
@@ -762,7 +880,7 @@
 
         .guide-panel {
             position: relative;
-            max-width: 420px;
+            max-width: 640px;
             width: 100%;
             max-height: 80vh;
             overflow-y: auto;
@@ -776,6 +894,20 @@
         .guide-panel h3 {
             font-size: 1.2rem;
             margin-bottom: 14px;
+        }
+
+        .guide-panel h4 {
+            font-size: 0.86rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: var(--faint);
+            margin: 20px 0 10px;
+        }
+
+        .guide-panel p.guide-intro {
+            margin: -4px 0 16px;
+            color: var(--muted);
+            font-size: 0.92rem;
         }
 
         .guide-panel ul {
@@ -809,6 +941,38 @@
             background: rgba(255, 255, 255, 0.1);
             color: var(--text);
             transform: translateY(-1px);
+        }
+
+        .support-fab {
+            all: unset;
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 40;
+            width: 52px;
+            height: 52px;
+            display: grid;
+            place-items: center;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(110, 168, 255, 0.28), rgba(110, 168, 255, 0.14)), rgba(20, 24, 33, 0.92);
+            border: 1px solid rgba(110, 168, 255, 0.5);
+            color: var(--text);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 20px rgba(110, 168, 255, 0.2);
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+        }
+
+        .support-fab svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .support-fab:hover {
+            border-color: rgba(110, 168, 255, 0.75);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4), 0 0 28px rgba(110, 168, 255, 0.32);
+            transform: translateY(-2px);
         }
 
         .browser-panel {
@@ -960,6 +1124,66 @@
             white-space: nowrap;
         }
 
+        .toggle-switch input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-track {
+            position: relative;
+            flex: 0 0 auto;
+            display: inline-block;
+            width: 38px;
+            height: 21px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid var(--stroke);
+            transition: background var(--ease), border-color var(--ease);
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--muted);
+            transition: transform var(--ease), background var(--ease);
+        }
+
+        .toggle-switch input:checked + .toggle-track {
+            background: rgba(110, 168, 255, 0.35);
+            border-color: rgba(110, 168, 255, 0.6);
+        }
+
+        .toggle-switch input:checked + .toggle-track::after {
+            transform: translateX(17px);
+            background: var(--blue);
+        }
+
+        .toggle-switch input:disabled + .toggle-track {
+            opacity: 0.5;
+        }
+
+        .toggle-save-flash {
+            font-size: 0.78rem;
+            color: var(--green);
+            opacity: 0;
+            transition: opacity var(--ease-slow);
+        }
+
+        .toggle-save-flash.show {
+            opacity: 1;
+        }
+
+        .toggle-save-flash.error {
+            color: var(--red);
+        }
+
         .form-section {
             display: grid;
             gap: 16px;
@@ -1026,6 +1250,19 @@
             padding: 6px 14px;
             font-size: 0.82rem;
             border-radius: 10px;
+        }
+
+        .summarize-btn {
+            height: 30px;
+            min-height: 30px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            border-radius: 10px;
+        }
+
+        .summarize-btn svg {
+            width: 14px;
+            height: 14px;
         }
 
         .help-text.placeholder-note {
@@ -1218,6 +1455,7 @@
             align-items: center;
             color: #CFF7DA;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .status-dot.is-error {
@@ -1385,12 +1623,29 @@
                 </svg>
             </button>
             <h3>How Orch works</h3>
+            <p class="guide-intro">Orch sorts your files, then turns what it sorted into a study cockpit built around them.</p>
+
+            <h4>Sorting your files</h4>
             <ul>
                 <li>Orch watches two folders, set in <strong>Settings</strong>: your Downloads folder, plus an optional second one.</li>
                 <li>Every new file is checked against these first, in order: passwords, keys, and certificates go to Important. Ebooks go to your Library inbox. Photos, music, and video go to Media. Zip and rar files go to Archives. Installers go to Installers. Code files go to Work.</li>
                 <li>Everything else (PDF, Word, Excel, PowerPoint) is routed by whichever <strong>profile</strong> is currently active. A profile is one folder plus a pair of labels you choose, like Year and Semester.</li>
                 <li>Inside that profile: a subject code in the filename wins first. No code? Orch checks the filename against that subject's topic keywords instead. Neither matches, and smart fallback is enabled? Orch makes one last route suggestion. Still nothing? The file goes to that profile's own _Unsorted folder.</li>
                 <li>No profile is active yet, or the file type isn't handled above? It lands in Documents\Personal\_NeedsSorting so nothing gets lost.</li>
+                <li>Not sure a route is right? <strong>Decision Inbox</strong> holds low-confidence files for you to approve, reroute, or ignore. <strong>Folder Rules</strong> let you build your own routing logic visually. <strong>Undo</strong> reverses any move.</li>
+                <li>Already have a messy folder from before Orch? <strong>Folder Imports</strong> scans it and proposes subjects and rules, then only applies them once you approve.</li>
+            </ul>
+
+            <h4>Once files are sorted</h4>
+            <ul>
+                <li><strong>Study</strong> builds subject memory from what's sorted: detected themes, weak areas, and a spaced <strong>review queue</strong>.</li>
+                <li><strong>Resource Radar</strong> links to real videos and books for your weak areas. <strong>Learning Routes</strong> turn one weak area into a sequence: find a resource, read a summary, review, then check confidence.</li>
+                <li>Any document can get an AI-generated study summary. <strong>Digests</strong> recap a week's activity, and <strong>Knowledge Packs</strong> export a subject or whole profile as a portable bundle.</li>
+                <li>Makerere students get real, sourced course units during setup and can connect their MUELE account under <strong>Integrations</strong>.</li>
+            </ul>
+
+            <h4>Managing it all</h4>
+            <ul>
                 <li>Create, switch, or edit a profile from <strong>Profiles</strong>. Change which folders get watched, or where ebooks land, from <strong>Settings</strong>.</li>
             </ul>
         </div>
@@ -1465,13 +1720,60 @@
         </div>
     </div>
 
+    <button type="button" class="support-fab" id="support-toggle" aria-haspopup="dialog" aria-controls="support-overlay" title="Contact support">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M5.8 5.8l3.6 3.6M18.2 5.8l-3.6 3.6M5.8 18.2l3.6-3.6M18.2 18.2l-3.6-3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+    </button>
+
+    <div class="guide-overlay" id="support-overlay" hidden>
+        <div class="guide-panel" style="max-width:440px;" role="dialog" aria-modal="true" aria-label="Contact support">
+            <button type="button" class="guide-close" id="support-close" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <h3>Contact support</h3>
+            <p class="guide-intro">Send a message straight to Orch's support inbox.</p>
+            <form id="support-form" method="post" action="{% url 'support_message' %}" data-no-spinner>
+                {% csrf_token %}
+                <input type="hidden" name="page_url" id="support-page-url" value="">
+                <div class="field">
+                    <label for="support-name">Your name (optional)</label>
+                    <input type="text" id="support-name" name="name" placeholder="Optional">
+                </div>
+                <div class="field">
+                    <label for="support-email">Your email (optional, so we can reply)</label>
+                    <input type="email" id="support-email" name="email" placeholder="Optional">
+                </div>
+                <div class="field">
+                    <label for="support-message">Message</label>
+                    <textarea id="support-message" name="message" placeholder="What's going on?" required></textarea>
+                </div>
+                <div id="support-feedback" class="help-text" style="min-height:20px;"></div>
+                <div class="form-actions">
+                    <button type="submit" id="support-submit">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 4l16 8-16 8 4-8-4-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                        Send message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="{% static 'organizer/js/folder-browser.js' %}"></script>
     <script src="{% static 'organizer/js/summary.js' %}"></script>
     <script src="{% static 'organizer/js/course-guide.js' %}"></script>
+    <script src="{% static 'organizer/js/submit-feedback.js' %}"></script>
+    <script src="{% static 'organizer/js/support-widget.js' %}"></script>
 
     <main>
         {% if messages %}
-        <ul class="messages">
+        <ul class="messages" id="page-messages">
             {% for message in messages %}
             <li class="{{ message.tags }}">{{ message }}</li>
             {% endfor %}
@@ -1499,6 +1801,41 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') hide();
         });
+    })();
+
+    // Hide the top bar while scrolling down, bring it back on scroll up.
+    // Keeps it out of the way on long pages instead of pinning it forever.
+    (function () {
+        var topbar = document.querySelector('.topbar');
+        if (!topbar) return;
+
+        var lastY = window.scrollY;
+        var ticking = false;
+        var revealThreshold = 40;
+        var moveThreshold = 6;
+
+        function onScroll() {
+            var currentY = window.scrollY;
+            var delta = currentY - lastY;
+
+            if (currentY <= revealThreshold) {
+                topbar.classList.remove('topbar-hidden');
+            } else if (delta > moveThreshold) {
+                topbar.classList.add('topbar-hidden');
+            } else if (delta < -moveThreshold) {
+                topbar.classList.remove('topbar-hidden');
+            }
+
+            lastY = currentY;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function () {
+            if (!ticking) {
+                window.requestAnimationFrame(onScroll);
+                ticking = true;
+            }
+        }, { passive: true });
     })();
 </script>
 {% block extra_js %}{% endblock %}

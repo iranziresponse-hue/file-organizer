@@ -7,28 +7,29 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Chart] Learning timeline</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Learning timeline</h2>
             <p>A rich visual history of everything that's happened - sorted files, summaries, reviews, syncs, and digests.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
             <div class="meta-list" style="gap:4px;">
                 {% for type_key, type_label in activity_types %}
-                <a href="?type={% if current_filter == type_key %}{% else %}{{ type_key }}{% endif %}&days={{ days }}" 
-                   class="button-ghost" 
+                <a href="?type={% if current_filter == type_key %}{% else %}{{ type_key }}{% endif %}&days={{ days }}"
+                   class="button button-ghost"
                    style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
                           {% if current_filter == type_key %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
                     {{ type_label }}
                 </a>
                 {% endfor %}
                 {% if current_filter %}
-                <a href="?days={{ days }}" class="button-ghost" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">Clear filter</a>
+                <a href="?days={{ days }}" class="button button-ghost" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">Clear filter</a>
                 {% endif %}
             </div>
             <div class="meta-list" style="gap:4px;">
                 {% for d in day_options %}
                 <a href="?days={% if days == d|slugify %}{% else %}{{ d }}{% endif %}{% if current_filter %}&type={{ current_filter }}{% endif %}"
-                   class="button-ghost"
+                   class="button button-ghost"
                    style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
                           {% if days == d|slugify %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
                     {% if d == 7 %}Week{% elif d == 30 %}Month{% elif d == 90 %}Quarter{% else %}All{% endif %}

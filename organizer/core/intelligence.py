@@ -506,7 +506,7 @@ def _generate_heuristic_review_summary(
     word_count = len(text.split())
     lines.append("## Document Stats")
     lines.append(f"Approximately {word_count} words extracted.")
-    lines.append(f"Content length: {'Sufficient' if word_count > 100 else 'Very short — text extraction may be incomplete.'}")
+    lines.append(f"Content length: {'Sufficient' if word_count > 100 else 'Very short, text extraction may be incomplete.'}")
 
     return "\n".join(lines), None
 

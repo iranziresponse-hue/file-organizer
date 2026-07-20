@@ -12,7 +12,7 @@ import re
 import time
 from pathlib import Path
 
-from . import paths
+from . import makerere_curricula, paths
 
 
 class Destination:
@@ -20,6 +20,34 @@ class Destination:
         self.path = Path(path)
         self.method = method
         self.course_code = course_code
+
+
+def resolve_subject_folder(root: Path, primary_value: str, secondary_value: str, code: str) -> Path:
+    """The single source of truth for where a subject/course-unit code's
+    folder lives, used both when routing a file and when proactively
+    scaffolding subject folders (organizer.core.sorting.ensure_subject_folders).
+
+    Order of preference, so an existing folder is NEVER duplicated:
+    1. A bare "<code>" folder that already exists -- always wins.
+    2. Any "<code> - <anything>" folder that already exists -- covers a
+       folder that already has a name, however it got there.
+    3. Neither exists yet: "<code> - <real name>" if the name is known
+       (Makerere curriculum), otherwise just "<code>".
+    """
+    base = Path(root) / primary_value / secondary_value
+    bare = base / code
+    if bare.exists():
+        return bare
+
+    if base.exists():
+        for entry in base.iterdir():
+            if entry.is_dir() and entry.name.startswith(f"{code} - "):
+                return entry
+
+    name = makerere_curricula.name_for_code(code)
+    if name:
+        return base / f"{code} - {name}"
+    return bare
 
 
 # ---------------------------------------------------------------------------
@@ -180,23 +208,23 @@ def get_destination(file_path, profile_root=None, library_inbox=None, ai_classif
         if config and root:
             for code in config.get("groups", []):
                 if re.search(re.escape(code.lower()), lname):
-                    dest = root / config["primary_value"] / config["secondary_value"] / code / category
-                    return Destination(dest, "course_code", code)
+                    subject_folder = resolve_subject_folder(root, config["primary_value"], config["secondary_value"], code)
+                    return Destination(subject_folder / category, "course_code", code)
 
         # 2. No code -- try matching the TOPIC against the whole curriculum.
         topic_match = find_course_by_topic(name, curriculum)
         if topic_match and root:
             prefix = (root / "_Archive") if topic_match.get("archived") else root
-            dest = prefix / topic_match["primary_value"] / topic_match["secondary_value"] / topic_match["code"] / category
-            return Destination(dest, "topic", topic_match["code"])
+            subject_folder = resolve_subject_folder(prefix, topic_match["primary_value"], topic_match["secondary_value"], topic_match["code"])
+            return Destination(subject_folder / category, "topic", topic_match["code"])
 
         # 3. No code, no topic match -- optional smart fallback.
         if ai_classify and root:
             ai_match = ai_classify(name, curriculum)
             if ai_match:
                 prefix = (root / "_Archive") if ai_match.get("archived") else root
-                dest = prefix / ai_match["primary_value"] / ai_match["secondary_value"] / ai_match["code"] / category
-                return Destination(dest, "ai", ai_match["code"])
+                subject_folder = resolve_subject_folder(prefix, ai_match["primary_value"], ai_match["secondary_value"], ai_match["code"])
+                return Destination(subject_folder / category, "ai", ai_match["code"])
 
         # 4. Nothing matched -- current group's _Unsorted, or _NeedsSorting
         #    if there's no active profile/config at all.

@@ -108,6 +108,104 @@ class SortingEngineWorkflowTests(SandboxedPathsTestCase):
         self.assertTrue((destination / source.name).exists())
 
 
+class EnsureSubjectFoldersTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+        self.config = CourseConfig.objects.create(
+            profile=self.profile,
+            primary_value="Year 1",
+            secondary_value="Semester 1",
+            groups=["BIO101", "CHE102"],
+        )
+
+    def test_creates_only_the_missing_folders(self):
+        existing = self.profile_root / "Year 1" / "Semester 1" / "BIO101"
+        existing.mkdir(parents=True)
+
+        result = sorting.ensure_subject_folders(self.profile)
+
+        self.assertEqual(result["created"], ["CHE102"])
+        self.assertEqual(result["existing"], ["BIO101"])
+        self.assertTrue((self.profile_root / "Year 1" / "Semester 1" / "CHE102").exists())
+
+    def test_never_touches_a_folder_that_already_exists(self):
+        existing = self.profile_root / "Year 1" / "Semester 1" / "BIO101"
+        existing.mkdir(parents=True)
+        marker = existing / "my_notes.pdf"
+        marker.write_text("keep me")
+
+        sorting.ensure_subject_folders(self.profile)
+
+        # Re-running must not duplicate or disturb what's already there.
+        self.assertTrue(marker.exists())
+        self.assertEqual(marker.read_text(), "keep me")
+
+    def test_running_twice_creates_nothing_new_the_second_time(self):
+        sorting.ensure_subject_folders(self.profile)
+        result = sorting.ensure_subject_folders(self.profile)
+
+        self.assertEqual(result["created"], [])
+        self.assertEqual(sorted(result["existing"]), ["BIO101", "CHE102"])
+
+    def test_no_config_returns_empty_result_without_error(self):
+        profile = self.make_profile(name="No config", root_path=str(self.profile_root) + "-none")
+        result = sorting.ensure_subject_folders(profile)
+        self.assertEqual(result, {"created": [], "existing": [], "renamed": []})
+
+
+class EnsureSubjectFoldersNamingTests(SandboxedPathsTestCase):
+    """CSC1102 is a real code from makerere_curricula.py (Bachelor of
+    Science in Computer Science, Year 1 Semester 1) -- "Structured and
+    Object-Oriented Programming" -- used here to exercise the
+    known-name path without hardcoding a name Orch didn't actually derive."""
+
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+        self.config = CourseConfig.objects.create(
+            profile=self.profile,
+            primary_value="Year 1",
+            secondary_value="Semester 1",
+            groups=["CSC1102"],
+        )
+        from organizer.core import makerere_curricula
+        self.expected_name = makerere_curricula.name_for_code("CSC1102")
+        self.assertTrue(self.expected_name, "test fixture assumption broken: CSC1102 should be a known code")
+
+    def test_creates_a_named_folder_directly_when_nothing_exists_yet(self):
+        result = sorting.ensure_subject_folders(self.profile)
+
+        self.assertEqual(result["created"], ["CSC1102"])
+        expected = self.profile_root / "Year 1" / "Semester 1" / f"CSC1102 - {self.expected_name}"
+        self.assertTrue(expected.exists())
+        self.assertFalse((self.profile_root / "Year 1" / "Semester 1" / "CSC1102").exists())
+
+    def test_renames_an_existing_bare_folder_in_place_preserving_contents(self):
+        bare = self.profile_root / "Year 1" / "Semester 1" / "CSC1102"
+        bare.mkdir(parents=True)
+        (bare / "lecture1.pdf").write_text("real notes")
+
+        result = sorting.ensure_subject_folders(self.profile)
+
+        self.assertEqual(result["renamed"], ["CSC1102"])
+        self.assertEqual(result["created"], [])
+        named = self.profile_root / "Year 1" / "Semester 1" / f"CSC1102 - {self.expected_name}"
+        self.assertTrue(named.exists())
+        self.assertEqual((named / "lecture1.pdf").read_text(), "real notes")
+        self.assertFalse(bare.exists(), "bare CODE folder must not survive as a duplicate")
+
+    def test_does_nothing_when_already_named(self):
+        named = self.profile_root / "Year 1" / "Semester 1" / f"CSC1102 - {self.expected_name}"
+        named.mkdir(parents=True)
+
+        result = sorting.ensure_subject_folders(self.profile)
+
+        self.assertEqual(result["created"], [])
+        self.assertEqual(result["renamed"], [])
+        self.assertEqual(result["existing"], ["CSC1102"])
+
+
 class ImportPlanWorkflowTests(SandboxedPathsTestCase):
     def setUp(self):
         super().setUp()
@@ -203,6 +301,42 @@ class DiagnosticsWorkflowTests(SandboxedPathsTestCase):
         self.assertIn("success", reindex)
 
 
+class MueleTokenStoreResilienceTests(SandboxedPathsTestCase):
+    """Regression coverage for a real crash: the `keyring` package wasn't
+    installed in the environment running the dev server, and load_token()
+    let the ImportError propagate straight up through the MUELE views as
+    an unhandled 500. These functions are documented (module docstring) to
+    never throw -- these tests hold that promise for the "keyring isn't
+    available" case specifically, without needing keyring to actually be
+    absent from this test environment."""
+
+    def _simulate_missing_keyring(self):
+        return mock.patch.dict("sys.modules", {"keyring": None})
+
+    def test_load_token_returns_none_instead_of_raising(self):
+        from organizer.core import muele_api
+
+        with self._simulate_missing_keyring():
+            result = muele_api.load_token()
+
+        self.assertIsNone(result)
+
+    def test_store_token_reports_failure_instead_of_raising(self):
+        from organizer.core import muele_api
+
+        with self._simulate_missing_keyring():
+            stored, error = muele_api.store_token("abc123")
+
+        self.assertFalse(stored)
+        self.assertIsNotNone(error)
+
+    def test_clear_token_does_not_raise(self):
+        from organizer.core import muele_api
+
+        with self._simulate_missing_keyring():
+            muele_api.clear_token()  # must not raise
+
+
 class MueleSecurityWorkflowTests(SandboxedPathsTestCase):
     def test_manual_muele_connection_does_not_store_password_in_database(self):
         profile = self.make_profile(setup_path="makerere")
@@ -229,10 +363,26 @@ class MueleSecurityWorkflowTests(SandboxedPathsTestCase):
         )
 
         with mock.patch("requests.post", return_value=response) as post:
-            with mock.patch("organizer.core.muele_api.store_token") as store_token:
+            with mock.patch("organizer.core.muele_api.store_token", return_value=(True, None)) as store_token:
                 token, error = muele_api.generate_token("student", "secret")
 
         self.assertEqual(token, "abc123")
         self.assertIsNone(error)
         store_token.assert_called_once_with("abc123")
         self.assertEqual(post.call_args.kwargs["data"]["password"], "secret")
+
+    def test_generate_token_reports_when_storing_the_token_fails(self):
+        response = SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"token": "abc123"},
+        )
+
+        with mock.patch("requests.post", return_value=response):
+            with mock.patch(
+                "organizer.core.muele_api.store_token",
+                return_value=(False, "no OS credential backend available"),
+            ):
+                token, error = muele_api.generate_token("student", "secret")
+
+        self.assertIsNone(token)
+        self.assertIn("no OS credential backend available", error)

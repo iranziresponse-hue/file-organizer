@@ -6,11 +6,11 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Tools] Folder Rule Builder</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Folder rule builder</h2>
             <p>Create visual rules that route, review, or ignore files automatically. Rules run in priority order.</p>
         </div>
-        <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
     </section>
 
     <section class="overview-grid">
@@ -171,14 +171,18 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
             resultDiv.style.display = 'block';
+            resultDiv.textContent = '';
             if (data.matched) {
                 resultDiv.style.background = 'rgba(74,222,128,0.1)';
                 resultDiv.style.borderColor = 'rgba(74,222,128,0.3)';
-                resultDiv.innerHTML = '[Done] <strong>Match!</strong> ' + data.action;
+                var matchLabel = document.createElement('strong');
+                matchLabel.textContent = 'Match! ';
+                resultDiv.appendChild(matchLabel);
+                resultDiv.appendChild(document.createTextNode(data.action));
             } else {
                 resultDiv.style.background = 'rgba(255,107,107,0.1)';
                 resultDiv.style.borderColor = 'rgba(255,107,107,0.3)';
-                resultDiv.textContent = '[Fail] No match. ' + data.action;
+                resultDiv.textContent = 'No match. ' + data.action;
             }
         })
         .catch(function() {

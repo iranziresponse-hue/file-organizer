@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy this file to support_email.json and fill in your values. support_email.json is gitignored. Messages sent from the app's support popup always go to iranziresponse@gmail.com (hardcoded in config/settings.py) -- these are the credentials Orch uses to actually send that email, e.g. a Gmail account with an App Password (not your normal Gmail password: https://myaccount.google.com/apppasswords).",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_user": "iranziresponse@gmail.com",
+  "smtp_password": "your-gmail-app-password-here",
+  "use_tls": true,
+  "from_address": "iranziresponse@gmail.com"
+}

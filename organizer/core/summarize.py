@@ -13,9 +13,15 @@ import requests
 
 from . import ai_classify
 
-MAX_SOURCE_CHARS = 18000
-MAX_RELATED_FILES = 4
-MAX_RELATED_CHARS = 2000
+# Sized to stay well under Groq's free-tier 6000 tokens-per-minute limit for
+# this model, confirmed directly against the real API (a prompt built from
+# the old, larger caps reliably triggered a 413 "Request too large" error
+# from Groq itself, not a real connectivity problem). At these caps, a real
+# full-length lecture PDF measured about 2200 prompt tokens plus the 2000
+# max_tokens response budget below, comfortably under the limit.
+MAX_SOURCE_CHARS = 9000
+MAX_RELATED_FILES = 3
+MAX_RELATED_CHARS = 500
 MIN_SOURCE_CHARS = 200
 
 SUPPORTED_EXTENSIONS = {"pdf", "docx"}
@@ -29,7 +35,7 @@ Full extracted text of the document (may be truncated):
 {source_text}
 \"\"\"
 
-Related files already in the same folder (use these to connect the dots -- reference them by name where relevant, and explain how this document builds on, contrasts with, or sets up the others):
+Related files already in the same folder (use these to connect the dots, reference them by name where relevant, and explain how this document builds on, contrasts with, or sets up the others):
 {related_text}
 
 Write a long, thorough, unambiguous summary and study guide. Requirements:
@@ -109,6 +115,74 @@ def _related_context(related_files):
     return "\n\n".join(blocks)
 
 
+def _call_ai_completion(prompt, max_tokens, service_label, ai, log=None):
+    """POST a chat completion request to the configured AI provider.
+
+    Returns (content, None) on success or (None, error_message) on
+    failure. Never throws. Distinguishes what actually went wrong (request
+    too large, rate limited, bad key, genuine network failure) instead of
+    reporting one generic "couldn't connect" for every failure mode -- a
+    real request that exceeded Groq's tokens-per-minute limit was
+    previously masked as a connectivity problem, which it never was.
+    """
+    body = {
+        "model": ai["model"],
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.4,
+    }
+
+    try:
+        response = requests.post(
+            f"{ai['base_url']}/chat/completions",
+            headers={"Authorization": f"Bearer {ai['api_key']}"},
+            json=body,
+            timeout=90,
+        )
+    except requests.Timeout:
+        if log:
+            log(f"{service_label} timed out.")
+        return None, "The AI service took too long to respond. Try again."
+    except requests.ConnectionError as exc:
+        if log:
+            log(f"{service_label} could not connect: {exc}")
+        return None, "Couldn't reach the AI service. Check your internet connection."
+    except requests.RequestException as exc:
+        if log:
+            log(f"{service_label} request failed: {exc}")
+        return None, "Couldn't reach the AI service. Try again in a moment."
+    except Exception as exc:  # anything unexpected. Never propagate
+        if log:
+            log(f"{service_label} failed unexpectedly: {exc}")
+        return None, "Couldn't reach the AI service. Try again in a moment."
+
+    if response.status_code == 413:
+        if log:
+            log(f"{service_label} rejected as too large: {response.text[:300]}")
+        return None, "This document is too long to summarize in one go. Try a shorter document."
+    if response.status_code == 429:
+        if log:
+            log(f"{service_label} was rate-limited: {response.text[:300]}")
+        return None, "The AI service's rate limit was reached. Wait about a minute and try again."
+    if response.status_code in (401, 403):
+        if log:
+            log(f"{service_label} rejected the API key: {response.text[:300]}")
+        return None, "Your AI API key was rejected. Check ai_config.json."
+
+    try:
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"].strip()
+    except Exception as exc:
+        if log:
+            log(f"{service_label} returned an unexpected response: {exc}")
+        return None, "The AI service returned an unexpected response. Try again."
+
+    if not content:
+        return None, "The AI service returned an empty response. Try again."
+
+    return content, None
+
+
 def _sanitize(content):
     # Belt and suspenders -- the prompt already forbids these, but strip
     # them regardless of whether the model actually listened.
@@ -144,29 +218,15 @@ def generate_summary(file_path, log=None):
         related_text=_related_context(related_files),
     )
 
-    body = {
-        "model": ai["model"],
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4000,
-        "temperature": 0.4,
-    }
-
-    try:
-        response = requests.post(
-            f"{ai['base_url']}/chat/completions",
-            headers={"Authorization": f"Bearer {ai['api_key']}"},
-            json=body,
-            timeout=90,
-        )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"].strip()
-    except Exception as exc:  # network/timeout/bad-key/malformed-response
-        if log:
-            log(f"Summary generation failed for '{file_path.name}': {exc}")
-        return None, "Couldn't reach the summary service. Try again in a moment."
-
-    if not content:
-        return None, "The summary service returned an empty response. Try again."
+    content, error = _call_ai_completion(
+        prompt,
+        max_tokens=2000,
+        service_label=f"Summary generation for '{file_path.name}'",
+        ai=ai,
+        log=log,
+    )
+    if error:
+        return None, error
 
     return _sanitize(content), None
 
@@ -210,27 +270,15 @@ def generate_course_guide(course_code, program="", level="", log=None):
         level=level or "not specified",
     )
 
-    body = {
-        "model": ai["model"],
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 3000,
-        "temperature": 0.4,
-    }
-
-    try:
-        response = requests.post(
-            f"{ai['base_url']}/chat/completions",
-            headers={"Authorization": f"Bearer {ai['api_key']}"},
-            json=body,
-            timeout=90,
-        )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"].strip()
-    except Exception as exc:  # network/timeout/bad-key/malformed-response
-        return None, "Couldn't reach the guide service. Try again in a moment."
-
-    if not content:
-        return None, "The guide service returned an empty response. Try again."
+    content, error = _call_ai_completion(
+        prompt,
+        max_tokens=3000,
+        service_label=f"Course guide generation for '{course_code}'",
+        ai=ai,
+        log=log,
+    )
+    if error:
+        return None, error
 
     return _sanitize(content), None
 

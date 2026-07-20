@@ -25,6 +25,7 @@ from .core import (
     study,
 )
 from .core import summarize as summarize_core
+from .core.watcher import write_log
 from .models import (
     AppSettings,
     CourseConfig,
@@ -38,6 +39,7 @@ from .models import (
     LearningDigest,
     LearningRoute,
     MoveEvent,
+    Notification,
     Profile,
     ResourceRecommendation,
     ReviewItem,
@@ -213,11 +215,16 @@ def browse_folders(request):
 
 def dashboard(request):
     profile = Profile.get_active()
+    if profile:
+        notifications.check_deadlines(profile, log=write_log)
     events = MoveEvent.objects.filter(profile=profile) if profile else MoveEvent.objects.none()
     method_counts = list(events.values("method").annotate(total=Count("id")).order_by("-total"))
     method_labels = dict(MoveEvent.METHOD_CHOICES)
     for row in method_counts:
         row["label"] = method_labels.get(row["method"], row["method"])
+        last_of_method = events.filter(method=row["method"]).order_by("-timestamp").first()
+        row["last_event"] = last_of_method
+    last_move = events.filter(success=True).order_by("-timestamp").first()
     course_counts = (
         events.exclude(course_code__isnull=True)
         .exclude(course_code="")
@@ -239,6 +246,7 @@ def dashboard(request):
     muele_connection = None
     muele_courses_count = 0
     muele_upcoming_deadlines = []
+    muele_last_synced_course = None
     if profile:
         from .models import AssignmentItem, IntegrationConnection, MueleCourse
 
@@ -252,6 +260,12 @@ def dashboard(request):
             muele_upcoming_deadlines = AssignmentItem.objects.filter(
                 profile=profile, source="muele", status="open"
             ).order_by("due_at")[:5]
+            muele_last_synced_course = (
+                MueleCourse.objects.filter(connection=muele_connection)
+                .exclude(last_sync_at__isnull=True)
+                .order_by("-last_sync_at")
+                .first()
+            )
 
     context = {
         "profile": profile,
@@ -262,9 +276,12 @@ def dashboard(request):
         "config": config,
         "guided_codes": guided_codes,
         "total_moves": events.count(),
+        "last_move": last_move,
         "muele_connection": muele_connection,
         "muele_courses_count": muele_courses_count,
         "muele_upcoming_deadlines": muele_upcoming_deadlines,
+        "muele_next_deadline": muele_upcoming_deadlines[0] if muele_upcoming_deadlines else None,
+        "muele_last_synced_course": muele_last_synced_course,
     }
     return render(request, "organizer/dashboard.html", context)
 
@@ -475,46 +492,12 @@ def resource_radar(request):
     })
 
 
-def learning_routes(request):
-    """Guided study routes from weak area to resource, summary, review,
-    and confidence check."""
-    from .core.contexts import get_context_for_profile
-    from .core import learning_route as route_engine
-
-    profile = Profile.get_active()
-    if not profile:
-        messages.error(request, "Activate a profile first.")
-        return redirect("dashboard")
-
-    ctx = get_context_for_profile(profile)
-
-    if request.method == "POST":
-        action = request.POST.get("action", "")
-        if action == "generate":
-            subject_code = request.POST.get("subject_code", "").strip() or None
-            # Refresh recommendations and routes
-            from .core import resources as resource_core
-            resource_core.sync_recommendations(profile, subject_code=subject_code, limit=24)
-            messages.success(request, "Learning routes refreshed.")
-            return redirect("learning_routes")
-
-    route_context = route_engine.get_route_context(profile)
-
-    return render(request, "organizer/learning_routes.html", {
-        "profile": profile,
-        "study_context": ctx,
-        "routes": route_context["routes"],
-        "total_subjects": route_context["total_subjects"],
-        "total_steps": route_context["total_steps"],
-        "complete_steps": route_context["complete_steps"],
-        "completion_pct": route_context["completion_pct"],
-    })
-
-
 def study_home(request):
     from .core.contexts import get_context_for_profile
 
     profile = Profile.get_active()
+    if profile:
+        notifications.check_deadlines(profile, log=write_log)
     ctx = get_context_for_profile(profile)
 
     if profile and request.method == "POST" and request.POST.get("action") == "create_digest":
@@ -543,6 +526,8 @@ def study_home(request):
         "resource_recommendations": ResourceRecommendation.objects.filter(profile=profile).exclude(status="dismissed")[:6] if profile else [],
         "learning_routes": LearningRoute.objects.filter(profile=profile).exclude(status="done")[:4] if profile else [],
         "study_goals": StudyGoal.objects.filter(profile=profile)[:4] if profile and ctx.show_goal_tracking else [],
+        "unread_notification_count": Notification.objects.filter(profile=profile, read_at__isnull=True).count() if profile else 0,
+        "muele_connected": IntegrationConnection.objects.filter(profile=profile, provider="muele", status="connected").exists() if profile else False,
     }
     return render(request, "organizer/study.html", context)
 
@@ -694,8 +679,20 @@ def makerere_wizard(request):
         _save_unverified_course_units(program, config.primary_value, config.secondary_value, groups)
         ok, error = _write_config_json(profile, config)
         study.ensure_learning_foundation(profile)
+
+        from .core import sorting
+        folder_result = sorting.ensure_subject_folders(profile)
+
         if ok:
-            messages.success(request, f"'{profile.name}' is set up and active.")
+            extras = []
+            if folder_result["created"]:
+                extras.append(f"created {len(folder_result['created'])} folder(s)")
+            if folder_result["renamed"]:
+                extras.append(f"named {len(folder_result['renamed'])} existing folder(s)")
+            if extras:
+                messages.success(request, f"'{profile.name}' is set up and active. {', '.join(extras).capitalize()}.")
+            else:
+                messages.success(request, f"'{profile.name}' is set up and active.")
         else:
             messages.error(request, f"Profile saved, but could not write _config.json: {error}")
 
@@ -714,6 +711,23 @@ def profile_edit(request, pk):
     config = getattr(profile, "config", None)
 
     if request.method == "POST":
+        from .core import sorting
+
+        if request.POST.get("action") == "sync_folders":
+            result = sorting.ensure_subject_folders(profile)
+            parts = []
+            if result["created"]:
+                parts.append(f"created {len(result['created'])} folder(s): {', '.join(result['created'])}")
+            if result["renamed"]:
+                parts.append(f"named {len(result['renamed'])} existing folder(s): {', '.join(result['renamed'])}")
+            if parts:
+                messages.success(request, f"Done: {'; '.join(parts)}.")
+            elif result["existing"]:
+                messages.info(request, f"All {len(result['existing'])} subject folders already exist and are already named. Nothing to change.")
+            else:
+                messages.info(request, "No subjects configured yet -- add some below first.")
+            return redirect("profile_edit", pk=profile.pk)
+
         profile.name = request.POST.get("name", "").strip() or profile.name
         profile.primary_label = request.POST.get("primary_label", "").strip() or profile.primary_label
         profile.secondary_label = request.POST.get("secondary_label", "").strip() or profile.secondary_label
@@ -729,8 +743,17 @@ def profile_edit(request, pk):
         config.save()
 
         ok, error = _write_config_json(profile, config)
+        folder_result = sorting.ensure_subject_folders(profile)
         if ok:
-            messages.success(request, "Profile updated.")
+            extras = []
+            if folder_result["created"]:
+                extras.append(f"created {len(folder_result['created'])} new subject folder(s)")
+            if folder_result["renamed"]:
+                extras.append(f"named {len(folder_result['renamed'])} existing folder(s)")
+            if extras:
+                messages.success(request, f"Profile updated, {', '.join(extras)}.")
+            else:
+                messages.success(request, "Profile updated.")
         else:
             messages.error(request, f"Saved to database but could not write _config.json: {error}")
 
@@ -788,7 +811,7 @@ def move_summarize(request, pk):
         return JsonResponse({"error": "POST required."}, status=405)
 
     event = get_object_or_404(MoveEvent, pk=pk)
-    content, error = summarize_core.generate_summary(event.destination_path)
+    content, error = summarize_core.generate_summary(event.destination_path, log=write_log)
     if error:
         return JsonResponse({"error": error}, status=400)
 
@@ -800,7 +823,7 @@ def move_summary_view(request, pk):
     event = get_object_or_404(MoveEvent, pk=pk)
     summary = getattr(event, "summary", None)
     if summary is None:
-        return JsonResponse({"error": "No summary yet -- generate one first."}, status=404)
+        return JsonResponse({"error": "No summary yet. Generate one first."}, status=404)
 
     return JsonResponse({
         "filename": event.filename,
@@ -830,7 +853,7 @@ def course_guide_generate(request, profile_pk, code):
     config = getattr(profile, "config", None)
     level = f"{config.primary_value} {config.secondary_value}".strip() if config else ""
 
-    content, error = summarize_core.generate_course_guide(code, program=profile.name, level=level)
+    content, error = summarize_core.generate_course_guide(code, program=profile.name, level=level, log=write_log)
     if error:
         return JsonResponse({"error": error}, status=400)
 
@@ -842,7 +865,7 @@ def course_guide_view(request, profile_pk, code):
     profile = get_object_or_404(Profile, pk=profile_pk)
     guide = CourseGuide.objects.filter(profile=profile, course_code=code).first()
     if guide is None:
-        return JsonResponse({"error": "No guide yet -- generate one first."}, status=404)
+        return JsonResponse({"error": "No guide yet. Generate one first."}, status=404)
 
     return JsonResponse({
         "course_code": code,
@@ -947,12 +970,12 @@ def timeline_view(request):
 
     # Build timeline event dicts
     icon_map = {
-        "file_sorted": "📄",
-        "summary_created": "📝",
-        "review_scheduled": "🔄",
-        "digest_created": "📊",
-        "muele_sync": "📚",
-        "manual_note": "📌",
+        "file_sorted": "F",
+        "summary_created": "S",
+        "review_scheduled": "R",
+        "digest_created": "D",
+        "muele_sync": "M",
+        "manual_note": "N",
     }
     marker_map = {
         "file_sorted": "file",
@@ -968,7 +991,7 @@ def timeline_view(request):
     for act in activities:
         events.append({
             "title": act.title,
-            "icon": icon_map.get(act.activity_type, "📌"),
+            "icon": icon_map.get(act.activity_type, "N"),
             "marker_class": marker_map.get(act.activity_type, "note"),
             "type_label": type_labels.get(act.activity_type, act.activity_type),
             "subject_code": act.subject_code or "",
@@ -1260,9 +1283,9 @@ def first_run_checklist(request):
         checklist.append({
             "id": "profile",
             "label": "Profile configured",
-            "detail": f"'{profile.name}' — {profile.purpose} context",
+            "detail": f"'{profile.name}', {profile.purpose} context",
             "done": True,
-            "url": "profile_edit" if profile else "start",
+            "url": reverse("profile_edit", args=[profile.pk]),
         })
     else:
         checklist.append({
@@ -1270,7 +1293,7 @@ def first_run_checklist(request):
             "label": "Create a profile",
             "detail": "Choose Makerere or Manual setup path",
             "done": False,
-            "url": "start",
+            "url": reverse("start"),
         })
 
     # 2. Downloads folder set
@@ -1282,7 +1305,7 @@ def first_run_checklist(request):
             "label": "Downloads folder configured",
             "detail": str(path),
             "done": path.exists(),
-            "url": "settings_edit",
+            "url": reverse("settings_edit"),
             "warning": not path.exists(),
         })
     else:
@@ -1291,7 +1314,7 @@ def first_run_checklist(request):
             "label": "Set downloads folder",
             "detail": "Orch needs to know where to watch for files",
             "done": False,
-            "url": "settings_edit",
+            "url": reverse("settings_edit"),
         })
 
     # 3. Profile has subjects
@@ -1302,7 +1325,7 @@ def first_run_checklist(request):
         "label": "Subjects added",
         "detail": f"{len(config.groups) if config and config.groups else 0} subjects configured" if has_subjects else "Add subjects so Orch knows where to route files",
         "done": has_subjects,
-        "url": "profile_edit" if profile else "start",
+        "url": reverse("profile_edit", args=[profile.pk]) if profile else reverse("start"),
     })
 
     # 4. Watcher running
@@ -1320,7 +1343,7 @@ def first_run_checklist(request):
     checklist.append({
         "id": "ai",
         "label": "AI features",
-        "detail": "AI summaries and smart classification" if ai_configured else "Optional — configure for AI summaries and guides",
+        "detail": "AI summaries and smart classification" if ai_configured else "Optional, configure for AI summaries and guides",
         "done": ai_configured,
         "url": None,
         "optional": True,
@@ -1334,7 +1357,22 @@ def first_run_checklist(request):
             "label": "MUELE connected",
             "detail": "Sync course materials and assignments" if muele and muele.status == "connected" else "Connect MUELE for auto-sync",
             "done": bool(muele and muele.status == "connected"),
-            "url": "muele_connect",
+            "url": reverse("muele_connect"),
+        })
+
+    # 7. Owner console (only relevant once owner mode has been opted into via
+    # orch-owner.json or ORCH_OWNER_MODE -- most installs never enable this,
+    # so it stays out of the checklist entirely rather than nagging every
+    # user about a troubleshooting-only feature they'll never use).
+    if owner_access.owner_mode_enabled():
+        User = get_user_model()
+        has_owner = User.objects.filter(is_staff=True).exists()
+        checklist.append({
+            "id": "owner",
+            "label": "Owner account created",
+            "detail": "Create the admin login at /owner/setup/" if not has_owner else "Admin console ready at /owner/",
+            "done": has_owner,
+            "url": reverse("owner_console"),
         })
 
     done_count = sum(1 for c in checklist if c.get("done"))
@@ -1347,6 +1385,58 @@ def first_run_checklist(request):
         "done_count": done_count,
         "total_count": total_count,
     })
+
+
+def notifications_view(request):
+    """History of everything Orch has alerted about: deadline warnings,
+    MUELE sync results, and anything else raised through
+    organizer.core.notifications. Backs up the tray's toast popups, which
+    are easy to miss and don't persist anywhere on their own."""
+    from .core.contexts import get_context_for_profile
+
+    profile = Profile.get_active()
+    ctx = get_context_for_profile(profile) if profile else None
+
+    if request.method == "POST" and request.POST.get("action") == "mark_all_read":
+        from django.utils import timezone
+        Notification.objects.filter(profile=profile, read_at__isnull=True).update(read_at=timezone.now())
+        messages.success(request, "All notifications marked as read.")
+        return redirect("notifications")
+
+    items = Notification.objects.filter(profile=profile).order_by("-created_at")[:100]
+    unread_count = Notification.objects.filter(profile=profile, read_at__isnull=True).count()
+
+    return render(request, "organizer/notifications.html", {
+        "profile": profile,
+        "study_context": ctx,
+        "notifications": items,
+        "unread_count": unread_count,
+    })
+
+
+def support_message(request):
+    """Receives the "Contact support" popup's message, from any page. Saves
+    it first and emails it best-effort -- see organizer.core.support."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    message = request.POST.get("message", "").strip()
+    if not message:
+        return JsonResponse({"ok": False, "error": "Write a message before sending."}, status=400)
+
+    from .core import support as support_core
+
+    # Any SMTP/config failure lands on the saved SupportMessage row for the
+    # admin to see (email_error, visible in the owner console) -- the
+    # person submitting the form always just sees a clean confirmation,
+    # since the message itself is never lost regardless of email delivery.
+    support_core.submit_support_message(
+        name=request.POST.get("name", ""),
+        email=request.POST.get("email", ""),
+        message=message,
+        page_url=request.POST.get("page_url", ""),
+    )
+    return JsonResponse({"ok": True})
 
 
 def undo_recent(request):
@@ -1533,13 +1623,19 @@ def learning_routes(request):
             subject_code = request.POST.get("subject_code", "").strip() or None
             theme = request.POST.get("theme", "").strip() or None
             route = route_engine.create_or_refresh_route(profile, subject_code=subject_code, theme=theme)
-            messages.success(request, f"Learning route ready: {route.title}")
+            if route:
+                messages.success(request, f"Learning route ready: {route.title}")
+            else:
+                messages.error(request, "Add a subject with a weak area or focus topic first.")
             return redirect("learning_routes")
 
         if action == "step_done":
             route = get_object_or_404(LearningRoute, pk=request.POST.get("route_pk"), profile=profile)
             step_index = int(request.POST.get("step_index", 0))
-            route_engine.mark_step_done(route, step_index)
+            try:
+                route_engine.mark_step_done(route, step_index)
+            except IndexError:
+                messages.error(request, "That step no longer exists on this route.")
             return redirect("learning_routes")
 
     subject_memories = SubjectMemory.objects.filter(profile=profile).order_by("code")
@@ -1663,9 +1759,13 @@ def muele_connect(request):
                     messages.error(request, f"Token verification failed: {error}")
                     token_status = "invalid"
                 else:
-                    token_status = "valid"
-                    muele_api.store_token(token)
-                    messages.success(request, f"Connected as {user_info['fullname']}")
+                    stored, store_error = muele_api.store_token(token)
+                    if stored:
+                        token_status = "valid"
+                        messages.success(request, f"Connected as {user_info['fullname']}")
+                    else:
+                        token_status = "invalid"
+                        messages.error(request, f"Token verified but could not be saved: {store_error}")
 
         elif action == "save_connection":
             # Check for stored token
@@ -1757,9 +1857,11 @@ def muele_courses(request):
         if action == "toggle_auto_download":
             course_id = request.POST.get("course_id")
             enabled = request.POST.get("enabled") == "true"
-            MueleCourse.objects.filter(connection=connection, course_id=course_id).update(
+            updated = MueleCourse.objects.filter(connection=connection, course_id=course_id).update(
                 auto_download=enabled
             )
+            if not updated:
+                return JsonResponse({"ok": False, "error": "That course is no longer in your list."})
             return JsonResponse({"ok": True})
 
         elif action == "refresh_courses":
@@ -1783,7 +1885,7 @@ def muele_courses(request):
         elif action == "sync_now":
             result = muele_downloader.sync_profile_courses(profile)
             assign_count = muele_downloader.sync_assignments(profile)
-            notifications.notify_muele_sync(result)
+            notifications.notify_muele_sync(result, profile=profile)
             messages.success(
                 request,
                 f"Sync complete: {result['downloaded']} downloaded, "

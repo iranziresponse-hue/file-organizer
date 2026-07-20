@@ -163,7 +163,7 @@
 
             if (!units || !units.length) {
                 curriculumHelp.classList.add('placeholder-note');
-                curriculumHelp.textContent = 'Orch doesn\'t have a verified curriculum for this program, year, and semester yet. Type each course code from your real timetable and click "+ Add course unit" below -- what you add here also helps Orch\'s admin add real, sourced data for future students.';
+                curriculumHelp.textContent = 'Orch doesn\'t have a verified curriculum for this program, year, and semester yet. Type each course code from your real timetable and click "+ Add course unit" below. What you add here also helps Orch\'s admin add real, sourced data for future students.';
                 return;
             }
 
@@ -174,13 +174,13 @@
                 btn.type = 'button';
                 btn.className = 'suggestion-token';
                 btn.title = unit;
-                btn.textContent = code;
+                btn.textContent = unit;
                 btn.addEventListener('click', function () {
                     if (groupsContainer && groupsContainer.addTag) groupsContainer.addTag(code);
                 });
                 groupsSuggestions.appendChild(btn);
             });
-            curriculumHelp.textContent = 'These are Orch\'s verified course units for this program, year, and semester (source noted in organizer/core/makerere_curricula.py) -- click one to add it, or use "+ Add course unit" if something is missing or different for you.';
+            curriculumHelp.textContent = 'These are Orch\'s verified course units for this program, year, and semester. Click one to add it, or use "+ Add course unit" if something is missing or different for you.';
         }
 
         function findCollege(name) {
@@ -219,7 +219,7 @@
             fillOptions(programOptions, programmes);
             programHelp.textContent = programmes.length
                 ? "Suggestions come from " + schoolInput.value + "'s official programme list. If yours isn't listed, just type it."
-                : "Orch doesn't have a verified programme list for this school yet -- just type your program name.";
+                : "Orch doesn't have a verified programme list for this school yet. Just type your program name.";
         }
 
         collegeInput.addEventListener('change', function () {

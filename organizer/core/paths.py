@@ -5,10 +5,21 @@ see config_path()/curriculum_path() below and organizer.core.rules.
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Set, List
 
 from runtime import app_dir
+
+
+def resource_path(relative_path: str) -> Path:
+    """Resolve a path to a read-only asset bundled with the app itself
+    (templates, static files, shipped cert bundles) -- the opposite concern
+    from app_dir() above, which points at persistent, writable, exe-adjacent
+    state. Once frozen by PyInstaller, bundled assets live in the temporary
+    extraction dir (sys._MEIPASS), not next to the exe."""
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent.parent))
+    return base_path / relative_path
 
 # Project root in development; the folder containing the exe once frozen by
 # PyInstaller (see runtime.py -- this must stay a persistent, exe-adjacent

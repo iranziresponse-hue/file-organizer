@@ -3,7 +3,7 @@ import json
 from django.urls import reverse
 
 from organizer.core import paths
-from organizer.models import CourseConfig, MoveEvent, Profile
+from organizer.models import CourseConfig, IntegrationConnection, MoveEvent, Profile
 
 from .helpers import SandboxedPathsTestCase
 
@@ -50,6 +50,56 @@ class DashboardViewTests(SandboxedPathsTestCase):
         self.assertEqual(response.context["total_moves"], 1)
         self.assertEqual(response.context["method_counts"][0]["method"], "course_code")
         self.assertEqual(response.context["course_counts"][0]["course_code"], "CSC2100")
+
+
+class FirstRunChecklistViewTests(SandboxedPathsTestCase):
+    def test_loads_with_no_profile(self):
+        response = self.client.get(reverse("first_run"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["checklist"][0]["done"])
+
+    def test_loads_with_an_active_profile(self):
+        # Regression test: the "Profile configured" and "Subjects added"
+        # rows used to build a "profile_edit" URL with no pk, which
+        # profile_edit requires -- this 500'd this entire page for every
+        # install that had actually created a profile.
+        self.make_profile()
+        response = self.client.get(reverse("first_run"))
+        self.assertEqual(response.status_code, 200)
+        profile_row = next(c for c in response.context["checklist"] if c["id"] == "profile")
+        self.assertTrue(profile_row["done"])
+        self.assertIn("/edit/", profile_row["url"])
+
+
+class MueleConnectViewTests(SandboxedPathsTestCase):
+    def test_shows_connected_state_instead_of_a_blank_login_form(self):
+        # Regression test: this page used to show the raw login/token
+        # forms first regardless of connection status, so an already
+        # connected user saw no acknowledgment of that at all.
+        profile = self.make_profile(setup_path="makerere")
+        IntegrationConnection.objects.create(
+            profile=profile,
+            provider="muele",
+            display_name="Makerere MUELE",
+            username="student@mak.ac.ug",
+            status="connected",
+        )
+
+        response = self.client.get(reverse("muele_connect"))
+
+        self.assertContains(response, "MUELE is connected")
+        self.assertContains(response, "student@mak.ac.ug")
+        # The login form is still present (for reconnecting), but tucked
+        # behind a collapsed <details> rather than shown as the main flow.
+        self.assertContains(response, "Reconnect MUELE")
+
+    def test_shows_login_form_directly_when_not_yet_connected(self):
+        self.make_profile(setup_path="makerere")
+
+        response = self.client.get(reverse("muele_connect"))
+
+        self.assertNotContains(response, "MUELE is connected")
+        self.assertContains(response, "Log in to MUELE")
 
 
 class ProfilesListViewTests(SandboxedPathsTestCase):

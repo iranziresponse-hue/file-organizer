@@ -12,6 +12,7 @@ from organizer.core import paths, owner_access
 from . import autostart
 from .assets import ORCH_ICON_PATH
 from .desktop_window import AboutDialog, PauseDialog, StatusWindow
+from .main_window import OrchMainWindow
 from .server import dashboard_url
 from .watcher_controller import WatcherController
 
@@ -25,6 +26,7 @@ class OrganizerTray(QSystemTrayIcon):
         self.watcher = WatcherController()
         self.status_window = None
         self.pause_dialog = None
+        self.main_window = None
         self._notification_queue = []
 
         self.setToolTip("Orch")
@@ -37,6 +39,7 @@ class OrganizerTray(QSystemTrayIcon):
         self.menu.addSeparator()
 
         # Navigation
+        self.menu.addAction("Open Orch window", self._open_main_window)
         self.menu.addAction("Open dashboard", self._open_dashboard)
         self.menu.addAction("Open status window", self._open_status_window)
         if owner_access.owner_mode_enabled():
@@ -78,6 +81,13 @@ class OrganizerTray(QSystemTrayIcon):
         self.watcher.start()
         self._refresh_toggle_label()
 
+    def _on_activated(self, reason):
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self._open_dashboard()
+
     def _pause_for(self, minutes):
         if self.watcher.running:
             self.watcher.stop()
@@ -103,6 +113,13 @@ class OrganizerTray(QSystemTrayIcon):
         self.pause_15m.setVisible(True)
         self.resume_action.setVisible(False)
         self._refresh_toggle_label()
+
+    def _open_main_window(self):
+        if self.main_window is None:
+            self.main_window = OrchMainWindow(watcher_controller=self.watcher)
+        self.main_window.show()
+        self.main_window.raise_()
+        self.main_window.activateWindow()
 
     def _open_status_window(self):
         if self.status_window is None or not self.status_window.isVisible():

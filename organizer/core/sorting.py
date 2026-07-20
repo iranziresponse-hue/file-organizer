@@ -14,7 +14,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from . import paths, rules
+from django.utils import timezone
+
+from . import makerere_curricula, paths, rules
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +179,7 @@ def approve_inbox_item(item, log: Callable | None = None) -> bool:
             dest_file = dest_path / f"{dest_file.stem}_{stamp}{dest_file.suffix}"
         shutil.move(str(source), str(dest_file))
         item.status = "approved"
-        item.resolved_at = datetime.now()
+        item.resolved_at = timezone.now()
         item.save()
 
         from .watcher import _record_event
@@ -200,13 +202,21 @@ def approve_inbox_item(item, log: Callable | None = None) -> bool:
 
 
 def reroute_inbox_item(item, new_destination: str, log: Callable | None = None) -> bool:
-    """Reroute a pending inbox item to a different destination."""
+    """Reroute a pending inbox item to a different destination the user
+    picked themselves, then move it there. Marked "rerouted" rather than
+    "approved" so the inbox stats can tell how often Orch's own suggestion
+    needed correcting."""
     if item.status != "pending":
         return False
 
     item.suggested_destination = new_destination
     item.save()
-    return approve_inbox_item(item, log=log)
+
+    moved = approve_inbox_item(item, log=log)
+    if moved:
+        item.status = "rerouted"
+        item.save()
+    return moved
 
 
 def ignore_inbox_item(item) -> None:
@@ -214,7 +224,7 @@ def ignore_inbox_item(item) -> None:
     if item.status != "pending":
         return
     item.status = "ignored"
-    item.resolved_at = datetime.now()
+    item.resolved_at = timezone.now()
     item.save()
 
 
@@ -257,8 +267,13 @@ def approve_import_plan(plan, profile, log: Callable | None = None) -> bool:
     plan.status = "approved"
     plan.save()
 
-    # Adopt proposed subjects into the profile's config
-    config = CourseConfig.objects.filter(profile=profile).first()
+    # Adopt proposed subjects into the profile's config. Mutate the
+    # profile's own cached `.config` (rather than a fresh query) so a
+    # caller already holding `profile` sees the update reflected too.
+    try:
+        config = profile.config
+    except CourseConfig.DoesNotExist:
+        config = None
     if config and plan.proposed_subjects:
         existing = set(config.groups or [])
         new_subjects = [s for s in plan.proposed_subjects if s not in existing]
@@ -307,7 +322,7 @@ def apply_import_plan(plan, profile, log: Callable | None = None) -> bool:
     """
     if plan.status != "approved":
         if log:
-            log(f"Cannot apply plan in status '{plan.status}' — must be 'approved' first")
+            log(f"Cannot apply plan in status '{plan.status}', must be 'approved' first")
         return False
 
     root = Path(plan.root_path)
@@ -321,7 +336,7 @@ def apply_import_plan(plan, profile, log: Callable | None = None) -> bool:
     config = CourseConfig.objects.filter(profile=profile).first()
     if not config:
         if log:
-            log("Profile has no config — cannot create folder structure")
+            log("Profile has no config, cannot create folder structure")
         return False
 
     profile_root = Path(profile.root_path)
@@ -361,3 +376,47 @@ def reject_import_plan(plan) -> None:
     if plan.status in ("draft", "scanned", "approved"):
         plan.status = "rejected"
         plan.save()
+
+
+def ensure_subject_folders(profile) -> dict:
+    """Make sure every subject/course-unit folder for this profile's
+    current config exists on disk, and that there's only ever ONE folder
+    per subject -- never a bare "CODE" sitting alongside a "CODE - Name"
+    for the same course.
+
+    - If "CODE - Name" already exists: nothing to do.
+    - If only bare "CODE" exists and the real name is known: renamed to
+      "CODE - Name" in place (contents preserved) -- a bare code folder is
+      never left as a redundant duplicate once its name is knowable.
+    - If neither exists: created fresh, named if the name is known.
+    - If the name isn't known (not a Makerere course Orch has researched,
+      or a manually-typed subject): stays as bare "CODE", same as before.
+
+    Returns {"created": [codes], "existing": [codes], "renamed": [codes]}.
+    """
+    config = getattr(profile, "config", None)
+    if not profile or not profile.root_path or not config or not config.groups:
+        return {"created": [], "existing": [], "renamed": []}
+
+    base = Path(profile.root_path) / config.primary_value / config.secondary_value
+    created, existing, renamed = [], [], []
+
+    for code in config.groups:
+        name = makerere_curricula.name_for_code(code)
+        named_folder = (base / f"{code} - {name}") if name else None
+        bare_folder = base / code
+
+        if named_folder and named_folder.exists():
+            existing.append(code)
+        elif bare_folder.exists():
+            if named_folder:
+                bare_folder.rename(named_folder)
+                renamed.append(code)
+            else:
+                existing.append(code)
+        else:
+            target = named_folder or bare_folder
+            target.mkdir(parents=True, exist_ok=True)
+            created.append(code)
+
+    return {"created": created, "existing": existing, "renamed": renamed}

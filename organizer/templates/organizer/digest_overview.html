@@ -6,8 +6,8 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">{{ study_context.icon }} {{ profile.name }}</span>
-            <h2>[Stats] Study Digests</h2>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Study digests</h2>
             <p>Daily and weekly summaries of your learning activity - files sorted, subjects active, reviews due, and assignments tracked.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -33,7 +33,7 @@
                     Weekly digest
                 </button>
             </form>
-            <a class="button-ghost" href="{% url 'study_home' %}">Back</a>
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
         </div>
     </section>
 
@@ -42,7 +42,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[Chart] Digest stats</h2>
+                    <h2>Digest stats</h2>
                 </div>
             </div>
             <div class="stat-row">
@@ -70,7 +70,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>[Idea] What's included</h2>
+                    <h2>What's included</h2>
                 </div>
             </div>
             <ul style="color:var(--muted); font-size:0.9rem; line-height:1.7; margin:0; padding-left:18px;">
@@ -114,7 +114,7 @@
                     <strong>{{ digest.metrics.open_assignments|default:"0" }}</strong>
                 </div>
                 <div class="profile-actions">
-                    <span class="button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
+                    <span class="button button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
                         View →
                     </span>
                 </div>

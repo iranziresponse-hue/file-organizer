@@ -115,7 +115,7 @@ def download_file(
     downloaded = False
     for attempt in range(_DOWNLOAD_MAX_RETRIES):
         try:
-            resp = requests.get(file_url, timeout=120, stream=True)
+            resp = requests.get(file_url, timeout=120, stream=True, verify=muele_api.MUELE_CA_BUNDLE)
             resp.raise_for_status()
             with open(local_path, "wb") as f:
                 for chunk in resp.iter_content(chunk_size=8192):

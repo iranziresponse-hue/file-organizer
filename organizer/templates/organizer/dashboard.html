@@ -3,7 +3,7 @@
 {% block title %}Dashboard - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack">
+<div class="page-stack page-full">
     {% if not profile %}
     <section class="card">
         <div class="empty-state">
@@ -108,11 +108,19 @@
                 <div class="stat stat-primary">
                     <div class="value">{{ total_moves }}</div>
                     <div class="label">Total files sorted</div>
+                    {% if last_move %}
+                    <div class="stat-detail" title="{{ last_move.filename }}">{{ last_move.filename }} &middot; {{ last_move.timestamp|date:"M j, Y, g:i A" }}</div>
+                    {% else %}
+                    <div class="stat-detail">No files sorted yet</div>
+                    {% endif %}
                 </div>
                 {% for row in method_counts %}
                 <div class="stat">
                     <div class="value">{{ row.total }}</div>
                     <div class="label">{{ row.label }}</div>
+                    {% if row.last_event %}
+                    <div class="stat-detail">{{ row.last_event.timestamp|date:"M j, Y, g:i A" }}</div>
+                    {% endif %}
                 </div>
                 {% empty %}
                 <div class="stat">
@@ -124,15 +132,15 @@
         </div>
     </section>
 
-    {% if muele_connection %}
+    {% if muele_connection and muele_connection.status == "connected" %}
     <section class="card">
         <div class="card-header">
             <div>
-                <h2>[Books] MUELE Live Panel</h2>
+                <h2>MUELE live panel</h2>
                 <p class="card-subtitle">Makerere University course sync status</p>
             </div>
             <div style="display:flex; gap:8px;">
-                <a class="button-ghost" href="{% url 'muele_courses' %}">
+                <a class="button button-ghost" href="{% url 'muele_courses' %}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
                     </svg>
@@ -144,23 +152,36 @@
             <div class="stat">
                 <div class="value">{{ muele_courses_count }}</div>
                 <div class="label">Active courses</div>
+                {% if muele_last_synced_course %}
+                <div class="stat-detail" title="{{ muele_last_synced_course.course_name }}">{{ muele_last_synced_course.course_name }} &middot; {{ muele_last_synced_course.last_sync_at|date:"M j, Y, g:i A" }}</div>
+                {% else %}
+                <div class="stat-detail">Not synced yet</div>
+                {% endif %}
             </div>
             <div class="stat">
                 <div class="value">{{ muele_upcoming_deadlines|length }}</div>
                 <div class="label">Upcoming deadlines</div>
+                {% if muele_next_deadline %}
+                <div class="stat-detail" title="{{ muele_next_deadline.title }}">{{ muele_next_deadline.title }} &middot; {{ muele_next_deadline.due_at|date:"M j, Y, g:i A" }}</div>
+                {% else %}
+                <div class="stat-detail">None due</div>
+                {% endif %}
             </div>
             <div class="stat">
                 <div class="value">
                     {% if muele_connection.last_sync_at %}
-                        {{ muele_connection.last_sync_at|timesince }} ago
+                        {{ muele_connection.last_sync_at|date:"M j, Y, g:i A" }}
                     {% else %}
-                        -
+                        Never
                     {% endif %}
                 </div>
                 <div class="label">Last sync</div>
+                {% if muele_connection.last_sync_at %}
+                <div class="stat-detail">{{ muele_connection.last_sync_at|timesince }} ago</div>
+                {% endif %}
             </div>
             <div class="stat">
-                <div class="value">{{ muele_connection.status|title }}</div>
+                <div class="value">{{ muele_connection.get_status_display }}</div>
                 <div class="label">Status</div>
             </div>
         </div>
@@ -201,6 +222,16 @@
             </table>
         </div>
         {% endif %}
+    </section>
+    {% elif muele_connection %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>MUELE not connected yet</h2>
+                <p class="card-subtitle">Connect your Makerere MUELE account to sync course files, assignments, and deadlines automatically.</p>
+            </div>
+            <a class="button" href="{% url 'muele_connect' %}">Connect MUELE</a>
+        </div>
     </section>
     {% endif %}
 
@@ -282,15 +313,15 @@
             <div class="pagination">
                 <span class="step-links">
                     {% if page_obj.has_previous %}
-                        <a class="button-ghost" href="?page=1">&laquo; first</a>
-                        <a class="button-ghost" href="?page={{ page_obj.previous_page_number }}">previous</a>
+                        <a class="button button-ghost" href="?page=1">&laquo; first</a>
+                        <a class="button button-ghost" href="?page={{ page_obj.previous_page_number }}">previous</a>
                     {% endif %}
                     <span class="current">
                         Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                     </span>
                     {% if page_obj.has_next %}
-                        <a class="button-ghost" href="?page={{ page_obj.next_page_number }}">next</a>
-                        <a class="button-ghost" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                        <a class="button button-ghost" href="?page={{ page_obj.next_page_number }}">next</a>
+                        <a class="button button-ghost" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
                     {% endif %}
                 </span>
             </div>

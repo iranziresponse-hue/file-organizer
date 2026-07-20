@@ -25,30 +25,48 @@ BASE_DIR = app_dir()
 
 # ---------------------------------------------------------------------------
 # Secret config (gitignored) -- django_secret_key, debug, etc.
-# Falls back to safe defaults if the file doesn't exist (e.g. first run).
+# Auto-created on first run if missing (e.g. a freshly downloaded exe has
+# never had this file), so a real per-install secret key exists and DEBUG
+# defaults to off -- a downloaded app should never show a stranger's local
+# file paths and full tracebacks in a raw Django debug page. Set
+# "debug": true in secret_config.json by hand for local development.
 # ---------------------------------------------------------------------------
 _SECRET_CONFIG_PATH = BASE_DIR / "secret_config.json"
 
-def _load_secret_config():
+def _load_or_create_secret_config():
     try:
         with open(_SECRET_CONFIG_PATH, encoding="utf-8") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
-        return {}
+        pass
 
-_secret_config = _load_secret_config()
+    import secrets
+
+    config = {
+        "django_secret_key": secrets.token_urlsafe(64),
+        "debug": False,
+    }
+    try:
+        with open(_SECRET_CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+    except OSError:
+        pass  # Install location isn't writable; use this key for the current run only.
+    return config
+
+_secret_config = _load_or_create_secret_config()
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# If no secret_config.json exists, generate a random one on first run.
 SECRET_KEY = _secret_config.get(
     "django_secret_key",
     os.environ.get("DJANGO_SECRET_KEY", "django-insecure-++m(k_o&f$6!b^#axe(4r(fb66=cjbw_5a7kwvyyn1w=&s2jmo"),
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _secret_config.get("debug", os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes"))
+DEBUG = _secret_config.get("debug", os.environ.get("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes"))
 
-ALLOWED_HOSTS = []
+# Orch's server only ever binds to 127.0.0.1 (see gui/server.py) -- it never
+# needs to answer to any other Host header.
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -128,7 +146,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Orch is a single-user desktop app -- every timestamp it shows should be
+# this machine's actual local time, not a fixed zone that assumes where in
+# the world the user is. tzlocal reads the OS's own timezone configuration
+# (handles the Windows-name-to-IANA mapping too) rather than us guessing.
+try:
+    from tzlocal import get_localzone_name
+    TIME_ZONE = get_localzone_name()
+except Exception:
+    TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -139,3 +165,38 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# ---------------------------------------------------------------------------
+# Support email (gitignored) -- SMTP settings for the "Contact support"
+# popup, same config-file pattern as ai_config.json. Off (console backend,
+# just logs instead of sending) until support_email.json exists, so a fresh
+# install never silently fails trying to reach a real mail server.
+# ---------------------------------------------------------------------------
+_SUPPORT_EMAIL_CONFIG_PATH = BASE_DIR / "support_email.json"
+
+def _load_support_email_config():
+    try:
+        with open(_SUPPORT_EMAIL_CONFIG_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+_support_email_config = _load_support_email_config()
+
+SUPPORT_EMAIL_CONFIGURED = bool(_support_email_config.get("smtp_host"))
+SUPPORT_INBOX_ADDRESS = "iranziresponse@gmail.com"
+
+if SUPPORT_EMAIL_CONFIGURED:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = _support_email_config.get("smtp_host", "")
+    EMAIL_PORT = int(_support_email_config.get("smtp_port", 587))
+    EMAIL_HOST_USER = _support_email_config.get("smtp_user", "")
+    EMAIL_HOST_PASSWORD = _support_email_config.get("smtp_password", "")
+    EMAIL_USE_TLS = bool(_support_email_config.get("use_tls", True))
+    DEFAULT_FROM_EMAIL = _support_email_config.get("from_address") or EMAIL_HOST_USER
+else:
+    # No config yet: never try to actually reach a mail server. Messages
+    # are still saved to the database (see organizer.models.SupportMessage)
+    # so nothing is lost while support_email.json isn't set up.
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

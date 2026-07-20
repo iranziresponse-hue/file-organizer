@@ -1,9 +1,9 @@
 """Study context definitions for each profile purpose.
 
-Each context type gets its own label defaults, routing behavior, icon,
-dashboard panels, and suggested integrations. This module is the single
-source of truth for how Orch behaves differently for a University student
-vs. an Online Learner vs. a Researcher vs. a Work Trainee.
+Each context type gets its own label defaults, routing behavior, dashboard
+panels, and suggested integrations. This module is the single source of
+truth for how Orch behaves differently for a University student vs. an
+Online Learner vs. a Researcher vs. a Work Trainee.
 """
 
 from dataclasses import dataclass, field
@@ -18,7 +18,6 @@ class StudyContext:
 
     purpose: str
     label: str
-    icon: str  # emoji
     description: str
 
     # Group label defaults
@@ -55,7 +54,6 @@ CONTEXTS: dict[str, StudyContext] = {
     "school": StudyContext(
         purpose="school",
         label="University / School",
-        icon="🎓",
         description="Academic courses, lecture notes, assignments, past papers, and semester-based study. Supports Makerere University with MUELE integration.",
         primary_label="Year",
         secondary_label="Semester",
@@ -73,7 +71,6 @@ CONTEXTS: dict[str, StudyContext] = {
     "online": StudyContext(
         purpose="online",
         label="Online Courses",
-        icon="💻",
         description="Udemy, Coursera, edX, bootcamps, and self-paced learning. Track modules, bootcamps, and course completion.",
         primary_label="Year",
         secondary_label="Course",
@@ -90,7 +87,6 @@ CONTEXTS: dict[str, StudyContext] = {
     "research": StudyContext(
         purpose="research",
         label="Research",
-        icon="🔬",
         description="Research papers, journals, experiments, theses, and reference materials. Organize by topics and research phases.",
         primary_label="Topic",
         secondary_label="Phase",
@@ -107,7 +103,6 @@ CONTEXTS: dict[str, StudyContext] = {
     "work": StudyContext(
         purpose="work",
         label="Work Training",
-        icon="💼",
         description="Professional development, certifications, workshops, and workplace learning. Organize by department and training cycle.",
         primary_label="Department",
         secondary_label="Training Cycle",
@@ -124,7 +119,6 @@ CONTEXTS: dict[str, StudyContext] = {
     "custom": StudyContext(
         purpose="custom",
         label="Personal Learning",
-        icon="🧠",
         description="Any self-directed learning path. Set your own labels, subjects, and structure.",
         primary_label="Category",
         secondary_label="Subcategory",

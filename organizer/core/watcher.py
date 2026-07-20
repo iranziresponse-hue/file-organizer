@@ -163,7 +163,7 @@ def move_downloaded_file(file_path: Path, ai_enabled=None):
         return
 
     if not is_ready(file_path):
-        write_log(f"Skipped '{name}' this cycle -- still locked or still growing, will retry")
+        write_log(f"Skipped '{name}' this cycle. Still locked or still growing, will retry")
         return
 
     dest.path.mkdir(parents=True, exist_ok=True)

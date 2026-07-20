@@ -1,0 +1,49 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Page not found - Orch</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'organizer/img/orch-mark.svg' %}">
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 30% 20%, #121725 0%, #0A0C14 60%);
+            color: #E8ECF2;
+        }
+        .panel {
+            text-align: center;
+            max-width: 420px;
+            padding: 32px;
+        }
+        img { width: 48px; height: 48px; margin-bottom: 16px; }
+        h1 { font-size: 1.5rem; margin: 0 0 8px; }
+        p { color: #AEB7C5; line-height: 1.6; margin: 0 0 24px; }
+        a {
+            display: inline-flex;
+            align-items: center;
+            height: 40px;
+            padding: 0 24px;
+            border-radius: 14px;
+            background: rgba(110, 168, 255, 0.15);
+            border: 1px solid rgba(110, 168, 255, 0.5);
+            color: #E8ECF2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <img src="{% static 'organizer/img/orch-mark.svg' %}" alt="">
+        <h1>Page not found</h1>
+        <p>That page doesn't exist, or the link is out of date.</p>
+        <a href="/">Back to dashboard</a>
+    </div>
+</body>
+</html>

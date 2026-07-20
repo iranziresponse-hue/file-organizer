@@ -321,12 +321,9 @@ def check_all_watched_folders() -> list[dict]:
         results.append(result)
 
     # Active profile root
-    active = Profile.get_active() if hasattr(Profile, "get_active") else None
-    try:
-        from organizer.models import Profile
-        active = Profile.get_active()
-    except Exception:
-        active = None
+    from organizer.models import Profile
+
+    active = Profile.get_active()
 
     if active and active.root_path:
         result = check_folder_permissions(active.root_path)
