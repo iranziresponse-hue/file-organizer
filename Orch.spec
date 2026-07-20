@@ -36,7 +36,10 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # UPX-compressed executables are a well-known antivirus false-positive
+    # trigger (malware droppers commonly use UPX too, so AV heuristics
+    # treat any UPX-packed binary with suspicion) -- off on purpose.
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
