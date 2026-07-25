@@ -41,6 +41,49 @@
     </section>
 
     <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Sort a folder now</h2>
+                <p class="card-subtitle">Different from scanning above: this actually moves the files in this folder, using the exact same rules and safety checks as the watcher (sensitive files still get held for review, uncertain ones still go to the Decision Inbox, nothing is ever guessed at). Runs in the background, so it's safe to point at a large folder.</p>
+            </div>
+        </div>
+        <form id="folder-sort-form" class="form-grid">
+            {% csrf_token %}
+            <div class="field">
+                <label for="sort_root_path">Folder path to sort</label>
+                <div class="field-control">
+                    <input type="text" id="sort_root_path" name="root_path" placeholder="C:\Users\...\ExistingFolder" required>
+                    <button type="button" class="button-ghost" onclick="openFolderBrowser('sort_root_path')">Browse</button>
+                </div>
+            </div>
+            <div class="form-actions"><button type="submit" id="folder-sort-start-btn">Start sorting</button></div>
+        </form>
+        <div id="folder-sort-progress" hidden>
+            <div class="why-panel" style="margin-top:12px;">
+                <p><strong>Status:</strong> <span id="folder-sort-status">Starting...</span></p>
+                <p id="folder-sort-message"></p>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button-ghost button-danger-soft" id="folder-sort-cancel-btn">Cancel</button>
+            </div>
+        </div>
+        {% if folder_sorts %}
+        <div class="table-shell" style="margin-top:12px;">
+            <table>
+                <tr><th>Started</th><th>Status</th><th>Result</th></tr>
+                {% for task in folder_sorts %}
+                <tr>
+                    <td>{{ task.created_at|date:"Y-m-d H:i" }}</td>
+                    <td><span class="status-dot {% if task.status == 'done' %}is-live{% elif task.status == 'failed' %}is-error{% endif %}">{{ task.get_status_display }}</span></td>
+                    <td class="path-text">{{ task.result_message|default:"In progress" }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
         <div class="card-header"><div><h2>Plans ({{ plans|length }})</h2></div></div>
         {% if plans %}
         <div class="profile-list">
@@ -104,4 +147,79 @@
         {% endif %}
     </section>
 </div>
+
+<script>
+(function () {
+    var form = document.getElementById('folder-sort-form');
+    if (!form) return;
+    var startBtn = document.getElementById('folder-sort-start-btn');
+    var progress = document.getElementById('folder-sort-progress');
+    var statusEl = document.getElementById('folder-sort-status');
+    var messageEl = document.getElementById('folder-sort-message');
+    var cancelBtn = document.getElementById('folder-sort-cancel-btn');
+    var currentTaskId = null;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        startBtn.disabled = true;
+        fetch('{% url "folder_sort_start" %}', { method: 'POST', body: new FormData(form) })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    startBtn.disabled = false;
+                    alert(data.error || 'Could not start the sort.');
+                    return;
+                }
+                currentTaskId = data.task_id;
+                progress.hidden = false;
+                statusEl.textContent = 'Starting...';
+                messageEl.textContent = '';
+                cancelBtn.disabled = false;
+
+                orchPollTask(currentTaskId, {
+                    statusUrlTemplate: '{% url "task_status" 999999999 %}',
+                    onProgress: function (data) {
+                        if (data.status === 'cancelling') {
+                            statusEl.textContent = 'Cancelling...';
+                        } else if (data.status === 'running' || data.status === 'queued') {
+                            statusEl.textContent = data.progress_total
+                                ? 'Running (' + data.progress_current + ' of ' + data.progress_total + ')'
+                                : 'Running';
+                        }
+                        if (data.result_message) messageEl.textContent = data.result_message;
+                    },
+                    onDone: function (data) {
+                        statusEl.textContent = data.status === 'cancelled' ? 'Cancelled' : 'Done';
+                        messageEl.textContent = data.result_message || '';
+                        startBtn.disabled = false;
+                        cancelBtn.disabled = true;
+                        setTimeout(function () { window.location.reload(); }, 1500);
+                    },
+                    onFailed: function (data) {
+                        statusEl.textContent = 'Failed';
+                        messageEl.textContent = data.result_message || 'Something went wrong.';
+                        startBtn.disabled = false;
+                        cancelBtn.disabled = true;
+                    },
+                });
+            })
+            .catch(function () {
+                startBtn.disabled = false;
+                alert('Could not reach Orch. Try again.');
+            });
+    });
+
+    var cancelUrlTemplate = '{% url "folder_sort_cancel" 999999999 %}';
+
+    cancelBtn.addEventListener('click', function () {
+        if (!currentTaskId) return;
+        cancelBtn.disabled = true;
+        var csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(cancelUrlTemplate.replace('999999999', currentTaskId), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+        }).catch(function () {});
+    });
+})();
+</script>
 {% endblock %}

@@ -11,7 +11,9 @@ scheduling, deadlines, and course guides on top.
 Grab the latest `Orch.exe` from this repo's
 [Releases](../../releases) page and run it directly — no install, no
 Python required. On first launch it opens the setup checklist so you can
-create your first profile.
+create your first profile. There's also a landing page in
+[site/](site/) (see below) with the same download link and a walkthrough
+of every feature with screenshots.
 
 The exe is a single file that carries its own state next to it
 (`db.sqlite3`, config files) — run it from a normal folder you have write
@@ -60,9 +62,17 @@ subfolders already sitting under those, one click to adopt them instead of
 retyping.
 
 **Settings.** Nothing is hardcoded to one machine. Which folders get
-watched, and where ebooks land, are all editable from a Settings page,
-defaulted sensibly to your own Windows user profile the first time the app
-runs.
+watched, where ebooks land, and AI features (on/off and the API key) are
+all editable from a Settings page, defaulted sensibly to your own Windows
+user profile the first time the app runs.
+
+**Dashboard.** Every move is logged with the exact drive, folder, method,
+and timestamp, so nothing about where a file went is ever a guess. A
+"Move" button next to any sorted file lets you relocate it yourself
+through the same folder picker used everywhere else, even long after it
+was sorted. Instant search narrows the list to matching filenames as you
+type. A notification fires for every real move, visible both as a tray
+toast and in the permanent notification history.
 
 **Study cockpit.** Past initial sorting, Orch layers on a full study
 workflow: a learning timeline, periodic digests, per-subject "memory"
@@ -130,11 +140,14 @@ detail in [docs/USER_GUIDE.md](docs/USER_GUIDE.md#the-owner-console-admin-accoun
   small read-only local API (`/api/browse-folders/`) that lets the UI
   browse this machine's real folders. The dashboard only ever binds to
   `127.0.0.1` (see `gui/server.py`), so this never leaves the machine.
-- **PyQt6** provides the desktop shell: a system tray icon that starts and
-  stops the watcher, opens the dashboard in your browser, opens the log
-  file, and toggles launch-at-startup, all without a console window. A
-  minimal native window (`gui/main_window.py`, `gui/topbar.py`) is also
-  available from the tray menu's "Open Orch window."
+- **PyQt6** provides the desktop shell: a taskbar-visible window
+  (`gui/main_window.py`) that embeds the real dashboard directly via
+  `QWebEngineView` and opens automatically on launch, plus a system tray
+  icon for background controls (start/stop the watcher, pause, open the
+  log, toggle launch-at-startup) that keeps running when the window is
+  closed. The window quietly re-fetches its current page every few
+  seconds so newly sorted files and notifications show up without a
+  manual refresh, without disrupting anything you're actively typing.
 - The watcher itself is a polling loop, not a filesystem-events watcher,
   because a `FileSystemWatcher`/`Register-ObjectEvent` approach in the
   original PowerShell version this was ported from was found to silently
@@ -200,8 +213,9 @@ python main.py
 ```
 
 This runs migrations automatically, starts the dashboard on
-`http://127.0.0.1:8765/`, and puts a tray icon in the system tray. On first
-launch it opens the setup checklist so you can create your first profile.
+`http://127.0.0.1:8765/`, puts a tray icon in the system tray, and opens
+Orch's main window. On first launch that window opens straight to the
+setup checklist so you can create your first profile.
 
 If you just want the Django dashboard on its own, without the tray app or
 the watcher:
@@ -216,7 +230,7 @@ python manage.py runserver
 | File | Purpose | Example to copy |
 |---|---|---|
 | `secret_config.json` | Django secret key and debug flag | auto-generated on first run |
-| `ai_config.json` | AI (Groq) API key for summaries/guides | `ai_config.example.json` |
+| `ai_config.json` | AI (Groq) API key for summaries/guides | Set from Settings → AI features in-app, or `ai_config.example.json` by hand |
 | `orch-owner.json` | Turns on the admin console | `owner_config.example.json` |
 | `support_email.json` | SMTP credentials for the support popup (recipient is always iranziresponse@gmail.com) | `support_email.example.json` |
 
@@ -240,9 +254,11 @@ required to use Orch:
   overviews grounded only in the course code and program context,
   explicitly not claiming to be an official syllabus.
 
-All three use the same Groq OpenAI-compatible API and the same key: copy
-`ai_config.example.json` to `ai_config.json` next to the exe (or in the
-project root in dev) and fill it in.
+All three use the same Groq OpenAI-compatible API and the same key: set it
+from **Settings → AI features** in the app itself (enable the toggle, paste
+a key, save) -- Settings links to the exact steps for getting a free Groq
+key from there. `ai_config.example.json` still documents the underlying
+file format if you'd rather edit `ai_config.json` by hand.
 
 ## Tests
 
@@ -266,6 +282,27 @@ product name, file description) comes from `version_info.txt`. The
 database and config files live next to the built exe (see `runtime.py`),
 so they persist across runs instead of living inside PyInstaller's
 temporary extraction folder.
+
+## Landing page
+
+`site/` is a self-contained static marketing page (no build step, no
+framework) that pitches Orch to prospective users and links straight to
+the latest `Orch.exe`. Preview it locally with:
+
+```
+cd site
+python -m http.server 8099
+```
+
+then open `http://127.0.0.1:8099/`. `render.yaml` at the repo root is a
+Render Blueprint that deploys `site/` as a free static site straight from
+this repo — free static sites on Render never sleep (that's only a
+free-tier *web service* limitation), so no keep-alive cron job is needed.
+To deploy: connect this repo in the Render dashboard and pick "New
+Blueprint" — it reads `render.yaml` automatically.
+
+The page's screenshots (`site/assets/img/screenshots/`) are real captures
+of the running app with representative sample data, not mockups.
 
 ## License
 

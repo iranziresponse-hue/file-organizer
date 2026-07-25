@@ -154,6 +154,33 @@ def get_content_category(name):
     return "05 Reference and Extra Reading"
 
 
+# The inverse of get_content_category(): a file's category is baked into
+# its folder name once sorted (see get_destination's DOC_EXT branch), never
+# stored as its own MoveEvent field -- this pulls it back out of a
+# destination path for display, e.g. Course Unit Brain's resource buckets.
+_CONTENT_CATEGORIES = (
+    "01 Lecture Notes and Slides",
+    "02 Assignments and Coursework",
+    "03 Past Papers and Tests",
+    "04 Reports and Projects",
+    "05 Reference and Extra Reading",
+)
+
+
+def category_from_path(path):
+    """Returns the get_content_category() label found in `path`'s folder
+    segments, or None if the path doesn't contain one of the five known
+    category folder names (e.g. it was routed by a custom FolderRule
+    instead of the default document pipeline)."""
+    if not path:
+        return None
+    parts = {part for part in re.split(r"[\\/]", str(path))}
+    for category in _CONTENT_CATEGORIES:
+        if category in parts:
+            return category
+    return None
+
+
 def get_destination(file_path, profile_root=None, library_inbox=None, ai_classify=None):
     """Decides where a file belongs. Re-reads the profile's config/curriculum
     fresh every call (not cached) so editing them takes effect on the very
@@ -199,38 +226,16 @@ def get_destination(file_path, profile_root=None, library_inbox=None, ai_classif
         return Destination(paths.PERSONAL_ROOT / "Installers", "installer")
 
     if ext in paths.DOC_EXT:
+        dest = route_profile_document(file_path, profile_root, ai_classify=ai_classify)
+        if dest:
+            return dest
+        # Nothing in the profile matched -- current group's _Unsorted, or
+        # _NeedsSorting if there's no active profile/config at all.
         config = load_config(profile_root)
-        curriculum = load_curriculum(profile_root)
         category = get_content_category(name)
-        root = Path(profile_root) if profile_root else None
-
-        # 1. Explicit subject code in the filename (current group's list).
-        if config and root:
-            for code in config.get("groups", []):
-                if re.search(re.escape(code.lower()), lname):
-                    subject_folder = resolve_subject_folder(root, config["primary_value"], config["secondary_value"], code)
-                    return Destination(subject_folder / category, "course_code", code)
-
-        # 2. No code -- try matching the TOPIC against the whole curriculum.
-        topic_match = find_course_by_topic(name, curriculum)
-        if topic_match and root:
-            prefix = (root / "_Archive") if topic_match.get("archived") else root
-            subject_folder = resolve_subject_folder(prefix, topic_match["primary_value"], topic_match["secondary_value"], topic_match["code"])
-            return Destination(subject_folder / category, "topic", topic_match["code"])
-
-        # 3. No code, no topic match -- optional smart fallback.
-        if ai_classify and root:
-            ai_match = ai_classify(name, curriculum)
-            if ai_match:
-                prefix = (root / "_Archive") if ai_match.get("archived") else root
-                subject_folder = resolve_subject_folder(prefix, ai_match["primary_value"], ai_match["secondary_value"], ai_match["code"])
-                return Destination(subject_folder / category, "ai", ai_match["code"])
-
-        # 4. Nothing matched -- current group's _Unsorted, or _NeedsSorting
-        #    if there's no active profile/config at all.
-        if config and root:
-            dest = root / config["primary_value"] / config["secondary_value"] / "_Unsorted" / category
-            return Destination(dest, "unsorted")
+        if config and profile_root:
+            unsorted = Path(profile_root) / config["primary_value"] / config["secondary_value"] / "_Unsorted" / category
+            return Destination(unsorted, "unsorted")
         return Destination(paths.PERSONAL_ROOT / "Documents" / "_NeedsSorting" / category, "needs_sorting")
 
     # Loose code/project files belong in a real project folder, not a
@@ -239,3 +244,50 @@ def get_destination(file_path, profile_root=None, library_inbox=None, ai_classif
         return Destination(paths.WORK_UNSORTED, "work_unsorted")
 
     return Destination(paths.PERSONAL_ROOT / "Documents" / "_NeedsSorting", "needs_sorting")
+
+
+def route_profile_document(file_path, profile_root=None, ai_classify=None):
+    """The trusted zone: routes a document into the active profile's own
+    structure by subject code, then topic keyword, then (if enabled) the
+    profile's own optional AI fallback. This is the ONLY part of the old
+    monolithic get_destination() the trust-layer pipeline
+    (organizer.core.sorting.decide_for_file) reuses directly -- profile
+    routing stays fully automatic because the user explicitly opted into
+    this profile's root/structure. Returns None if nothing in the profile
+    matched, leaving the caller to decide what happens to an unmatched
+    document (global category suggestion, then the conservative fallback).
+    """
+    file_path = Path(file_path)
+    name = file_path.name
+    lname = name.lower()
+    config = load_config(profile_root)
+    curriculum = load_curriculum(profile_root)
+    category = get_content_category(name)
+    root = Path(profile_root) if profile_root else None
+
+    if not root:
+        return None
+
+    # 1. Explicit subject code in the filename (current group's list).
+    if config:
+        for code in config.get("groups", []):
+            if re.search(re.escape(code.lower()), lname):
+                subject_folder = resolve_subject_folder(root, config["primary_value"], config["secondary_value"], code)
+                return Destination(subject_folder / category, "course_code", code)
+
+    # 2. No code -- try matching the TOPIC against the whole curriculum.
+    topic_match = find_course_by_topic(name, curriculum)
+    if topic_match:
+        prefix = (root / "_Archive") if topic_match.get("archived") else root
+        subject_folder = resolve_subject_folder(prefix, topic_match["primary_value"], topic_match["secondary_value"], topic_match["code"])
+        return Destination(subject_folder / category, "topic", topic_match["code"])
+
+    # 3. No code, no topic match -- optional smart fallback.
+    if ai_classify:
+        ai_match = ai_classify(name, curriculum)
+        if ai_match:
+            prefix = (root / "_Archive") if ai_match.get("archived") else root
+            subject_folder = resolve_subject_folder(prefix, ai_match["primary_value"], ai_match["secondary_value"], ai_match["code"])
+            return Destination(subject_folder / category, "ai", ai_match["code"])
+
+    return None

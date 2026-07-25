@@ -31,7 +31,7 @@ class GenerateCourseGuideTests(SandboxedPathsTestCase):
     def test_no_ai_config_is_rejected(self):
         content, error = summarize.generate_course_guide("CSC2100")
         self.assertIsNone(content)
-        self.assertIn("AI isn't configured", error)
+        self.assertIn("Smart Orch isn't turned on", error)
 
     @mock.patch("organizer.core.summarize.requests.post")
     def test_successful_generation_includes_the_course_code_in_the_prompt(self, mock_post):
@@ -80,7 +80,7 @@ class CourseGuideViewTests(SandboxedPathsTestCase):
         profile = self.make_profile()
         response = self.client.post(reverse("course_guide_generate", args=[profile.pk, "CSC2100"]))
         self.assertEqual(response.status_code, 400)
-        self.assertIn("AI isn't configured", response.json()["error"])
+        self.assertIn("Smart Orch isn't turned on", response.json()["error"])
         self.assertFalse(CourseGuide.objects.exists())
 
     @mock.patch("organizer.core.summarize.requests.post")
@@ -138,6 +138,33 @@ class CourseGuideViewTests(SandboxedPathsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_generate_is_rejected_for_a_profile_that_is_not_active(self):
+        active = self.make_profile(name="Active")
+        inactive = self.make_profile(name="Inactive", is_active=False)
+
+        response = self.client.post(reverse("course_guide_generate", args=[inactive.pk, "CSC2100"]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(CourseGuide.objects.exists())
+
+    def test_view_is_rejected_for_a_profile_that_is_not_active(self):
+        active = self.make_profile(name="Active")
+        inactive = self.make_profile(name="Inactive", is_active=False)
+        CourseGuide.objects.create(profile=inactive, course_code="CSC2100", content="# Title\n\nBody.\n")
+
+        response = self.client.get(reverse("course_guide_view", args=[inactive.pk, "CSC2100"]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_pdf_is_rejected_for_a_profile_that_is_not_active(self):
+        active = self.make_profile(name="Active")
+        inactive = self.make_profile(name="Inactive", is_active=False)
+        CourseGuide.objects.create(profile=inactive, course_code="CSC2100", content="# Title\n\nBody.\n")
+
+        response = self.client.get(reverse("course_guide_pdf", args=[inactive.pk, "CSC2100"]))
+
+        self.assertEqual(response.status_code, 404)
 
 
 class DashboardGuidedCodesTests(SandboxedPathsTestCase):

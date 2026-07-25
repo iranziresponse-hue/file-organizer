@@ -47,6 +47,15 @@ LOG_PATH: Path = USER_PROFILE / "Documents" / "Scripts" / "organize-log.txt"
 # Project-local, gitignored -- see ai_config.example.json for the template.
 AI_CONFIG_PATH: Path = BASE_DIR / "ai_config.json"
 
+# Same treatment as AI_CONFIG_PATH above: a real API key, kept out of the
+# database and out of version control.
+YOUTUBE_CONFIG_PATH: Path = BASE_DIR / "youtube_config.json"
+
+# Google Drive OAuth client ID/secret (from Google Cloud Console) -- the
+# refresh token itself is more sensitive still, so that lives in the OS
+# keyring instead (see drive_api.py), same split as MUELE's token.
+DRIVE_CONFIG_PATH: Path = BASE_DIR / "drive_config.json"
+
 
 def config_path(profile_root: str) -> Path:
     """Each profile mirrors its current primary/secondary group into its own
@@ -56,6 +65,13 @@ def config_path(profile_root: str) -> Path:
 
 def curriculum_path(profile_root: str) -> Path:
     return Path(profile_root) / "_curriculum_map.json"
+
+
+def timetable_documents_dir(profile_root: str) -> Path:
+    """Where manually-uploaded timetable PDFs live for one profile -- see
+    TimetableDocument. Created on first upload, same as every other
+    Orch-managed folder."""
+    return Path(profile_root) / "_Timetables"
 
 # Filename keywords that mean "sensitive, handle with care" -- checked before
 # every other rule so these never land in a generic sorting bucket.

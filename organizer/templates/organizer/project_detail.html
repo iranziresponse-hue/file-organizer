@@ -1,0 +1,132 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}{{ project.title }} - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>{{ project.title }}</h2>
+            <p>{{ project.get_status_display }}{% if project.github_url %} &middot; <a href="{{ project.github_url }}" target="_blank" rel="noopener">{{ project.github_url }}</a>{% endif %}</p>
+            {% if project.github_url %}
+            <p class="help-text">
+                {% if project.github_synced_at %}&#9733; {{ project.github_stars }} stars &middot; synced {{ project.github_synced_at|date:"M j, Y, g:i A" }}{% else %}Not synced with GitHub yet{% endif %}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="refresh_github">
+                    <button type="submit" class="button-ghost" style="padding:2px 8px;">Refresh GitHub info</button>
+                </form>
+            </p>
+            {% endif %}
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" action="{% url 'project_generate_draft' project.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="post_type" value="project_update">
+                <button type="submit" class="button-ghost">Generate post draft</button>
+            </form>
+            <a class="button button-ghost" href="{% url 'project_studio' %}">Back to studio</a>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Details</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update">
+            <div class="form-two">
+                <div class="field">
+                    <label>Title</label>
+                    <input type="text" name="title" value="{{ project.title }}">
+                </div>
+                <div class="field">
+                    <label>Status</label>
+                    <select name="status">
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if project.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label>Problem being solved</label>
+                <textarea name="problem_statement" rows="2">{{ project.problem_statement }}</textarea>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label>Tech stack (comma separated)</label>
+                    <input type="text" name="tech_stack" value="{{ tech_stack_text }}">
+                </div>
+                <div class="field">
+                    <label>GitHub link</label>
+                    <input type="url" name="github_url" value="{{ project.github_url }}">
+                </div>
+            </div>
+            <div class="field">
+                <label>Project folder</label>
+                <div class="field-control">
+                    <input type="text" id="folder_path" name="folder_path" value="{{ project.folder_path }}">
+                    <button type="button" class="button-ghost" onclick="openFolderBrowser('folder_path')">Browse</button>
+                </div>
+            </div>
+            <div class="field">
+                <label>Lessons learned</label>
+                <textarea name="lessons_learned" rows="3">{{ project.lessons_learned }}</textarea>
+            </div>
+            <div class="field">
+                <label>Portfolio-ready description</label>
+                <textarea name="portfolio_description" rows="3">{{ project.portfolio_description }}</textarea>
+            </div>
+            <div class="form-actions"><button type="submit">Save</button></div>
+        </form>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Weekly progress</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_update">
+            <div class="field">
+                <label for="update_content">Log an update</label>
+                <textarea id="update_content" name="update_content" rows="2" placeholder="What did you do this week?"></textarea>
+            </div>
+            <div class="form-actions"><button type="submit">Add update</button></div>
+        </form>
+        {% if updates %}
+        <div class="profile-list" style="margin-top:12px;">
+            {% for update in updates %}
+            <article class="profile-row">
+                <div class="profile-main"><p style="margin:0;">{{ update.content }}</p></div>
+                <div class="profile-detail"><span class="path-text">{{ update.created_at|date:"Y-m-d" }}</span></div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text" style="margin-top:12px;">No progress logged yet.</p>
+        {% endif %}
+    </section>
+
+    {% if drafts %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div><h2>Post drafts from this project</h2></div>
+            <a class="button button-ghost" href="{% url 'content_drafts' %}">All drafts</a>
+        </div>
+        <div class="profile-list">
+            {% for draft in drafts %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3><a href="{% url 'content_draft_detail' draft.pk %}">{{ draft.get_post_type_display }}</a></h3>
+                </div>
+                <div class="profile-detail">
+                    <span class="status-dot {% if draft.status == 'posted' %}is-live{% elif draft.status == 'approved' %}is-warning{% endif %}">{{ draft.get_status_display }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

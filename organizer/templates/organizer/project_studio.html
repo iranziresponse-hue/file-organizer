@@ -1,0 +1,98 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Project Studio - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Project studio</h2>
+            <p>Every project you build here becomes a career asset, not just a folder.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ total_count }}</div><div class="label">Total projects</div></div>
+        <div class="stat"><div class="value">{{ grouped.building|length }}</div><div class="label">Building</div></div>
+        <div class="stat"><div class="value">{{ grouped.testing|length }}</div><div class="label">Testing</div></div>
+        <div class="stat" style="color:var(--green);"><div class="value">{{ grouped.shipped|length }}</div><div class="label">Shipped</div></div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Add a project</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" placeholder="e.g. Orch" required>
+                </div>
+                <div class="field">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        {% for value, label in status_labels %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label for="problem_statement">Problem being solved</label>
+                <textarea id="problem_statement" name="problem_statement" rows="2"></textarea>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="tech_stack">Tech stack (comma separated)</label>
+                    <input type="text" id="tech_stack" name="tech_stack" placeholder="Django, SQLite, Python">
+                </div>
+                <div class="field">
+                    <label for="github_url">GitHub link</label>
+                    <input type="url" id="github_url" name="github_url" placeholder="https://github.com/...">
+                </div>
+            </div>
+            <div class="field">
+                <label for="folder_path">Project folder (optional)</label>
+                <div class="field-control">
+                    <input type="text" id="folder_path" name="folder_path" placeholder="Where the project files live">
+                    <button type="button" class="button-ghost" onclick="openFolderBrowser('folder_path')">Browse</button>
+                </div>
+            </div>
+            <div class="form-actions"><button type="submit">Add project</button></div>
+        </form>
+    </section>
+
+    {% for status, label in status_labels %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>{{ label }} ({{ grouped|get_item:status|length }})</h2></div></div>
+        {% with items=grouped|get_item:status %}
+        {% if items %}
+        <div class="profile-list">
+            {% for project in items %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3><a href="{% url 'project_detail' project.pk %}">{{ project.title }}</a>{% if project.github_synced_at %} <span class="path-text" style="font-size:0.78rem;">&#9733; {{ project.github_stars }}</span>{% endif %}</h3>
+                    <span class="path-text">{{ project.problem_statement|truncatechars:100|default:"No problem statement yet" }}</span>
+                    {% if project.tech_stack %}
+                    <span class="path-text" style="font-size:0.78rem;">{{ project.tech_stack|join:", " }}</span>
+                    {% endif %}
+                </div>
+                <div class="profile-actions">
+                    <form method="post" action="{% url 'project_delete' project.pk %}" onsubmit="return confirm('Delete this project?');">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">Nothing here.</p>
+        {% endif %}
+        {% endwith %}
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Timetable - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Class timetable</h2>
+            <p>Synced from timetable.mak.ac.ug. Orch notifies you before each lecture, test, and exam below.</p>
+            {% if connection %}
+            <p class="path-text">
+                Last successful sync:
+                <strong>{% if connection.last_sync_at %}{{ connection.last_sync_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</strong>
+                {% if connection.status == "error" %}&middot; <span style="color:var(--red);">Last attempt failed, showing the most recent successful sync above</span>{% endif %}
+            </p>
+            {% endif %}
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+            {% if connection %}
+            <button type="button" class="button-ghost" id="sync-now-btn">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 9a7 7 0 0 0-12.1-4.8L4 8M4 15a7 7 0 0 0 12.1 4.8L20 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Sync now
+            </button>
+            <a class="button" href="{% url 'timetable_connect' %}">Change group</a>
+            {% else %}
+            <a class="button" href="{% url 'timetable_connect' %}">Connect timetable</a>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if not connection %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3l7 3v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <div>
+                <h3>No timetable connected yet</h3>
+                <p>Connect your group's timetable to see your weekly classes here and get notified before each one.</p>
+            </div>
+        </div>
+    </section>
+    {% else %}
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Weekly classes</h3>
+                <p class="card-subtitle">Group {{ connection.config.group }}, repeats every week of the semester.</p>
+            </div>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr>
+                    {% for label, day_entries in teaching_by_day %}
+                    <th>{{ label }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for label, day_entries in teaching_by_day %}
+                    <td style="vertical-align:top;">
+                        {% for entry in day_entries %}
+                        <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--stroke);">
+                            <strong>{{ entry.start_time|time:"H:i" }} - {{ entry.end_time|time:"H:i" }}</strong><br>
+                            <span class="path-text">{{ entry.course_code }} {{ entry.course_name }}</span><br>
+                            {% if entry.room %}<span class="meta-token">{{ entry.room }}</span>{% endif %}
+                            {% if entry.lecturer %}<span class="meta-token">{{ entry.lecturer }}</span>{% endif %}
+                        </div>
+                        {% empty %}
+                        <span class="path-text">No classes</span>
+                        {% endfor %}
+                    </td>
+                    {% endfor %}
+                </tr>
+            </table>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Upcoming tests and exams</h3>
+                <p class="card-subtitle">Only dates Orch could confidently read off the official timetable are shown here.</p>
+            </div>
+        </div>
+        {% if upcoming %}
+        <div class="profile-list">
+            {% for entry in upcoming %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ entry.course_code }} {{ entry.course_name }}</h3>
+                    <span class="path-text">{{ entry.get_kind_display }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Date</span>
+                    <strong>{% if entry.specific_date %}{{ entry.specific_date|date:"D, M j, Y" }}{% else %}{{ entry.date_label }}{% endif %}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Time</span>
+                    <strong>{{ entry.start_time|time:"H:i" }}{% if entry.end_time %} - {{ entry.end_time|time:"H:i" }}{% endif %}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No upcoming tests or exams published yet for your group.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Add an entry manually</h3>
+                <p class="card-subtitle">For anything timetable.mak.ac.ug hasn't published yet, type it in yourself. Fill in a day of the week for a recurring class, or a specific date for a one-off test or exam.</p>
+            </div>
+        </div>
+        <form method="post" action="{% url 'timetable_entry_create' %}" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="entry_kind">Type</label>
+                    <select name="kind" id="entry_kind" data-premium-select required>
+                        {% for value, label in kind_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="entry_course_code">Course code</label>
+                    <input type="text" name="course_code" id="entry_course_code" placeholder="e.g. CSC 2100">
+                </div>
+            </div>
+            <div class="field">
+                <label for="entry_course_name">Course name</label>
+                <input type="text" name="course_name" id="entry_course_name" placeholder="Optional">
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="entry_weekday">Day of week</label>
+                    <select name="weekday" id="entry_weekday" data-premium-select>
+                        <option value="">Not a recurring class</option>
+                        {% for value, label in weekday_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="entry_specific_date">Specific date</label>
+                    <input type="date" name="specific_date" id="entry_specific_date">
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="entry_start_time">Start time</label>
+                    <input type="time" name="start_time" id="entry_start_time" required>
+                </div>
+                <div class="field">
+                    <label for="entry_end_time">End time</label>
+                    <input type="time" name="end_time" id="entry_end_time">
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="entry_room">Room</label>
+                    <input type="text" name="room" id="entry_room" placeholder="Optional">
+                </div>
+                <div class="field">
+                    <label for="entry_lecturer">Lecturer</label>
+                    <input type="text" name="lecturer" id="entry_lecturer" placeholder="Optional">
+                </div>
+            </div>
+            <div class="form-actions"><button type="submit">Add to timetable</button></div>
+        </form>
+
+        {% if manual_entries %}
+        <div class="table-shell">
+            <table>
+                <tr><th>Type</th><th>When</th><th>Course</th><th>Room</th><th></th></tr>
+                {% for entry in manual_entries %}
+                <tr>
+                    <td>{{ entry.get_kind_display }}</td>
+                    <td>
+                        {% if entry.specific_date %}{{ entry.specific_date|date:"D, M j, Y" }}{% elif entry.weekday is not None %}{{ entry.get_weekday_display }}{% endif %}
+                        {{ entry.start_time|time:"H:i" }}{% if entry.end_time %} - {{ entry.end_time|time:"H:i" }}{% endif %}
+                    </td>
+                    <td>{{ entry.course_code }} {{ entry.course_name }}</td>
+                    <td class="path-text">{{ entry.room }}</td>
+                    <td>
+                        <form method="post" action="{% url 'timetable_entry_delete' entry.pk %}" onsubmit="return confirm('Remove this entry?');">
+                            {% csrf_token %}
+                            <button type="submit" class="button-ghost button-danger-soft" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Uploaded timetables</h3>
+                <p class="card-subtitle">Keep a PDF here if you got a timetable some other way (college website, a notice board photo, a WhatsApp forward). Orch stores it for you to open any time; it doesn't try to read dates out of it.</p>
+            </div>
+        </div>
+        <form method="post" action="{% url 'timetable_document_upload' %}" enctype="multipart/form-data" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="doc_kind">Type</label>
+                    <select name="kind" id="doc_kind" data-premium-select>
+                        {% for value, label in document_kind_choices %}
+                        <option value="{{ value }}" {% if value == "other" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="doc_title">Title</label>
+                    <input type="text" name="title" id="doc_title" placeholder="e.g. Semester 2 exam timetable">
+                </div>
+            </div>
+            <div class="field">
+                <label for="doc_file">PDF file</label>
+                <input type="file" name="file" id="doc_file" accept="application/pdf,.pdf" required>
+            </div>
+            <div class="form-actions"><button type="submit">Upload</button></div>
+        </form>
+
+        {% if documents %}
+        <div class="profile-list">
+            {% for document in documents %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3><a href="{% url 'timetable_document_download' document.pk %}" target="_blank" rel="noopener">{{ document.title }}</a></h3>
+                    <span class="path-text">{{ document.get_kind_display }} &middot; {{ document.original_filename }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Uploaded</span>
+                    <strong>{{ document.uploaded_at|date:"M j, Y" }}</strong>
+                </div>
+                <form method="post" action="{% url 'timetable_document_delete' document.pk %}" onsubmit="return confirm('Delete this file?');">
+                    {% csrf_token %}
+                    <button type="submit" class="button-ghost button-danger-soft">Delete</button>
+                </form>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No documents uploaded yet.</p>
+        {% endif %}
+    </section>
+</div>
+
+{% if connection %}
+<script>
+document.getElementById('sync-now-btn').addEventListener('click', function () {
+    var btn = this;
+    var originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>Syncing...';
+
+    // Sync now runs as a background job (organizer.core.jobs) instead of
+    // blocking this request, so this button gets a task id back right away
+    // and polls for the result instead of waiting on the fetch itself.
+    fetch('{% url "timetable_sync_now" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        credentials: 'same-origin',
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.ok) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                alert(data.error || 'Sync failed.');
+                return;
+            }
+            orchPollTask(data.task_id, {
+                statusUrlTemplate: '{% url "task_status" 999999999 %}',
+                onDone: function () { window.location.reload(); },
+                onFailed: function (result) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    alert(result.result_message || 'Sync failed.');
+                },
+            });
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            alert('Sync failed.');
+        });
+});
+</script>
+{% endif %}
+{% endblock %}

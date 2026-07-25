@@ -1,0 +1,135 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Publishing channels - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Publishing channels</h2>
+            <p>Connect a website or a GitHub repo that accepts posts over an API. Orch drafts, you approve, then Orch publishes with one click. No password is ever stored, only the key or token you provide, in your operating system's credential store.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'content_drafts' %}">Back to drafts</a>
+    </section>
+
+    <section class="overview-grid">
+        {% for channel in channels %}
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h3>{{ channel.display_name }}</h3>
+                    <p class="card-subtitle">{{ channel.get_provider_display }} &middot; <span class="status-dot {% if channel.status == 'connected' %}is-live{% elif channel.status == 'needs_key' %}is-warning{% endif %}">{{ channel.get_status_display }}</span></p>
+                </div>
+            </div>
+            {% if channel.base_url %}
+            <p class="help-text">{{ channel.base_url }}</p>
+            {% elif channel.provider == "github" %}
+            <p class="help-text">{{ channel.config.owner }}/{{ channel.config.repo }} &middot; {{ channel.config.posts_path|default:"posts" }}/</p>
+            {% endif %}
+            {% if channel.provider != "linkedin" %}
+            <form method="post" action="{% url 'publishing_channel_delete' channel.pk %}" onsubmit="return confirm('Disconnect this channel? Its stored key or token will be removed too.');">
+                {% csrf_token %}
+                <button type="submit" class="button-ghost" style="color:var(--red);">Disconnect</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="card compact-card" style="opacity:0.7;">
+            <div class="card-header">
+                <div>
+                    <h3>LinkedIn</h3>
+                    <p class="card-subtitle">Not available yet</p>
+                </div>
+            </div>
+            <p class="help-text">LinkedIn requires an official OAuth connection through a registered LinkedIn Developer app. Orch will never ask for your LinkedIn password. This connector will be added once app credentials are available.</p>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Connect a custom website</h3>
+                <p class="card-subtitle">Point this at an endpoint on your own site or blog that accepts JSON posts.</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="provider" value="custom_website">
+            <div class="form-two">
+                <div class="field">
+                    <label for="display_name">Channel name</label>
+                    <input type="text" id="display_name" name="display_name" placeholder="My portfolio blog" required>
+                </div>
+                <div class="field">
+                    <label for="base_url">Endpoint URL</label>
+                    <input type="url" id="base_url" name="base_url" placeholder="https://example.com/api/posts" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="api_key">API key (optional)</label>
+                <input type="text" id="api_key" name="api_key" placeholder="Sent as a Bearer token" autocomplete="off" style="font-family: monospace;">
+                <p class="help-text">Stored in your OS credential store, never in Orch's database.</p>
+            </div>
+            <div class="field">
+                <label for="publish_mode">Publish status</label>
+                <select id="publish_mode" name="publish_mode">
+                    <option value="draft">Draft (review on the website before it goes live)</option>
+                    <option value="published">Published (goes live immediately)</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Connect channel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Connect GitHub</h3>
+                <p class="card-subtitle">Push approved drafts as real commits into a repo you own, so your portfolio has a visible, dated history.</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="provider" value="github">
+            <div class="form-two">
+                <div class="field">
+                    <label for="gh_owner">Repo owner</label>
+                    <input type="text" id="gh_owner" name="gh_owner" placeholder="your-username" required>
+                </div>
+                <div class="field">
+                    <label for="gh_repo">Repo name</label>
+                    <input type="text" id="gh_repo" name="gh_repo" placeholder="portfolio" required>
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="gh_display_name">Channel name (optional)</label>
+                    <input type="text" id="gh_display_name" name="gh_display_name" placeholder="My portfolio repo">
+                </div>
+                <div class="field">
+                    <label for="gh_posts_path">Folder for posts</label>
+                    <input type="text" id="gh_posts_path" name="gh_posts_path" value="posts" placeholder="posts">
+                </div>
+            </div>
+            <div class="field">
+                <label for="gh_token">Personal Access Token</label>
+                <input type="text" id="gh_token" name="gh_token" placeholder="A fine-grained token with Contents: Read and write on this repo" autocomplete="off" style="font-family: monospace;">
+                <p class="help-text">
+                    Never your GitHub password. Generate one from
+                    <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub Settings &rarr; Developer settings</a>,
+                    scoped to just this repo. Stored in your OS credential store, never in Orch's database.
+                    Required to actually publish, since pushing a commit always needs authentication;
+                    repo recommendations on Resource Radar work without one.
+                </p>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Connect GitHub</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

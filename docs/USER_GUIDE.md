@@ -89,9 +89,18 @@ The dashboard (`/`, the app's default page once a profile exists) shows:
 - **MUELE panel** (Makerere profiles only) — most recently synced course,
   nearest assignment deadline with its real due date, and exact last-sync
   time, all pulled live from the database, never estimated.
-- **Recent activity table** — every move Orch has made, paginated, with a
-  **Summarize** button next to any PDF/Word file (see
+- **Recent Moves table** — every move Orch has made, paginated and
+  searchable (type into the search box above it to filter by filename
+  instantly, no page reload). Each row shows the exact drive and folder a
+  file landed in, plus a **Move** button to relocate it yourself through
+  the same folder picker used everywhere else, even long after it was
+  sorted, and a **Summarize** button next to any PDF/Word file (see
   [AI features](#ai-features)).
+
+Every real move also fires a notification, both as a tray toast and as a
+permanent record on the Notifications page (`/study/notifications/`),
+naming the file and its destination drive, so nothing that happens is
+silent or hard to trace back later.
 
 ## Study cockpit
 
@@ -245,10 +254,11 @@ key, and none required for Orch's core file-sorting to work:
   general academic overview grounded only in the course code and
   programme context, explicitly not a claim to be an official syllabus.
 
-All three share one Groq API key: copy `ai_config.example.json` to
-`ai_config.json` next to the exe (or in the project root in dev) and fill
-in `api_key`. Until that file exists, the setup checklist shows AI features
-as not configured, but nothing else is blocked.
+All three share one Groq API key, set from **Settings → AI features**:
+check the enable box, paste a key, save. Settings links directly to the
+steps for getting a free key from Groq's console if you don't have one
+yet. Until a key is set, the setup checklist shows AI features as not
+configured, but nothing else is blocked.
 
 ## Contact support
 

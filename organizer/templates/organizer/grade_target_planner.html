@@ -1,0 +1,103 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Grade Target Planner - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Grade target planner</h2>
+            <p>Set your coursework, test, and exam weights per subject, and see exactly what you need in the exam to hit your target.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Set a target</h2>
+                <p class="card-subtitle">Saving again for the same subject updates its target in place</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="field">
+                <label for="subject_code">Subject code</label>
+                <input type="text" id="subject_code" name="subject_code" placeholder="e.g. CSC2100" required>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="coursework_weight">Coursework weight (%)</label>
+                    <input type="number" min="0" max="100" id="coursework_weight" name="coursework_weight" value="30">
+                </div>
+                <div class="field">
+                    <label for="coursework_score">Coursework score (%, leave blank if unknown)</label>
+                    <input type="number" min="0" max="100" id="coursework_score" name="coursework_score">
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="test_weight">Test weight (%)</label>
+                    <input type="number" min="0" max="100" id="test_weight" name="test_weight" value="0">
+                </div>
+                <div class="field">
+                    <label for="test_score">Test score (%, leave blank if unknown)</label>
+                    <input type="number" min="0" max="100" id="test_score" name="test_score">
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="exam_weight">Exam weight (%)</label>
+                    <input type="number" min="0" max="100" id="exam_weight" name="exam_weight" value="70">
+                </div>
+                <div class="field">
+                    <label for="target_percent">Target overall (%)</label>
+                    <input type="number" min="0" max="100" id="target_percent" name="target_percent" value="70">
+                </div>
+            </div>
+            <div class="form-actions"><button type="submit">Save target</button></div>
+        </form>
+    </section>
+
+    {% if targets %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Your targets</h2></div></div>
+        <div class="profile-list">
+            {% for row in targets %}
+            <article class="profile-row" style="grid-template-columns: minmax(140px,0.8fr) minmax(260px,1.6fr) auto;">
+                <div class="profile-main">
+                    <h3>{{ row.target.subject_code|course_label }}</h3>
+                    <span class="path-text">Coursework {{ row.target.coursework_weight }}% &middot; Test {{ row.target.test_weight }}% &middot; Exam {{ row.target.exam_weight }}% &middot; Target {{ row.target.target_percent }}%</span>
+                </div>
+                <div class="profile-detail">
+                    <strong style="{% if row.result.achievable == False %}color:var(--red);{% elif row.result.achievable %}color:var(--green);{% endif %}">
+                        {{ row.result.message }}
+                    </strong>
+                </div>
+                <div class="profile-actions">
+                    <form method="post" action="{% url 'grade_target_delete' row.target.pk %}" onsubmit="return confirm('Delete this grade target?');">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>No targets set yet</h3>
+                <p>Set one above for any subject to see what you need in the exam.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

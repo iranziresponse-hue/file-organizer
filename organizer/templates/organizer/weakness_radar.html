@@ -1,0 +1,131 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Weakness Radar - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Weakness radar</h2>
+            <p>Built entirely from your own local data: weak areas already flagged per subject, subjects going quiet, and resources with no review scheduled yet.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    {% if headline %}
+    <section class="card compact-card" style="border-color:var(--red);">
+        <div class="card-header"><div><h2>This week's weakest area</h2></div></div>
+        <p class="help-text" style="font-size:1rem; color:var(--text);">
+            <strong>{{ headline.subject_code|course_label }}</strong>: {{ headline.topic }}
+        </p>
+        <a class="button button-ghost" href="{% url 'subject_memory_detail' headline.subject_code %}" style="margin-top:8px;">Open course brain</a>
+    </section>
+    {% endif %}
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ subject_weak_areas|length }}</div><div class="label">Subjects flagged</div></div>
+        <div class="stat"><div class="value" style="color:var(--red);">{{ repeated_topics|length }}</div><div class="label">Repeated topics</div></div>
+        <div class="stat"><div class="value" style="color:var(--amber);">{{ neglected_subjects|length }}</div><div class="label">Subjects going quiet</div></div>
+        <div class="stat"><div class="value" style="color:var(--muted);">{{ unreviewed_resources|length }}</div><div class="label">No review scheduled</div></div>
+    </section>
+
+    {% if repeated_topics %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Topics repeatedly missed</h2>
+                <p class="card-subtitle">Flagged as weak in more than one subject; the strongest signal on this page</p>
+            </div>
+        </div>
+        <div class="meta-list" style="margin-top:8px;">
+            {% for row in repeated_topics %}
+            <span class="suggestion-token" style="color:var(--red);">
+                <strong>{{ row.topic }}</strong>
+                <span class="path-text">({{ row.subjects|join:", " }})</span>
+            </span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if subject_weak_areas %}
+    <section class="overview-grid">
+        {% for row in subject_weak_areas %}
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>{{ row.code|course_label }}</h2>
+                    <p class="card-subtitle">
+                        {% if row.last_touched_at %}Last active {{ row.last_touched_at|timesince }} ago{% else %}Never active{% endif %}
+                    </p>
+                </div>
+                <a class="button button-ghost" href="{% url 'subject_memory_detail' row.code %}">Open</a>
+            </div>
+            <div class="meta-list" style="margin-top:8px;">
+                {% for area in row.weak_areas %}
+                <span class="suggestion-token">{{ area }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <div>
+                <h3>Nothing flagged yet</h3>
+                <p>Run Past Paper Intelligence for a subject to generate an evidence-backed weak-areas signal, or check back once a subject has some of its own themes recorded.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if neglected_subjects %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Subjects going quiet</h2>
+                <p class="card-subtitle">No activity in the last 14 days, or never active at all</p>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for memory in neglected_subjects %}
+            <article class="profile-row">
+                <div class="profile-main"><h3>{{ memory.code|course_label }}</h3></div>
+                <div class="profile-detail">
+                    <span class="path-text">{% if memory.last_touched_at %}Last active {{ memory.last_touched_at|timesince }} ago{% else %}Never active{% endif %}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if unreviewed_resources %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>No review scheduled</h2>
+                <p class="card-subtitle">Sorted files with nothing in the review queue against them yet</p>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for event in unreviewed_resources %}
+            <article class="profile-row">
+                <div class="profile-main"><h3>{{ event.filename }}</h3></div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ event.course_code|course_label }}</span>
+                    <strong>{{ event.timestamp|date:"Y-m-d" }}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Past Paper Intelligence - {{ code }} - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Past paper intelligence: {{ code|course_label }}</h2>
+            <p>Local, free topic-frequency analysis over your own past papers. Detects recurring topics across papers, not literal repeated questions; different years rarely phrase things identically.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">{% if analysis %}Refresh analysis{% else %}Analyze past papers{% endif %}</button>
+            </form>
+            <a class="button button-ghost" href="{% url 'subject_memory_detail' code %}">Back to course brain</a>
+        </div>
+    </section>
+
+    {% if analysis %}
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ analysis.paper_count }}</div><div class="label">Papers analyzed</div></div>
+        <div class="stat"><div class="value">{{ analysis.questions|length }}</div><div class="label">Questions extracted</div></div>
+        <div class="stat"><div class="value">{{ analysis.topics|length }}</div><div class="label">Topics found</div></div>
+        <div class="stat"><div class="value">{{ total_marks }}</div><div class="label">Marks tallied</div></div>
+    </section>
+    <p class="help-text">Last generated {{ analysis.generated_at|timesince }} ago.</p>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>High-probability revision areas</h2>
+                <p class="card-subtitle">Topics that recur most across your past papers, ranked by weight. Marks shown are a best-effort keyword match, not a precise audit.</p>
+            </div>
+        </div>
+        {% if analysis.topics %}
+        <div class="profile-list">
+            {% for topic in analysis.topics %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ topic.name }}</h3>
+                    {% if topic.evidence %}<span class="path-text">Seen in: {{ topic.evidence|join:", " }}</span>{% endif %}
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Weight</span>
+                    <strong>{{ topic.weight }}</strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Marks seen</span>
+                    <strong>{{ analysis.marks_by_topic|get_item:topic.name|default:"-" }}</strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No recurring topics detected across the analyzed papers.</p>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Extracted questions ({{ analysis.questions|length }})</h2>
+                <p class="card-subtitle">
+                    {% if analysis.questions %}
+                        Split from numbered questions found in your past papers.
+                    {% else %}
+                        No numbered questions were detected in these papers; topic analysis still ran on the full text.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if analysis.questions %}
+        <div class="table-shell">
+            <table>
+                <tr><th>Question</th><th>Marks</th><th>Source</th></tr>
+                {% for q in analysis.questions %}
+                <tr>
+                    <td>{{ q.text }}</td>
+                    <td>{% if q.marks %}<span class="meta-token">{{ q.marks }}</span>{% else %}-{% endif %}</td>
+                    <td><span class="path-text">{{ q.source_file }}</span></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+            <div>
+                <h3>No analysis yet</h3>
+                {% if past_paper_files %}
+                <p>{{ past_paper_files|length }} past paper file(s) found for this subject. Click "Analyze past papers" to run it.</p>
+                {% else %}
+                <p>No files have landed in this subject's Past Papers folder yet. Once one does, come back here to analyze it.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if past_paper_files %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Past paper files ({{ past_paper_files|length }})</h2>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for event in past_paper_files %}
+            <article class="profile-row">
+                <div class="profile-main"><h3>{{ event.filename }}</h3></div>
+                <div class="profile-detail"><span class="path-text">{{ event.timestamp|date:"Y-m-d" }}</span></div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

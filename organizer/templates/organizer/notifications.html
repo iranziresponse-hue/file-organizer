@@ -30,17 +30,24 @@
             <div>
                 <h2>Recent notifications</h2>
             </div>
-            {% if unread_count %}
-            <form method="post" style="display:inline;">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="mark_all_read">
-                <button type="submit" class="button-ghost">Mark all as read</button>
-            </form>
-            {% endif %}
+            <div class="inline-actions-start">
+                {% if unread_count %}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="mark_all_read">
+                    <button type="submit" class="button-ghost">Mark all as read</button>
+                </form>
+                {% endif %}
+                <form method="post" style="display:inline;" onsubmit="return confirm('Clear all notifications? This deletes the whole history and cannot be undone.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="clear_all">
+                    <button type="submit" class="button-ghost button-danger-soft">Clear all</button>
+                </form>
+            </div>
         </div>
         <div class="profile-list">
             {% for item in notifications %}
-            <article class="profile-row" style="{% if not item.read_at %}border-color:rgba(110,168,255,0.35);{% endif %}">
+            <article class="profile-row" style="{% if not item.read_at %}border-color:rgba(242,201,76,0.35);{% endif %}">
                 <div class="profile-main">
                     <h3>{{ item.title }}</h3>
                     <span class="path-text">{{ item.message|default:"No details" }}</span>

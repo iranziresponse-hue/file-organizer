@@ -1,0 +1,154 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Semester War Room - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Semester war room</h2>
+            <p>What should you do now to pass highly? Everything on this page is built from your own local data.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="card compact-card" style="border-color:var(--cyan);">
+        <div class="card-header"><div><h2>Next best action</h2></div></div>
+        <p class="help-text" style="font-size:1.05rem; color:var(--text);">{{ next_best_action }}</p>
+        <div class="stat-row" style="margin-top:12px;">
+            <div class="stat stat-primary"><div class="value">{{ study_streak }}</div><div class="label">Day streak</div></div>
+            <div class="stat"><div class="value">{{ due_flashcards }}</div><div class="label">Flashcards due</div></div>
+            <div class="stat"><div class="value">{{ upcoming_exams|length }}</div><div class="label">Exams ahead</div></div>
+            <div class="stat"><div class="value">{{ weak_radar.subject_weak_areas|length }}</div><div class="label">Subjects flagged weak</div></div>
+        </div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Today's classes</h2></div></div>
+            {% if today_classes %}
+            <div class="profile-list">
+                {% for entry in today_classes %}
+                <article class="profile-row">
+                    <div class="profile-main"><h3>{{ entry.course_code|default:entry.course_name|course_label }}</h3></div>
+                    <div class="profile-detail"><strong>{{ entry.start_time|time:"H:i" }}</strong></div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">Nothing scheduled today, or your timetable isn't connected yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div><h2>Upcoming exams</h2></div>
+                <a class="button button-ghost" href="{% url 'exam_countdown' %}">Full countdown</a>
+            </div>
+            {% if upcoming_exams %}
+            <div class="profile-list">
+                {% for exam in upcoming_exams %}
+                <article class="profile-row {% if exam.days_left <= 3 %}is-warning{% endif %}">
+                    <div class="profile-main">
+                        <h3>{{ exam.subject_code|course_label }}</h3>
+                        <span class="path-text">{{ exam.kind_display }}</span>
+                    </div>
+                    <div class="profile-detail"><strong>{{ exam.days_left }} day{{ exam.days_left|pluralize }}</strong></div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">No dated exams tracked yet. Connect your timetable to pull these in.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>MUELE deadlines</h2></div></div>
+            {% if muele_deadlines %}
+            <div class="profile-list">
+                {% for item in muele_deadlines %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ item.title }}</h3>
+                        <span class="path-text">{{ item.subject_code|course_label }}</span>
+                    </div>
+                    <div class="profile-detail"><strong>{{ item.due_at|date:"Y-m-d" }}</strong></div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">No open MUELE deadlines right now.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Course units</h2></div></div>
+            {% if course_units %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for memory in course_units %}
+                <a href="{% url 'subject_memory_detail' memory.code %}" class="suggestion-token">{{ memory.code|course_label }}</a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">No subjects configured for this profile yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Past-paper risk areas</h2></div></div>
+            {% if past_paper_risk_areas %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for row in past_paper_risk_areas %}
+                <span class="suggestion-token"><strong>{{ row.topic }}</strong> <span class="path-text">({{ row.subjects|join:", " }})</span></span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">Run Past Paper Intelligence for a subject to populate this.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div><h2>Weak topics</h2></div>
+                <a class="button button-ghost" href="{% url 'weakness_radar' %}">Full radar</a>
+            </div>
+            {% if weak_radar.subject_weak_areas %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for row in weak_radar.subject_weak_areas %}
+                {% for area in row.weak_areas %}
+                <span class="suggestion-token" style="color:var(--red);">{{ row.code }}: {{ area }}</span>
+                {% endfor %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">Nothing flagged yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div><h2>Grade targets</h2></div>
+                <a class="button button-ghost" href="{% url 'grade_target_planner' %}">Full planner</a>
+            </div>
+            {% if grade_targets %}
+            <div class="profile-list">
+                {% for row in grade_targets %}
+                <article class="profile-row">
+                    <div class="profile-main"><h3>{{ row.target.subject_code|course_label }}</h3></div>
+                    <div class="profile-detail">
+                        <strong style="{% if row.result.achievable == False %}color:var(--red);{% elif row.result.achievable %}color:var(--green);{% endif %}">
+                            {% if row.result.required != None %}{{ row.result.required|floatformat:0 }}% needed{% else %}-{% endif %}
+                        </strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text">No grade targets set yet.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

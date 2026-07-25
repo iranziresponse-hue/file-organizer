@@ -142,19 +142,19 @@ def _call_ai_completion(prompt, max_tokens, service_label, ai, log=None):
     except requests.Timeout:
         if log:
             log(f"{service_label} timed out.")
-        return None, "The AI service took too long to respond. Try again."
+        return None, "Smart Orch took too long to respond. Try again."
     except requests.ConnectionError as exc:
         if log:
             log(f"{service_label} could not connect: {exc}")
-        return None, "Couldn't reach the AI service. Check your internet connection."
+        return None, "Couldn't reach Smart Orch. Check your internet connection."
     except requests.RequestException as exc:
         if log:
             log(f"{service_label} request failed: {exc}")
-        return None, "Couldn't reach the AI service. Try again in a moment."
+        return None, "Couldn't reach Smart Orch. Try again in a moment."
     except Exception as exc:  # anything unexpected. Never propagate
         if log:
             log(f"{service_label} failed unexpectedly: {exc}")
-        return None, "Couldn't reach the AI service. Try again in a moment."
+        return None, "Couldn't reach Smart Orch. Try again in a moment."
 
     if response.status_code == 413:
         if log:
@@ -163,11 +163,11 @@ def _call_ai_completion(prompt, max_tokens, service_label, ai, log=None):
     if response.status_code == 429:
         if log:
             log(f"{service_label} was rate-limited: {response.text[:300]}")
-        return None, "The AI service's rate limit was reached. Wait about a minute and try again."
+        return None, "Smart Orch's rate limit was reached. Wait about a minute and try again."
     if response.status_code in (401, 403):
         if log:
             log(f"{service_label} rejected the API key: {response.text[:300]}")
-        return None, "Your AI API key was rejected. Check ai_config.json."
+        return None, "Your Smart Orch API key was rejected. Check it in Settings."
 
     try:
         response.raise_for_status()
@@ -175,10 +175,10 @@ def _call_ai_completion(prompt, max_tokens, service_label, ai, log=None):
     except Exception as exc:
         if log:
             log(f"{service_label} returned an unexpected response: {exc}")
-        return None, "The AI service returned an unexpected response. Try again."
+        return None, "Smart Orch returned an unexpected response. Try again."
 
     if not content:
-        return None, "The AI service returned an empty response. Try again."
+        return None, "Smart Orch returned an empty response. Try again."
 
     return content, None
 
@@ -193,7 +193,18 @@ def _sanitize(content):
 def generate_summary(file_path, log=None):
     """Returns (content, None) on success or (None, error_message) on
     failure. content is raw structured text (the "# "/"## " convention),
-    ready for parse_structured_text()."""
+    ready for parse_structured_text().
+
+    Thin timing wrapper around _generate_summary_impl() -- see process_file()
+    in sorting.py for why this stays a separate wrapper rather than timing
+    code inlined among this function's several early returns."""
+    from . import perf
+
+    with perf.measure("summary_generate", detail=Path(file_path).name):
+        return _generate_summary_impl(file_path, log=log)
+
+
+def _generate_summary_impl(file_path, log=None):
     file_path = Path(file_path)
     ext = file_path.suffix.lstrip(".").lower()
 
@@ -205,7 +216,7 @@ def generate_summary(file_path, log=None):
 
     ai = ai_classify.load_ai_config()
     if not ai or not ai.get("enabled") or not ai.get("api_key"):
-        return None, "AI isn't configured yet. Add your API key to ai_config.json to use summaries."
+        return None, "Smart Orch isn't turned on yet. Set it up from Settings to use summaries."
 
     source_text = extract_text(file_path)
     if len(source_text.strip()) < MIN_SOURCE_CHARS:
@@ -255,14 +266,23 @@ def generate_course_guide(course_code, program="", level="", log=None):
     there is no source document to ground this in -- just the course code
     and whatever program/level context the caller has -- so the prompt is
     explicit about not inventing institution-specific facts it cannot know.
-    """
+
+    Thin timing wrapper around _generate_course_guide_impl() -- same reason
+    as generate_summary()'s wrapper above."""
+    from . import perf
+
+    with perf.measure("course_guide_generate", detail=(course_code or "").strip()):
+        return _generate_course_guide_impl(course_code, program=program, level=level, log=log)
+
+
+def _generate_course_guide_impl(course_code, program="", level="", log=None):
     course_code = (course_code or "").strip()
     if not course_code:
         return None, "No course code given."
 
     ai = ai_classify.load_ai_config()
     if not ai or not ai.get("enabled") or not ai.get("api_key"):
-        return None, "AI isn't configured yet. Add your API key to ai_config.json to use course guides."
+        return None, "Smart Orch isn't turned on yet. Set it up from Settings to use course guides."
 
     prompt = COURSE_GUIDE_PROMPT_TEMPLATE.format(
         course_code=course_code,

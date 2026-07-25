@@ -8,6 +8,7 @@ and are logged as MoveEvent entries with method="muele_sync".
 """
 
 import hashlib
+import logging
 import os
 import time
 from datetime import datetime, timedelta
@@ -19,6 +20,8 @@ import requests
 
 from . import muele_api, rules as routing_rules
 from .paths import BASE_DIR
+
+logger = logging.getLogger("organizer.muele_downloader")
 
 # How often to check for new files (in seconds)
 _DEFAULT_POLL_INTERVAL = 30 * 60  # 30 minutes
@@ -87,11 +90,17 @@ def _file_fingerprint(file_url: str, file_size: int) -> str:
 
 def download_file(
     file_info: dict,
-    profile_root: str | None,
+    profile,
     token: str | None = None,
     log: Callable | None = None,
 ) -> str | None:
-    """Download a file from MUELE and route it through Orch's rules engine.
+    """Download a file from MUELE and route it through Orch's rules engine,
+    into `profile`'s own folders. Takes the profile explicitly rather than
+    reading Profile.get_active() -- this can run from a background sync
+    loop syncing a profile that isn't the one currently active in the UI,
+    and files must land in (and MoveEvents attribute to) the profile that
+    was actually being synced, not whichever one happens to be active at
+    the moment the download finishes.
 
     Returns the destination path string on success, None on failure.
     """
@@ -153,11 +162,10 @@ def download_file(
         local_path.unlink(missing_ok=True)
         return None
 
-    # Route using the live active profile's settings
-    from organizer.models import AppSettings, Profile
+    # Route using the profile actually being synced, not Profile.get_active()
+    from organizer.models import AppSettings
 
-    profile = Profile.get_active()
-    profile_root = profile.root_path if profile else profile_root
+    profile_root = profile.root_path if profile else None
     settings = AppSettings.get_solo()
 
     dest = routing_rules.get_destination(
@@ -212,7 +220,7 @@ def download_file(
             filename=filename,
             source_path=str(file_url),
             destination_path=str(dest_path),
-            course_id=course_id,
+            course_code=str(course_id),
             success=True,
         )
 
@@ -227,7 +235,7 @@ def download_file(
             filename=filename,
             source_path=str(file_url),
             destination_path=str(dest_path),
-            course_id=course_id,
+            course_code=str(course_id),
             success=False,
             error_message=str(exc),
         )
@@ -239,8 +247,8 @@ def _record_muele_event(**fields) -> None:
 
     try:
         MoveEvent.objects.create(method="muele_sync", **fields)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Could not record MoveEvent for MUELE sync: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -269,7 +277,7 @@ def sync_profile_courses(
         return result
 
     if token is None:
-        token = muele_api.load_token()
+        token = muele_api.load_connection_token(connection)
     if not token:
         if log:
             log("MUELE sync skipped: no token in keyring")
@@ -279,8 +287,6 @@ def sync_profile_courses(
     courses = MueleCourse.objects.filter(connection=connection, auto_download=True)
     if course_ids:
         courses = courses.filter(course_id__in=course_ids)
-
-    profile_root = profile.root_path
 
     for course in courses:
         try:
@@ -296,7 +302,7 @@ def sync_profile_courses(
                     result["skipped"] += 1
                     continue
 
-                dest = download_file(file_info, profile_root, token=token, log=log)
+                dest = download_file(file_info, profile, token=token, log=log)
                 if dest:
                     result["downloaded"] += 1
                 else:
@@ -311,9 +317,21 @@ def sync_profile_courses(
                 log(f"MUELE sync crashed for '{course.course_name}': {exc}")
             result["errors"] += 1
 
-    # Update connection's last_sync_at
-    connection.last_sync_at = datetime.now()
-    connection.save(update_fields=["last_sync_at", "updated_at"])
+    # last_sync_at means "last time this genuinely worked", not "last time
+    # a sync was attempted" -- so unstable campus internet showing a string
+    # of errors doesn't quietly overwrite the last known-good timestamp
+    # with "just now". A sync with zero errors updates it and clears the
+    # error status; one with any errors leaves the old timestamp alone and
+    # flags the connection so the UI can say "last successful sync was
+    # <real date>, most recent attempt failed" instead of just lying with
+    # a freshly-bumped clock.
+    if result["errors"] == 0:
+        connection.last_sync_at = datetime.now()
+        connection.status = "connected"
+        connection.save(update_fields=["last_sync_at", "status", "updated_at"])
+    else:
+        connection.status = "error"
+        connection.save(update_fields=["status", "updated_at"])
 
     return result
 
@@ -343,7 +361,7 @@ def sync_assignments(
         return 0
 
     if token is None:
-        token = muele_api.load_token()
+        token = muele_api.load_connection_token(connection)
     if not token:
         return 0
 
@@ -419,16 +437,9 @@ def run_muele_sync(
 
     while stop_event is None or not stop_event.is_set():
         try:
-            token = muele_api.load_token()
-            if not token:
-                _log("MUELE sync skipped: no token configured")
-                if stop_event is not None:
-                    stop_event.wait(poll_seconds)
-                else:
-                    time.sleep(poll_seconds)
-                continue
-
-            # Find all profiles with connected MUELE integrations
+            # Find all profiles with connected MUELE integrations. Each
+            # connection's token is its own -- loaded per-iteration below,
+            # never shared across profiles (see load_connection_token).
             connections = IntegrationConnection.objects.filter(
                 provider="muele", status="connected"
             ).select_related("profile")
@@ -436,6 +447,11 @@ def run_muele_sync(
             for connection in connections:
                 profile = connection.profile
                 if not profile:
+                    continue
+
+                token = muele_api.load_connection_token(connection)
+                if not token:
+                    _log(f"MUELE sync skipped for '{profile.name}': no token configured")
                     continue
 
                 _log(f"MUELE syncing profile: {profile.name}")

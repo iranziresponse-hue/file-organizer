@@ -71,21 +71,26 @@
                         <input type="text" id="category" name="category" placeholder="e.g. Lecture Notes">
                     </div>
                 </div>
-            <label style="display:flex;align-items:center;gap:10px;text-transform:none;font-weight:500;color:var(--muted);">
-                <input type="checkbox" name="enabled" style="width:auto;" checked> Enable rule immediately
-            </label>
-            <div class="form-section">
-                <div class="form-section-header">
-                    <h3>Test this rule</h3>
-                    <p>Enter a sample filename to check if this rule matches before saving.</p>
+                <label class="setting-switch">
+                    <input type="checkbox" name="enabled" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Enable immediately</strong>
+                        <span>Start applying this rule as soon as it is saved</span>
+                    </span>
+                </label>
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <h3>Test this rule</h3>
+                        <p>Enter a sample filename to check if this rule matches before saving.</p>
+                    </div>
+                    <div class="field-control" style="margin-bottom:8px;">
+                        <input type="text" id="test-filename" placeholder="e.g. CSC2100_Assignment.pdf" style="font-family:monospace;">
+                        <button type="button" id="test-rule-btn" class="button-ghost">Test</button>
+                    </div>
+                    <div id="test-result" class="help-text" style="display:none;padding:8px 12px;border-radius:10px;"></div>
                 </div>
-                <div class="field-control" style="margin-bottom:8px;">
-                    <input type="text" id="test-filename" placeholder="e.g. CSC2100_Assignment.pdf" style="font-family:monospace;">
-                    <button type="button" id="test-rule-btn" class="button-ghost">Test</button>
-                </div>
-                <div id="test-result" class="help-text" style="display:none;padding:8px 12px;border-radius:10px;"></div>
-            </div>
-            <div class="form-actions"><button type="submit">Create rule</button></div>
+                <div class="form-actions"><button type="submit">Create rule</button></div>
             </form>
         </div>
         <div class="card compact-card">
@@ -107,7 +112,7 @@
                     </div>
                     <div class="profile-detail">
                         <span class="path-text">Status</span>
-                        <strong>{% if rule.enabled %}[Done] Active{% else %}⏸️ Paused{% endif %}</strong>
+                        <strong>{% if rule.enabled %}Active{% else %}Paused{% endif %}</strong>
                     </div>
                     <div class="profile-actions" style="display:flex;gap:6px;">
                         <form method="post" style="display:inline;">
@@ -134,6 +139,8 @@
         </div>
     </section>
 </div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
 (function() {
@@ -147,8 +154,8 @@
         var filename = testInput.value.trim();
         if (!filename) {
             resultDiv.style.display = 'block';
-            resultDiv.style.background = 'rgba(255,107,107,0.1)';
-            resultDiv.style.borderColor = 'rgba(255,107,107,0.3)';
+            resultDiv.style.background = 'rgba(239,51,64,0.1)';
+            resultDiv.style.borderColor = 'rgba(239,51,64,0.3)';
             resultDiv.textContent = 'Enter a filename to test.';
             return;
         }
@@ -173,21 +180,21 @@
             resultDiv.style.display = 'block';
             resultDiv.textContent = '';
             if (data.matched) {
-                resultDiv.style.background = 'rgba(74,222,128,0.1)';
-                resultDiv.style.borderColor = 'rgba(74,222,128,0.3)';
+                resultDiv.style.background = 'rgba(31,122,63,0.1)';
+                resultDiv.style.borderColor = 'rgba(47,180,111,0.3)';
                 var matchLabel = document.createElement('strong');
                 matchLabel.textContent = 'Match! ';
                 resultDiv.appendChild(matchLabel);
                 resultDiv.appendChild(document.createTextNode(data.action));
             } else {
-                resultDiv.style.background = 'rgba(255,107,107,0.1)';
-                resultDiv.style.borderColor = 'rgba(255,107,107,0.3)';
+                resultDiv.style.background = 'rgba(239,51,64,0.1)';
+                resultDiv.style.borderColor = 'rgba(239,51,64,0.3)';
                 resultDiv.textContent = 'No match. ' + data.action;
             }
         })
         .catch(function() {
             resultDiv.style.display = 'block';
-            resultDiv.style.background = 'rgba(255,107,107,0.1)';
+            resultDiv.style.background = 'rgba(239,51,64,0.1)';
             resultDiv.textContent = 'Error testing rule.';
         });
     });

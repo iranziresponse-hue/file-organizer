@@ -1,0 +1,195 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Assignment Tracker - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Assignment tracker</h2>
+            <p>Every deadline in one place, with a checklist and evidence per assignment. Students fail quietly when deadlines scatter; this makes them impossible to ignore.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ open_count }}</div><div class="label">Open</div></div>
+        <div class="stat"><div class="value value-success">{{ grouped.submitted|length }}</div><div class="label">Submitted</div></div>
+        <div class="stat"><div class="value value-danger">{{ grouped.missed|length }}</div><div class="label">Missed</div></div>
+        <div class="stat"><div class="value value-muted">{{ total_count }}</div><div class="label">Total tracked</div></div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Add an assignment</h2>
+                <p class="card-subtitle">MUELE-synced assignments appear automatically; this is for anything else</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" placeholder="e.g. CSC2100 Assignment 2" required>
+                </div>
+                <div class="field">
+                    <label for="subject_code">Subject code</label>
+                    <input type="text" id="subject_code" name="subject_code" placeholder="e.g. CSC2100">
+                </div>
+            </div>
+            <div class="form-two">
+                <div class="field">
+                    <label for="due_at">Due date</label>
+                    <input type="datetime-local" id="due_at" name="due_at">
+                </div>
+                <div class="field">
+                    <label for="notes">Notes / rubric</label>
+                    <input type="text" id="notes" name="notes" placeholder="Optional">
+                </div>
+            </div>
+            <div class="field">
+                <label for="checklist_text">Checklist (one step per line)</label>
+                <textarea id="checklist_text" name="checklist_text" rows="3" placeholder="Read the brief&#10;Draft outline&#10;Write and review&#10;Submit on MUELE"></textarea>
+            </div>
+            <div class="form-actions"><button type="submit">Add assignment</button></div>
+        </form>
+    </section>
+
+    {% for status, label in status_labels %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div><h2>{{ label }} ({{ grouped|get_item:status|length }})</h2></div>
+        </div>
+        {% with items=grouped|get_item:status %}
+        {% if items %}
+        <div class="profile-list">
+            {% for item in items %}
+            <article class="profile-row assignment-row">
+                <div class="profile-main">
+                    <h3>{{ item.title }}</h3>
+                    <span class="path-text">{{ item.subject_code|default:"No subject" }}{% if item.notes %} &middot; {{ item.notes }}{% endif %}</span>
+                    {% if item.evidence_path %}<span class="path-text assignment-evidence">Evidence: {{ item.evidence_path }}</span>{% endif %}
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Due</span>
+                    <strong class="{% if item.due_at and item.due_at < now %}text-danger{% endif %}">
+                        {{ item.due_at|date:"Y-m-d H:i"|default:"No deadline" }}
+                    </strong>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">Checklist</span>
+                    {% with done=item.checklist_progress.0 total=item.checklist_progress.1 %}
+                    <strong>
+                        {% if total %}{{ done }}/{{ total }}
+                            {% if item.draft_status == "not_started" %}<span class="text-muted"> &middot; Not started</span>
+                            {% elif item.draft_status == "in_progress" %}<span class="text-info"> &middot; In progress</span>
+                            {% else %}<span class="text-success"> &middot; Ready to submit</span>{% endif %}
+                        {% else %}No checklist{% endif %}
+                    </strong>
+                    {% endwith %}
+                </div>
+                <div class="profile-actions stacked-actions">
+                    <div class="compact-action-row">
+                        {% if item.status == "open" %}
+                        <form method="post" action="{% url 'assignment_tracker_item_update' item.pk %}" class="inline-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="mark_submitted">
+                            <button type="submit" class="button button-compact">Mark submitted</button>
+                        </form>
+                        {% endif %}
+                        <button type="button" class="button-ghost button-compact edit-assignment-btn" data-pk="{{ item.pk }}">Edit</button>
+                        <form method="post" action="{% url 'assignment_tracker_item_delete' item.pk %}" class="inline-form" onsubmit="return confirm('Delete this assignment?');">
+                            {% csrf_token %}
+                            <button type="submit" class="button-ghost button-compact button-danger-soft">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                {% if item.checklist %}
+                <div class="assignment-checklist">
+                    {% for check in item.checklist %}
+                    <form method="post" action="{% url 'assignment_tracker_item_update' item.pk %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_checklist_item">
+                        <input type="hidden" name="index" value="{{ forloop.counter0 }}">
+                        <button type="submit" class="suggestion-token {% if check.done %}text-success{% endif %}">
+                            {% if check.done %}&#10003;{% else %}&#9633;{% endif %} {{ check.text }}
+                        </button>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Edit panel (hidden, shown via JS) -->
+                <div class="assignment-edit-panel" data-pk="{{ item.pk }}" hidden>
+                    <form method="post" action="{% url 'assignment_tracker_item_update' item.pk %}" class="form-grid">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update">
+                        <div class="form-two">
+                            <div class="field">
+                                <label>Title</label>
+                                <input type="text" name="title" value="{{ item.title }}">
+                            </div>
+                            <div class="field">
+                                <label>Subject code</label>
+                                <input type="text" name="subject_code" value="{{ item.subject_code }}">
+                            </div>
+                        </div>
+                        <div class="form-two">
+                            <div class="field">
+                                <label>Due date</label>
+                                <input type="datetime-local" name="due_at" value="{{ item.due_at|date:'Y-m-d\TH:i' }}">
+                            </div>
+                            <div class="field">
+                                <label>Status</label>
+                                <select name="status" data-premium-select>
+                                    <option value="open" {% if item.status == "open" %}selected{% endif %}>Open</option>
+                                    <option value="submitted" {% if item.status == "submitted" %}selected{% endif %}>Submitted</option>
+                                    <option value="missed" {% if item.status == "missed" %}selected{% endif %}>Missed</option>
+                                    <option value="archived" {% if item.status == "archived" %}selected{% endif %}>Archived</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Evidence path</label>
+                            <div class="field-control">
+                                <input type="text" id="assignment-evidence-{{ item.pk }}" name="evidence_path" value="{{ item.evidence_path }}" placeholder="Draft, submission proof, etc.">
+                                <button type="button" class="button-ghost" onclick="openFolderBrowser('assignment-evidence-{{ item.pk }}')">Browse</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Notes / rubric</label>
+                            <textarea name="notes" rows="2">{{ item.notes }}</textarea>
+                        </div>
+                        <div class="field">
+                            <label>Checklist (one step per line, "[x] " marks it done)</label>
+                            <textarea name="checklist_text" rows="4">{{ item.checklist|checklist_text }}</textarea>
+                        </div>
+                        <div class="form-actions"><button type="submit">Save changes</button></div>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">Nothing here.</p>
+        {% endif %}
+        {% endwith %}
+    </section>
+    {% endfor %}
+</div>
+
+<script>
+(function(){
+    document.querySelectorAll('.edit-assignment-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var panel = document.querySelector('.assignment-edit-panel[data-pk="' + this.dataset.pk + '"]');
+            if (panel) panel.hidden = !panel.hidden;
+        });
+    });
+})();
+</script>
+{% endblock %}

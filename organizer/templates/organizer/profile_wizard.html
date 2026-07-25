@@ -121,10 +121,23 @@
                     <p class="card-subtitle">Subject-code and topic-keyword matching are always on. This is the only optional extra.</p>
                 </div>
             </div>
-            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                <input type="checkbox" name="ai_fallback_enabled" style="width:auto;" {% if form.ai_fallback_enabled %}checked{% endif %}>
-                Use smart fallback for files nothing else can place (advanced, needs your private key in local config)
+            <label class="setting-switch">
+                <input type="checkbox" name="ai_fallback_enabled" {% if form.ai_fallback_enabled %}checked{% endif %}>
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="setting-switch-copy">
+                    <strong>Smart fallback routing</strong>
+                    <span>Let Smart Orch suggest a folder when no subject or topic matches</span>
+                </span>
             </label>
+            <details style="margin-top:8px; color:var(--muted);">
+                <summary style="cursor:pointer; font-size:0.85rem;">Needs a free API key first. How do I get one?</summary>
+                <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
+                    <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> and sign up (free)</li>
+                    <li>Click <strong>Create API Key</strong>, name it "Orch", and copy it</li>
+                    <li>Copy <code>ai_config.example.json</code> to <code>ai_config.json</code> next to Orch, and paste the key into <code>api_key</code></li>
+                </ol>
+                <p style="font-size:0.85rem; margin-top:8px;">Without a key, this toggle does nothing: files that match no subject or topic still go to this profile's Unsorted folder.</p>
+            </details>
         </section>
 
         <div class="form-actions">

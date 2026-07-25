@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load orch_extras %}
 
 {% block title %}Knowledge Packs - Orch{% endblock %}
 
@@ -55,7 +56,7 @@
                     <label for="subject_code">Subject code</label>
                     <select id="subject_code" name="subject_code">
                         {% for memory in subject_memories %}
-                        <option value="{{ memory.code }}">{{ memory.code }} - {{ memory.resource_count }} resources</option>
+                        <option value="{{ memory.code }}">{{ memory.code|course_label }} - {{ memory.resource_count }} resources</option>
                         {% empty %}
                         <option value="">- No subjects available -</option>
                         {% endfor %}

@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load orch_extras %}
 
 {% block title %}{{ memory.code }} Memory - Orch{% endblock %}
 
@@ -7,7 +8,7 @@
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>{{ memory.code }}: {{ memory.title|default:memory.code }}</h2>
+            <h2>{{ memory.code|course_label }}</h2>
             <p>Subject memory, resources, themes, deadlines, and guides - all in one place.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -24,33 +25,77 @@
                 <button type="submit" class="button-ghost">Generate guide</button>
             </form>
             {% endif %}
+            <a class="button button-ghost" href="{% url 'past_paper_analysis' memory.code %}">Past paper intelligence</a>
             <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
         </div>
     </section>
 
-    <!-- Stats Row -->
+    <!-- Course Unit Brain: at-a-glance stats -->
     <section class="overview-grid">
         <div class="stat-row" style="grid-column:1/-1;">
             <div class="stat stat-primary">
-                <div class="value">{{ memory.resource_count }}</div>
-                <div class="label">Resources sorted</div>
+                <div class="value">{{ lecture_notes_count }}</div>
+                <div class="label">Lecture notes</div>
             </div>
             <div class="stat">
-                <div class="value">{{ themes|length }}</div>
-                <div class="label">Focus themes</div>
+                <div class="value">{{ past_papers_count }}</div>
+                <div class="label">Past papers</div>
             </div>
             <div class="stat">
-                <div class="value">{{ assignments|length }}</div>
-                <div class="label">Assignments</div>
+                <div class="value">{{ open_assignments_count }}</div>
+                <div class="label">Open assignments</div>
             </div>
             <div class="stat">
-                <div class="value">{{ reviews_count }}</div>
-                <div class="label">Reviews pending</div>
+                <div class="value">{{ reviews_done_count }} / {{ reviews_done_count|add:reviews_queued_count }}</div>
+                <div class="label">Revision status</div>
             </div>
             <div class="stat">
-                <div class="value">{% if memory.last_touched_at %}{{ memory.last_touched_at|timesince }} ago{% else %}-{% endif %}</div>
-                <div class="label">Last activity</div>
+                <div class="value">{{ weak_topics_count }}</div>
+                <div class="label">Weak topics</div>
             </div>
+        </div>
+    </section>
+
+    <!-- Focus areas / weak topics -->
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Focus areas</h2>
+                    <p class="card-subtitle">Top topics detected across your files</p>
+                </div>
+            </div>
+            {% if top_themes %}
+            <div class="meta-list" style="margin-top:12px;">
+                {% for theme in top_themes %}
+                <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
+                    <strong>{{ theme.name }}</strong>
+                    <span class="path-text">({{ theme.weight }})</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:12px;">Focus areas appear as files accumulate for this subject.</p>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header">
+                <div>
+                    <h2>Weak topics</h2>
+                    <p class="card-subtitle">Flagged as needing more work</p>
+                </div>
+                <a class="button button-ghost" href="{% url 'weakness_radar' %}">Full radar</a>
+            </div>
+            {% if memory.weak_areas %}
+            <div class="meta-list" style="margin-top:12px;">
+                {% for area in memory.weak_areas %}
+                <span class="suggestion-token" style="color:var(--red);">{{ area }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:12px;">Nothing flagged yet.</p>
+            {% endif %}
         </div>
     </section>
 
@@ -88,6 +133,7 @@
                     <h2>Assignments</h2>
                     <p class="card-subtitle">Deadlines and submission status</p>
                 </div>
+                <a class="button button-ghost" href="{% url 'assignment_tracker' %}">Manage</a>
             </div>
             {% if assignments %}
             <div class="profile-list" style="margin-top:12px;">
@@ -126,49 +172,54 @@
         </div>
     </section>
 
-    <!-- Recent Resources -->
+    <!-- Resources, grouped by what they are -->
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h2>Recent resources ({{ resources|length }})</h2>
-                <p class="card-subtitle">Files sorted to this subject, latest first</p>
+                <h2>Resources ({{ resources|length }})</h2>
+                <p class="card-subtitle">Files sorted to this subject, grouped by category, latest first within each</p>
             </div>
         </div>
         {% if resources %}
-        <div class="table-shell">
-            <table>
-                <tr><th>Time</th><th>File</th><th>Category</th><th>Method</th><th>Summary</th></tr>
-                {% for event in resources %}
-                <tr>
-                    <td>{{ event.timestamp|date:"Y-m-d H:i" }}</td>
-                    <td>{{ event.filename }}</td>
-                    <td>
-                        {% if event.method == "muele_sync" %}
-                            <span class="meta-token">MUELE</span>
-                        {% else %}
-                            <span class="meta-token">{{ event.get_method_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td><span class="path-text">{{ event.get_method_display }}</span></td>
-                    <td>
-                        {% if event.is_summarizable %}
-                            {% if event.summary %}
-                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">
-                                View
-                            </button>
+        {% for label, events in resource_buckets.items %}
+        {% if events %}
+        <details style="margin-top:12px;" open>
+            <summary style="cursor:pointer; font-weight:600;">
+                {{ label }} ({{ events|length }})
+                {% if label == "Past Papers & Tests" %}
+                <a href="{% url 'past_paper_analysis' memory.code %}" class="path-text" style="font-weight:400; margin-left:8px;">Analyze &rarr;</a>
+                {% endif %}
+            </summary>
+            <div class="table-shell" style="margin-top:8px;">
+                <table>
+                    <tr><th>Time</th><th>File</th><th>Method</th><th>Summary</th></tr>
+                    {% for event in events %}
+                    <tr>
+                        <td>{{ event.timestamp|date:"Y-m-d H:i" }}</td>
+                        <td>{{ event.filename }}</td>
+                        <td><span class="path-text">{{ event.get_method_display }}</span></td>
+                        <td>
+                            {% if event.is_summarizable %}
+                                {% if event.summary %}
+                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">
+                                    View
+                                </button>
+                                {% else %}
+                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">
+                                    Summarize
+                                </button>
+                                {% endif %}
                             {% else %}
-                            <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">
-                                Summarize
-                            </button>
+                                <span class="path-text">-</span>
                             {% endif %}
-                        {% else %}
-                            <span class="path-text">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </details>
+        {% endif %}
+        {% endfor %}
         {% else %}
         <div class="empty-state">
             <span class="empty-icon" aria-hidden="true">

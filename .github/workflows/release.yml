@@ -34,17 +34,18 @@ jobs:
       - name: Build Orch.exe
         run: pyinstaller Orch.spec
 
-      - name: Zip the build output
-        # Orch.spec builds a one-file exe (dist\Orch.exe), not a folder.
-        run: Compress-Archive -Path dist\Orch.exe -DestinationPath Orch-windows.zip
-
       - uses: actions/upload-artifact@v4
         with:
           name: Orch-windows
-          path: Orch-windows.zip
+          path: dist\Orch.exe
 
       - name: Attach to release
+        # Uploaded unzipped: the README and the landing page's download
+        # button both point directly at .../releases/latest/download/Orch.exe,
+        # and Orch.spec already builds one self-contained file -- an extra
+        # zip step would only add an unzip step for the exact non-technical
+        # users this is aimed at, for no real benefit.
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Orch-windows.zip
+          files: dist\Orch.exe

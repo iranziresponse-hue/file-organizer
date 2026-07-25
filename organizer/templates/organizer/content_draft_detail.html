@@ -1,0 +1,170 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}{{ draft.topic|default:"Draft" }} - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>{{ draft.topic|default:draft.get_post_type_display }}</h2>
+            <p>{{ draft.get_post_type_display }} &middot; <span class="status-dot {% if draft.status == 'posted' %}is-live{% elif draft.status == 'approved' %}is-warning{% endif %}">{{ draft.get_status_display }}</span></p>
+        </div>
+        <div class="inline-actions-start">
+            {% if draft.status == "draft" %}
+            <form method="post" action="{% url 'content_draft_approve' draft.pk %}">
+                {% csrf_token %}
+                <button type="submit">Approve</button>
+            </form>
+            {% endif %}
+            {% if draft.status == "approved" %}
+            <form method="post" action="{% url 'content_draft_mark_posted' draft.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="button-live">I posted this</button>
+            </form>
+            {% endif %}
+            <a class="button button-ghost" href="{% url 'content_drafts' %}">Back to drafts</a>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Edit</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label>Topic</label>
+                    <input type="text" name="topic" value="{{ draft.topic }}">
+                </div>
+                <div class="field">
+                    <label>Type</label>
+                    <select name="post_type" data-premium-select>
+                        {% for value, label in draft.POST_TYPE_CHOICES %}
+                        <option value="{{ value }}" {% if draft.post_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label>Raw text</label>
+                <textarea name="raw_text" rows="5">{{ draft.raw_text }}</textarea>
+            </div>
+            <div class="field">
+                <label>Hashtags (comma separated)</label>
+                <input type="text" name="hashtags" value="{{ hashtags_text }}">
+            </div>
+            <div class="form-actions"><button type="submit">Save</button></div>
+        </form>
+    </section>
+
+    <section class="overview-grid">
+        {% for style, field_value, label in variants %}
+        <div class="card compact-card">
+            <div class="card-header">
+                <div><h2>{{ label }}</h2></div>
+                {% if ai_enabled %}
+                <form method="post" action="{% url 'content_draft_polish' draft.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="style" value="{{ style }}">
+                    <button type="submit" class="button-ghost">{% if field_value %}Regenerate{% else %}Generate{% endif %}</button>
+                </form>
+                {% endif %}
+            </div>
+            {% if field_value %}
+            <p class="help-text copy-source copy-block">{{ field_value }}</p>
+            <button type="button" class="button-ghost copy-btn">Copy to clipboard</button>
+            {% elif ai_enabled %}
+            <p class="help-text">Not generated yet.</p>
+            {% else %}
+            <p class="help-text">Not generated yet; needs Smart Orch turned on in Settings.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Raw text</h2></div></div>
+        <p class="help-text copy-source copy-block">{{ draft.raw_text }}</p>
+        <button type="button" class="button-ghost copy-btn">Copy to clipboard</button>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Publish & export</h2>
+                <p class="card-subtitle">Send the raw text straight to a connected channel, or export it for anywhere else.</p>
+            </div>
+            <a class="button-ghost" href="{% url 'publishing_channels' %}">Manage channels</a>
+        </div>
+        {% if draft.status != "approved" %}
+        <p class="help-text">Approve this draft before publishing to a channel.</p>
+        {% endif %}
+        {% if channels %}
+        <div class="inline-actions-spaced">
+            {% for channel in channels %}
+            <form method="post" action="{% url 'content_draft_publish' draft.pk channel.pk %}">
+                {% csrf_token %}
+                <button type="submit" {% if draft.status != "approved" %}disabled title="Approve this draft first"{% endif %}>Publish to {{ channel.display_name }}</button>
+            </form>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No channels connected yet. <a href="{% url 'publishing_channels' %}">Connect one</a>.</p>
+        {% endif %}
+        <div class="inline-actions-start">
+            <a class="button button-ghost" href="{% url 'content_draft_export_markdown' draft.pk %}">Export Markdown</a>
+            <a class="button button-ghost" href="{% url 'content_draft_export_html' draft.pk %}">Export HTML</a>
+        </div>
+        {% if published_posts %}
+        <div class="meta-list meta-list-wide">
+            {% for post in published_posts %}
+            <p class="help-text">
+                {{ post.created_at|date:"M j, Y, g:i A" }} &middot;
+                {% if post.channel %}{{ post.channel.display_name }}{% else %}deleted channel{% endif %} &middot;
+                <span class="status-dot {% if post.status == 'sent' %}is-live{% elif post.status == 'failed' %}is-warning{% endif %}">{{ post.get_status_display }}</span>
+                {% if post.external_url %}&middot; <a href="{{ post.external_url }}" target="_blank" rel="noopener">View live</a>{% endif %}
+                {% if post.status == "failed" and post.error_message %}&middot; {{ post.error_message }}{% endif %}
+            </p>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Hashtags</h2></div></div>
+        {% if draft.hashtags %}
+        <div class="meta-list meta-list-spaced">
+            {% for tag in draft.hashtags %}
+            <span class="suggestion-token">#{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No hashtags suggested.</p>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <form method="post" action="{% url 'content_draft_delete' draft.pk %}" onsubmit="return confirm('Delete this draft?');">
+            {% csrf_token %}
+            <button type="submit" class="button-ghost button-danger-soft">Delete draft</button>
+        </form>
+    </section>
+</div>
+
+<script>
+(function(){
+    document.querySelectorAll('.copy-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var source = this.previousElementSibling;
+            if (!source) return;
+            navigator.clipboard.writeText(source.textContent.trim()).then(function(){
+                var original = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(function(){ btn.textContent = original; }, 1500);
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

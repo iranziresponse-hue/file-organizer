@@ -40,17 +40,29 @@
                     <h3>Sync plan</h3>
                     <p>These targets are saved now so the connector can use them later.</p>
                 </div>
-                <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                    <input type="checkbox" name="sync_targets" value="course_files" style="width:auto;" checked>
-                    Course files and lecture notes
+                <label class="setting-switch">
+                    <input type="checkbox" name="sync_targets" value="course_files" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Course files</strong>
+                        <span>Course files and lecture notes</span>
+                    </span>
                 </label>
-                <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                    <input type="checkbox" name="sync_targets" value="assignments" style="width:auto;" checked>
-                    Assignments and deadlines
+                <label class="setting-switch">
+                    <input type="checkbox" name="sync_targets" value="assignments" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Assignments</strong>
+                        <span>Assignments and deadlines</span>
+                    </span>
                 </label>
-                <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                    <input type="checkbox" name="sync_targets" value="calendar" style="width:auto;" checked>
-                    Calendar and review planning
+                <label class="setting-switch">
+                    <input type="checkbox" name="sync_targets" value="calendar" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Calendar signals</strong>
+                        <span>Calendar and review planning</span>
+                    </span>
                 </label>
             </div>
 

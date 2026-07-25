@@ -27,12 +27,6 @@ def import_courses_for_profile(profile, token: str | None = None, log: Callable 
 
     result = {"imported": 0, "total": 0, "errors": []}
 
-    if token is None:
-        token = muele_api.load_token()
-    if not token:
-        result["errors"].append("No MUELE token configured")
-        return result
-
     # Get or create the connection
     connection, _ = IntegrationConnection.objects.get_or_create(
         profile=profile,
@@ -43,6 +37,13 @@ def import_courses_for_profile(profile, token: str | None = None, log: Callable 
             "status": "connected",
         },
     )
+
+    if token is None:
+        token = muele_api.load_connection_token(connection)
+    if not token:
+        result["errors"].append("No MUELE token configured")
+        return result
+
     connection.status = "connected"
     connection.last_sync_at = timezone.now()
     connection.save()
@@ -115,7 +116,8 @@ def sync_assignments_from_muele(profile, token: str | None = None, log: Callable
     result = {"created": 0, "updated": 0, "errors": []}
 
     if token is None:
-        token = muele_api.load_token()
+        connection = IntegrationConnection.objects.filter(profile=profile, provider="muele").first()
+        token = muele_api.load_connection_token(connection) if connection else None
     if not token:
         result["errors"].append("No MUELE token configured")
         return result
@@ -178,12 +180,6 @@ def sync_course_files(profile, token: str | None = None, log: Callable | None = 
 
     result = {"downloaded": 0, "skipped": 0, "errors": 0}
 
-    if token is None:
-        token = muele_api.load_token()
-    if not token:
-        result["errors"] = 1
-        return result
-
     connection = IntegrationConnection.objects.filter(
         profile=profile, provider="muele", status="connected"
     ).first()
@@ -191,8 +187,13 @@ def sync_course_files(profile, token: str | None = None, log: Callable | None = 
         result["errors"] = 1
         return result
 
+    if token is None:
+        token = muele_api.load_connection_token(connection)
+    if not token:
+        result["errors"] = 1
+        return result
+
     courses = MueleCourse.objects.filter(connection=connection, auto_download=True)
-    profile_root = profile.root_path
 
     for course in courses:
         files, error = muele_api.get_course_files(course.course_id, token=token, log=log)
@@ -204,7 +205,7 @@ def sync_course_files(profile, token: str | None = None, log: Callable | None = 
 
         for file_info in files:
             from .muele_downloader import download_file
-            dest = download_file(file_info, profile_root, token=token, log=log)
+            dest = download_file(file_info, profile, token=token, log=log)
             if dest:
                 result["downloaded"] += 1
             else:

@@ -26,9 +26,9 @@
         place-items: center;
         border-radius: 16px;
         color: #E8ECF2;
-        background: linear-gradient(180deg, rgba(110, 168, 255, 0.2), rgba(167, 139, 250, 0.1));
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 0 24px rgba(110, 168, 255, 0.22);
+        background: linear-gradient(180deg, rgba(31, 122, 63, 0.22), rgba(242, 201, 76, 0.12));
+        border: 1px solid rgba(242, 201, 76, 0.28);
+        box-shadow: 0 0 24px rgba(31, 122, 63, 0.22);
     }
 
     .owner-icon svg {
@@ -51,8 +51,8 @@
     }
 
     .owner-errors li {
-        border: 1px solid rgba(255, 107, 107, 0.34);
-        background: rgba(255, 107, 107, 0.08);
+        border: 1px solid rgba(239, 51, 64, 0.34);
+        background: rgba(239, 51, 64, 0.08);
         color: #FFD0D0;
         border-radius: 14px;
         padding: 10px 12px;
@@ -75,6 +75,8 @@
                 <p class="card-subtitle">This creates the first staff account for the local troubleshooting console.</p>
             </div>
         </div>
+
+        <p style="margin:0 0 20px;"><a href="{% url 'dashboard' %}">&larr; Back to Orch, without setting this up</a></p>
 
         {% if errors %}
         <ul class="owner-errors" role="alert">

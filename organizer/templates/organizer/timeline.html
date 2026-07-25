@@ -1,5 +1,6 @@
 {% extends "organizer/base.html" %}
 {% load static %}
+{% load orch_extras %}
 
 {% block title %}Timeline - Orch{% endblock %}
 
@@ -18,7 +19,7 @@
                 <a href="?type={% if current_filter == type_key %}{% else %}{{ type_key }}{% endif %}&days={{ days }}"
                    class="button button-ghost"
                    style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
-                          {% if current_filter == type_key %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
+                          {% if current_filter == type_key %}background:rgba(31,122,63,0.16); border-color:rgba(242,201,76,0.42);{% endif %}">
                     {{ type_label }}
                 </a>
                 {% endfor %}
@@ -31,7 +32,7 @@
                 <a href="?days={% if days == d|slugify %}{% else %}{{ d }}{% endif %}{% if current_filter %}&type={{ current_filter }}{% endif %}"
                    class="button button-ghost"
                    style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
-                          {% if days == d|slugify %}background:rgba(110,168,255,0.2); border-color:rgba(110,168,255,0.5);{% endif %}">
+                          {% if days == d|slugify %}background:rgba(31,122,63,0.16); border-color:rgba(242,201,76,0.42);{% endif %}">
                     {% if d == 7 %}Week{% elif d == 30 %}Month{% elif d == 90 %}Quarter{% else %}All{% endif %}
                 </a>
                 {% endfor %}
@@ -80,7 +81,7 @@
                             {% endif %}
                             {% if event.subject_code %}
                             <a href="{% url 'subject_memory_detail' event.subject_code %}" class="meta-token" style="font-size:0.72rem; text-decoration:none;">
-                                {{ event.subject_code }}
+                                {{ event.subject_code|course_label }}
                             </a>
                             {% endif %}
                             {% if event.details %}
@@ -139,12 +140,12 @@
     background: var(--bg-mid);
     z-index: 1;
 }
-.timeline-marker.file .timeline-icon { border-color: rgba(110,168,255,0.5); }
-.timeline-marker.summary .timeline-icon { border-color: rgba(167,139,250,0.5); }
-.timeline-marker.review .timeline-icon { border-color: rgba(74,222,128,0.5); }
-.timeline-marker.digest .timeline-icon { border-color: rgba(251,191,36,0.5); }
-.timeline-marker.muele .timeline-icon { border-color: rgba(56,189,248,0.5); }
-.timeline-marker.note .timeline-icon { border-color: rgba(248,113,113,0.5); }
+.timeline-marker.file .timeline-icon { border-color: rgba(143,189,248,0.5); }
+.timeline-marker.summary .timeline-icon { border-color: rgba(185,167,255,0.5); }
+.timeline-marker.review .timeline-icon { border-color: rgba(47,180,111,0.5); }
+.timeline-marker.digest .timeline-icon { border-color: rgba(242,201,76,0.5); }
+.timeline-marker.muele .timeline-icon { border-color: rgba(31,122,63,0.58); }
+.timeline-marker.note .timeline-icon { border-color: rgba(239,51,64,0.5); }
 .timeline-content {
     flex: 1;
     min-width: 0;
@@ -156,7 +157,7 @@
 }
 .timeline-content:hover {
     background: rgba(255,255,255,0.08);
-    border-color: rgba(110,168,255,0.3);
+    border-color: rgba(242,201,76,0.3);
 }
 .timeline-header {
     display: flex;

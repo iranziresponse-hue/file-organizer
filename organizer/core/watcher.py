@@ -15,7 +15,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from . import ai_classify, paths, rules
+from . import paths
 
 SKIP_NAMES = {"_config.json", "desktop.ini"}
 
@@ -59,7 +59,7 @@ def _record_event(**fields):
     # django.setup() having been called first.
     from organizer.models import MoveEvent
 
-    MoveEvent.objects.create(**fields)
+    return MoveEvent.objects.create(**fields)
 
 
 def is_ready(file_path: Path, max_attempts=3):
@@ -100,12 +100,21 @@ def is_ready(file_path: Path, max_attempts=3):
 def move_downloaded_file(file_path: Path, ai_enabled=None):
     """ai_enabled: None (the default, used by the real watcher loop) defers
     to the active profile's own ai_fallback_enabled setting. Pass True/False
-    explicitly to override it, which is what the test suite does."""
+    explicitly to override it, which is what the test suite does.
+
+    Everything past the basic "is this even a real, finished file" checks
+    below is delegated to organizer.core.sorting.process_file -- the trust-
+    layer pipeline decides what happens (auto-move, suggest, hold, or leave
+    in place) and this function no longer needs to know how."""
     if not file_path.exists() or file_path.is_dir():
         return
 
     name = file_path.name
-    if name in SKIP_NAMES or name.startswith("organize-log"):
+    # "~$Report.docx" etc: Microsoft Office's own temporary lock file,
+    # created while the real document is open and deleted when it closes.
+    # Never real content -- moving/tracking it just clutters the sorted
+    # history with junk that vanishes the moment the document is closed.
+    if name in SKIP_NAMES or name.startswith("organize-log") or name.startswith("~$"):
         return
 
     # Brand-new file (written within the last 2 seconds) -- don't even look
@@ -114,89 +123,11 @@ def move_downloaded_file(file_path: Path, ai_enabled=None):
         return
 
     from organizer.models import AppSettings, Profile
+    from . import sorting as sorting_module
 
     profile = Profile.get_active()
-    profile_root = profile.root_path if profile else None
-    use_ai = bool(profile and profile.ai_fallback_enabled) if ai_enabled is None else ai_enabled
     settings = AppSettings.get_solo()
-
-    def _ai_classify(n, curriculum):
-        return ai_classify.classify(n, curriculum, log=write_log)
-
-    # First, check if any user-defined FolderRules apply to this file.
-    # Rules take priority over the default routing logic.
-    rule_dest = None
-    if profile:
-        from . import sorting as sorting_module
-
-        rule_dest, rule_name = sorting_module.execute_rules_for_file(
-            file_path, profile, log=write_log
-        )
-        if rule_dest == "__IGNORE__":
-            write_log(f"Ignored '{name}' by rule '{rule_name}'")
-            return
-        if rule_dest == "__INBOX__":
-            # Send file to the decision inbox for manual review
-            sorting_module.create_inbox_item(
-                filename=name,
-                source_path=str(file_path),
-                profile=profile,
-                reason=f"File matched rule '{rule_name}' and needs review",
-            )
-            write_log(f"Sent '{name}' to inbox by rule '{rule_name}'")
-            return
-
-    # Use the rule destination if one was found, otherwise fall back
-    # to the default routing logic from rules.py.
-    if rule_dest:
-        dest_path = Path(rule_dest)
-        dest = rules.Destination(dest_path, "course_code")
-    else:
-        dest = rules.get_destination(
-            file_path,
-            profile_root=profile_root,
-            library_inbox=Path(settings.library_inbox_path),
-            ai_classify=_ai_classify if use_ai else None,
-        )
-
-    if dest is None:
-        return
-
-    if not is_ready(file_path):
-        write_log(f"Skipped '{name}' this cycle. Still locked or still growing, will retry")
-        return
-
-    dest.path.mkdir(parents=True, exist_ok=True)
-
-    target = dest.path / name
-    if target.exists():
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        target = dest.path / f"{target.stem}_{stamp}{target.suffix}"
-
-    try:
-        shutil.move(str(file_path), str(target))
-        write_log(f"Moved '{name}' -> {dest.path}")
-        _record_event(
-            profile=profile,
-            filename=name,
-            source_path=str(file_path),
-            destination_path=str(target),
-            method=dest.method,
-            course_code=dest.course_code,
-            success=True,
-        )
-    except OSError as exc:
-        write_log(f"FAILED to move '{name}': {exc}")
-        _record_event(
-            profile=profile,
-            filename=name,
-            source_path=str(file_path),
-            destination_path=str(target),
-            method=dest.method,
-            course_code=dest.course_code,
-            success=False,
-            error_message=str(exc),
-        )
+    sorting_module.process_file(file_path, profile, settings=settings, log=write_log, ai_enabled=ai_enabled)
 
 
 def run_installer_cleanup():

@@ -1,11 +1,38 @@
 import json
+from unittest import mock
 
 from django.urls import reverse
 
 from organizer.core import paths
-from organizer.models import CourseConfig, IntegrationConnection, MoveEvent, Profile
+from organizer.models import CourseConfig, IntegrationConnection, MoveEvent, Profile, SortDecision
 
 from .helpers import SandboxedPathsTestCase
+
+
+class ActivityPingViewTests(SandboxedPathsTestCase):
+    def test_no_profile_returns_null(self):
+        response = self.client.get(reverse("activity_ping"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["latest"])
+
+    def test_returns_the_most_recent_move_timestamp(self):
+        profile = self.make_profile()
+        MoveEvent.objects.create(
+            profile=profile,
+            filename="notes.pdf",
+            destination_path=str(self.profile_root / "notes.pdf"),
+            method="course_code",
+            success=True,
+        )
+
+        response = self.client.get(reverse("activity_ping"))
+
+        self.assertIsNotNone(response.json()["latest"])
+
+    def test_no_activity_yet_for_an_active_profile_returns_null(self):
+        self.make_profile()
+        response = self.client.get(reverse("activity_ping"))
+        self.assertIsNone(response.json()["latest"])
 
 
 class DashboardViewTests(SandboxedPathsTestCase):
@@ -21,6 +48,22 @@ class DashboardViewTests(SandboxedPathsTestCase):
         self.assertTrue(response.context["has_any_profile"])
         self.assertIsNone(response.context["profile"])
         self.assertContains(response, "Choose a profile")
+
+    def test_app_status_counts_a_connected_drive_even_though_its_profile_less(self):
+        # Drive is one Google account per machine, not per academic profile
+        # -- its IntegrationConnection row is deliberately profile=None
+        # (see views.py's drive_connect). App Status's "Sync" tile must
+        # still count it, not just profile-scoped connections like MUELE.
+        self.make_profile()
+        IntegrationConnection.objects.create(
+            profile=None, provider="drive", display_name="Google Drive", status="connected",
+        )
+
+        response = self.client.get(reverse("dashboard"))
+
+        sync_item = next(item for item in response.context["app_status_items"] if item["label"] == "Sync")
+        self.assertEqual(sync_item["value"], "Connected")
+        self.assertIn("Cloud drive", sync_item["detail"])
 
     def test_shows_recent_moves_and_stats_for_the_active_profile(self):
         profile = self.make_profile()
@@ -50,6 +93,214 @@ class DashboardViewTests(SandboxedPathsTestCase):
         self.assertEqual(response.context["total_moves"], 1)
         self.assertEqual(response.context["method_counts"][0]["method"], "course_code")
         self.assertEqual(response.context["course_counts"][0]["course_code"], "CSC2100")
+
+    def test_dashboard_renders_live_cockpit_panels(self):
+        self.make_profile()
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, "Watching Downloads")
+        self.assertContains(response, "Today's command")
+        self.assertContains(response, "Plain status view")
+        self.assertContains(response, "File watcher")
+
+    def test_dashboard_priority_deck_has_no_duplicate_signals(self):
+        # "Academic priority" duplicated the mission-control hero right
+        # above it, and "Safety layer" duplicated the file-watcher tile
+        # already shown in the header strip -- both were removed as pure
+        # restatements. "Career signal" and "Decision inbox" are the only
+        # signals not shown anywhere else on the page, so they stay.
+        self.make_profile()
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertNotContains(response, "Academic priority")
+        self.assertNotContains(response, "Safety layer")
+        self.assertContains(response, "Career signal")
+        self.assertContains(response, "Decision inbox")
+        self.assertEqual(len(response.context["priority_cards"]), 2)
+
+    def test_search_filters_the_table_but_not_the_stat_boxes(self):
+        profile = self.make_profile()
+        MoveEvent.objects.create(
+            filename="biology_notes.pdf",
+            destination_path=str(self.profile_root / "biology_notes.pdf"),
+            method="course_code",
+            success=True,
+            profile=profile,
+        )
+        MoveEvent.objects.create(
+            filename="chemistry_report.docx",
+            destination_path=str(self.profile_root / "chemistry_report.docx"),
+            method="course_code",
+            success=True,
+            profile=profile,
+        )
+
+        response = self.client.get(reverse("dashboard"), {"q": "bio"})
+
+        table_rows = list(response.context["page_obj"].object_list)
+        self.assertEqual([e.filename for e in table_rows], ["biology_notes.pdf"])
+        # The overall total and "most recent move" stat still reflect both
+        # files -- search narrows the table only, not the profile's real
+        # stats, so chemistry_report.docx legitimately still shows up there
+        # as the actual most recent move regardless of the search.
+        self.assertEqual(response.context["total_moves"], 2)
+
+    def test_search_with_no_matches_shows_a_clear_empty_state(self):
+        profile = self.make_profile()
+        MoveEvent.objects.create(
+            filename="biology_notes.pdf",
+            destination_path=str(self.profile_root / "biology_notes.pdf"),
+            method="course_code",
+            success=True,
+            profile=profile,
+        )
+
+        response = self.client.get(reverse("dashboard"), {"q": "nonexistent"})
+
+        self.assertContains(response, "No files match")
+        self.assertEqual(list(response.context["page_obj"].object_list), [])
+
+    def test_why_panel_shows_explanation_confidence_and_matched_rule(self):
+        profile = self.make_profile()
+        event = MoveEvent.objects.create(
+            filename="notes.pdf",
+            destination_path=str(self.profile_root / "notes.pdf"),
+            method="course_code",
+            success=True,
+            profile=profile,
+            explanation="Matched subject code CSC2100 in the filename.",
+            confidence=92,
+        )
+        SortDecision.objects.create(
+            profile=profile, move_event=event, filename="notes.pdf",
+            decision_type="profile_auto", confidence=92, status="moved",
+            matched_rule="Filename contains CSC2100",
+        )
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, "Matched subject code CSC2100 in the filename.")
+        self.assertContains(response, "Filename contains CSC2100")
+        self.assertContains(response, "92%")
+
+    def test_why_button_is_absent_when_there_is_nothing_to_explain(self):
+        profile = self.make_profile()
+        MoveEvent.objects.create(
+            filename="notes.pdf",
+            destination_path=str(self.profile_root / "notes.pdf"),
+            method="course_code",
+            success=True,
+            profile=profile,
+        )
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertNotContains(response, "why-toggle-btn")
+
+
+class MoveRelocateViewTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+        self.source_folder = self.profile_root / "Year 1" / "Semester 1" / "BIO101"
+        self.source_folder.mkdir(parents=True)
+        self.file_path = self.source_folder / "notes.pdf"
+        self.file_path.write_text("content")
+        self.event = MoveEvent.objects.create(
+            profile=self.profile,
+            filename="notes.pdf",
+            source_path="C:/Downloads/notes.pdf",
+            destination_path=str(self.file_path),
+            method="course_code",
+            success=True,
+        )
+
+    def test_relocates_the_file_and_returns_ok(self):
+        new_folder = self.profile_root / "Elsewhere"
+        response = self.client.post(
+            reverse("move_relocate", args=[self.event.pk]),
+            {"new_destination": str(new_folder)},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertTrue((new_folder / "notes.pdf").exists())
+        self.assertFalse(self.file_path.exists())
+
+    def test_rejects_a_blank_destination(self):
+        response = self.client.post(reverse("move_relocate", args=[self.event.pk]), {"new_destination": ""})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+
+    def test_rejects_a_destination_outside_trusted_roots_unconfirmed(self):
+        outside = self.profile_root.parent / "Somewhere Else Entirely"
+
+        response = self.client.post(
+            reverse("move_relocate", args=[self.event.pk]),
+            {"new_destination": str(outside)},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data["ok"])
+        self.assertTrue(data["needs_confirmation"])
+        self.assertFalse(outside.exists())
+        self.assertTrue(self.file_path.exists())
+
+    def test_destination_outside_trusted_roots_succeeds_once_confirmed(self):
+        outside = self.profile_root.parent / "Somewhere Else Entirely"
+
+        response = self.client.post(
+            reverse("move_relocate", args=[self.event.pk]),
+            {"new_destination": str(outside), "confirm_external": "1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertTrue((outside / "notes.pdf").exists())
+
+
+class MoveUndoViewTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+        self.original_folder = self.profile_root / "Downloads"
+        self.original_folder.mkdir(parents=True)
+        self.dest_folder = self.profile_root / "Year 1" / "Semester 1" / "BIO101"
+        self.dest_folder.mkdir(parents=True)
+        self.dest_path = self.dest_folder / "notes.pdf"
+        self.dest_path.write_text("content")
+        self.event = MoveEvent.objects.create(
+            profile=self.profile,
+            filename="notes.pdf",
+            source_path=str(self.original_folder / "notes.pdf"),
+            destination_path=str(self.dest_path),
+            method="course_code",
+            success=True,
+        )
+
+    def test_reverts_the_file_to_its_original_location(self):
+        response = self.client.post(reverse("move_undo", args=[self.event.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertFalse(self.dest_path.exists())
+        self.assertTrue((self.original_folder / "notes.pdf").exists())
+
+    def test_fails_cleanly_when_the_file_is_already_gone(self):
+        self.dest_path.unlink()
+
+        response = self.client.post(reverse("move_undo", args=[self.event.pk]))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+
+    def test_get_is_not_allowed(self):
+        response = self.client.get(reverse("move_undo", args=[self.event.pk]))
+        self.assertEqual(response.status_code, 405)
 
 
 class FirstRunChecklistViewTests(SandboxedPathsTestCase):
@@ -85,7 +336,12 @@ class MueleConnectViewTests(SandboxedPathsTestCase):
             status="connected",
         )
 
-        response = self.client.get(reverse("muele_connect"))
+        # "MUELE is connected" is driven by connection.status alone (set
+        # above); the page also opportunistically re-verifies any stored
+        # token live to prefill token_status -- mocked out so this test
+        # never depends on this machine's real OS keyring/network state.
+        with mock.patch("organizer.core.muele_api.load_connection_token", return_value=None):
+            response = self.client.get(reverse("muele_connect"))
 
         self.assertContains(response, "MUELE is connected")
         self.assertContains(response, "student@mak.ac.ug")
@@ -96,7 +352,11 @@ class MueleConnectViewTests(SandboxedPathsTestCase):
     def test_shows_login_form_directly_when_not_yet_connected(self):
         self.make_profile(setup_path="makerere")
 
-        response = self.client.get(reverse("muele_connect"))
+        # Hermetic "no pending token" -- without this, a real pending
+        # token left in this machine's OS keyring from an earlier session
+        # would make this test attempt a real, slow network verification.
+        with mock.patch("organizer.core.muele_api.load_token", return_value=None):
+            response = self.client.get(reverse("muele_connect"))
 
         self.assertNotContains(response, "MUELE is connected")
         self.assertContains(response, "Log in to MUELE")

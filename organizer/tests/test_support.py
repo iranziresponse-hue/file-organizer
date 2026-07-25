@@ -11,12 +11,13 @@ class SubmitSupportMessageTests(TestCase):
         # Default test settings have no support_email.json, so
         # SUPPORT_EMAIL_CONFIGURED is False -- the message must still be
         # saved, never silently dropped just because email isn't set up.
-        record, error = support.submit_support_message("Jordan", "jordan@example.com", "Hello there")
+        record, error = support.submit_support_message("Jordan", "jordan@example.com", "Bug report", "Hello there")
 
         self.assertIsNotNone(error)
         self.assertEqual(SupportMessage.objects.count(), 1)
         saved = SupportMessage.objects.get()
         self.assertEqual(saved.sender_name, "Jordan")
+        self.assertEqual(saved.subject, "Bug report")
         self.assertEqual(saved.message, "Hello there")
         self.assertIsNone(saved.emailed_at)
         self.assertTrue(saved.email_error)
@@ -28,7 +29,7 @@ class SubmitSupportMessageTests(TestCase):
         SUPPORT_INBOX_ADDRESS="iranziresponse@gmail.com",
     )
     def test_emails_the_admin_inbox_when_configured(self):
-        record, error = support.submit_support_message("Jordan", "jordan@example.com", "Hello there")
+        record, error = support.submit_support_message("Jordan", "jordan@example.com", "Bug report", "Hello there")
 
         self.assertIsNone(error)
         self.assertEqual(len(mail.outbox), 1)
@@ -44,15 +45,23 @@ class SupportMessageViewTests(TestCase):
         response = self.client.post(reverse("support_message"), {
             "name": "Jordan",
             "email": "jordan@example.com",
+            "subject": "Bug report",
             "message": "Something is broken",
             "page_url": "http://127.0.0.1:8765/study/",
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["ok"])
         self.assertEqual(SupportMessage.objects.count(), 1)
+        self.assertEqual(SupportMessage.objects.get().subject, "Bug report")
+
+    def test_rejects_an_empty_subject(self):
+        response = self.client.post(reverse("support_message"), {"name": "Jordan", "message": "Hi"})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+        self.assertEqual(SupportMessage.objects.count(), 0)
 
     def test_rejects_an_empty_message(self):
-        response = self.client.post(reverse("support_message"), {"name": "Jordan"})
+        response = self.client.post(reverse("support_message"), {"name": "Jordan", "subject": "Bug report"})
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.json()["ok"])
         self.assertEqual(SupportMessage.objects.count(), 0)

@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load orch_extras %}
 
 {% block title %}Dashboard - Orch{% endblock %}
 
@@ -43,6 +44,136 @@
         </div>
     </section>
     {% else %}
+    <section class="mission-control priority-arrival">
+        <div class="mission-main">
+            <div>
+                <span class="eyebrow">Today's command</span>
+                <h2>{{ next_best_action.title }}</h2>
+                <p>{{ next_best_action.detail }}</p>
+            </div>
+            <div class="mission-actions">
+                {% if next_best_action.summary_move_id %}
+                <button type="button" class="button button-live summarize-btn" data-move-id="{{ next_best_action.summary_move_id }}" data-action="view">{{ next_best_action.label }}</button>
+                {% elif next_best_action.post_action %}
+                <form method="post" action="{{ next_best_action.url }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="{{ next_best_action.post_action }}">
+                    <button type="submit" class="button-live">{{ next_best_action.label }}</button>
+                </form>
+                {% else %}
+                <a class="button button-live" href="{{ next_best_action.url }}">{{ next_best_action.label }}</a>
+                {% endif %}
+                <a class="button button-ghost" href="{% url 'career_home' %}">Career</a>
+                <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Inbox</a>
+            </div>
+        </div>
+        <div class="mission-status" aria-label="Current dashboard signals">
+            {% for item in now_strip %}
+            <div class="mission-signal is-{{ item.state }}">
+                <span class="now-label">{{ item.label }}</span>
+                <span class="now-value" title="{{ item.detail }}">{{ item.detail }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="priority-deck" aria-label="Dashboard priorities">
+        {% for item in priority_cards %}
+        <article class="priority-card is-{{ item.state }}">
+            <span class="priority-index">0{{ forloop.counter }}</span>
+            <div>
+                <span class="mini-label">{{ item.label }}</span>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.detail }}</p>
+            </div>
+            <div class="priority-footer">
+                <span>{{ item.meta }}</span>
+                {% if item.post_action %}
+                <form method="post" action="{{ item.url }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="{{ item.post_action }}">
+                    <button type="submit" class="button-ghost service-action">{{ item.action_label }}</button>
+                </form>
+                {% elif item.url %}
+                <a class="button button-ghost service-action" href="{{ item.url }}">{{ item.action_label }}</a>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="card compact-card service-board" data-power-hero>
+        <div class="service-board-hero">
+            <div class="service-orbit" style="--service-score: {{ service_mesh.readiness }}%;" aria-label="Service readiness {{ service_mesh.readiness }} percent">
+                <div>
+                    <strong>{{ service_mesh.readiness }}%</strong>
+                    <span>readiness</span>
+                </div>
+            </div>
+            <div class="service-brief">
+                <span class="eyebrow">Orch power grid</span>
+                <h2>{{ service_mesh.headline }}</h2>
+                <p class="card-subtitle">{{ service_mesh.detail }}</p>
+                <div class="service-meter" aria-hidden="true">
+                    <span></span>
+                </div>
+                <div class="meta-list">
+                    <span class="meta-token">{{ service_mesh.connected_count }} live</span>
+                    <span class="meta-token">{{ service_mesh.missing_count }} to activate</span>
+                    <span class="meta-token">{{ service_mesh.total_count }} total systems</span>
+                </div>
+            </div>
+            {% if service_mesh.next_activation %}
+            <div class="service-priority">
+                <span class="now-label">Next activation</span>
+                <h3>{{ service_mesh.next_activation.name }}</h3>
+                <p>{{ service_mesh.next_activation.insight }}</p>
+                <a class="button button-live service-priority-action" href="{{ service_mesh.next_activation.url }}">{{ service_mesh.next_activation.action_label }}</a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="service-lanes">
+            {% for lane in service_mesh.lanes %}
+            <div class="service-lane">
+                <div>
+                    <h3>{{ lane.title }}</h3>
+                    <p>{{ lane.detail }}</p>
+                </div>
+                <div class="service-list">
+                    {% for item in lane.items %}
+                    <article class="service-node is-{{ item.state }}">
+                        <span class="service-signal" aria-hidden="true"></span>
+                        <div class="service-main">
+                            <div class="service-title">
+                                <h4>{{ item.name }}</h4>
+                                <span class="status-dot {{ item.status_class }}">{{ item.status }}</span>
+                            </div>
+                            <p>{{ item.detail }}</p>
+                            <span class="service-insight">{{ item.insight }}</span>
+                        </div>
+                        {% if item.url %}
+                        <a class="button button-ghost service-action" href="{{ item.url }}">{{ item.action_label }}</a>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <details class="plain-status">
+            <summary>Plain status view</summary>
+            <div class="health-grid">
+                {% for item in app_status_items %}
+                <div class="mini-tile is-{{ item.state }}">
+                    <span class="mini-label">{{ item.label }}</span>
+                    <span class="mini-value">{{ item.value }}</span>
+                    <span class="path-text">{{ item.detail }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+    </section>
+
     <section class="overview-grid">
         <div class="card">
             <div class="card-header">
@@ -51,16 +182,19 @@
                     <h2>Current {{ profile.secondary_label }}</h2>
                     <p class="card-subtitle">Active routing context</p>
                 </div>
-                <a class="button" href="{% url 'profile_edit' profile.pk %}">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                    </svg>
-                    Edit
-                </a>
+                <div class="inline-actions">
+                    <span class="state-chip state-live">Routing live</span>
+                    <a class="button" href="{% url 'profile_edit' profile.pk %}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                        Edit
+                    </a>
+                </div>
             </div>
             {% if config %}
-                <div class="stat stat-primary">
+                <div class="stat stat-live">
                     <div class="value">{{ config.primary_value }}</div>
                     <div class="label">{{ config.secondary_value }}</div>
                 </div>
@@ -105,7 +239,7 @@
                 </div>
             </div>
             <div class="stat-row">
-                <div class="stat stat-primary">
+                <div class="stat {% if total_moves %}stat-live{% else %}stat-muted{% endif %}">
                     <div class="value">{{ total_moves }}</div>
                     <div class="label">Total files sorted</div>
                     {% if last_move %}
@@ -115,7 +249,7 @@
                     {% endif %}
                 </div>
                 {% for row in method_counts %}
-                <div class="stat">
+                <div class="stat {% if row.total %}stat-live{% endif %}">
                     <div class="value">{{ row.total }}</div>
                     <div class="label">{{ row.label }}</div>
                     {% if row.last_event %}
@@ -139,7 +273,8 @@
                 <h2>MUELE live panel</h2>
                 <p class="card-subtitle">Makerere University course sync status</p>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div class="inline-actions-start">
+                <span class="state-chip state-live">Connected now</span>
                 <a class="button button-ghost" href="{% url 'muele_courses' %}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
@@ -149,7 +284,7 @@
             </div>
         </div>
         <div class="stat-row">
-            <div class="stat">
+            <div class="stat {% if muele_courses_count %}stat-live{% else %}stat-muted{% endif %}">
                 <div class="value">{{ muele_courses_count }}</div>
                 <div class="label">Active courses</div>
                 {% if muele_last_synced_course %}
@@ -158,7 +293,7 @@
                 <div class="stat-detail">Not synced yet</div>
                 {% endif %}
             </div>
-            <div class="stat">
+            <div class="stat {% if muele_upcoming_deadlines %}stat-warning{% else %}stat-muted{% endif %}">
                 <div class="value">{{ muele_upcoming_deadlines|length }}</div>
                 <div class="label">Upcoming deadlines</div>
                 {% if muele_next_deadline %}
@@ -167,7 +302,7 @@
                 <div class="stat-detail">None due</div>
                 {% endif %}
             </div>
-            <div class="stat">
+            <div class="stat {% if muele_connection.last_sync_at %}stat-live{% else %}stat-muted{% endif %}">
                 <div class="value">
                     {% if muele_connection.last_sync_at %}
                         {{ muele_connection.last_sync_at|date:"M j, Y, g:i A" }}
@@ -180,8 +315,8 @@
                 <div class="stat-detail">{{ muele_connection.last_sync_at|timesince }} ago</div>
                 {% endif %}
             </div>
-            <div class="stat">
-                <div class="value">{{ muele_connection.get_status_display }}</div>
+            <div class="stat stat-live">
+                <div class="value text-live">{{ muele_connection.get_status_display }}</div>
                 <div class="label">Status</div>
             </div>
         </div>
@@ -191,6 +326,7 @@
             <div>
                 <h3>Upcoming deadlines</h3>
             </div>
+            <a class="button button-ghost" href="{% url 'assignment_tracker' %}">All assignments</a>
         </div>
         <div class="table-shell">
             <table>
@@ -201,7 +337,7 @@
                     <td><span class="meta-token">{{ item.subject_code|default:"-" }}</span></td>
                     <td>
                         {% if item.due_at %}
-                            <span {% if item.due_at < now %}style="color:var(--red);"{% endif %}>
+                            <span class="{% if item.due_at < now %}text-danger{% endif %}">
                                 {{ item.due_at|date:"Y-m-d H:i" }}
                             </span>
                         {% else %}
@@ -223,16 +359,6 @@
         </div>
         {% endif %}
     </section>
-    {% elif muele_connection %}
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <h2>MUELE not connected yet</h2>
-                <p class="card-subtitle">Connect your Makerere MUELE account to sync course files, assignments, and deadlines automatically.</p>
-            </div>
-            <a class="button" href="{% url 'muele_connect' %}">Connect MUELE</a>
-        </div>
-    </section>
     {% endif %}
 
     {% if course_counts %}
@@ -248,7 +374,7 @@
                 <tr><th>Subject</th><th>Files</th></tr>
                 {% for row in course_counts %}
                 <tr>
-                    <td><span class="meta-token">{{ row.course_code }}</span></td>
+                    <td><span class="meta-token">{{ row.course_code|course_label }}</span></td>
                     <td>{{ row.total }}</td>
                 </tr>
                 {% endfor %}
@@ -263,12 +389,37 @@
                 <h2>Recent Moves</h2>
                 <p class="card-subtitle">File decisions for {{ profile.name }}</p>
             </div>
-            <span class="meta-token">{{ page_obj.paginator.count }} total</span>
+            <div class="inline-actions-start">
+                <span class="meta-token" id="recent-moves-total">{{ page_obj.paginator.count }} total</span>
+                {% if page_obj.paginator.count %}
+                <form method="post" action="{% url 'move_clear_history' %}" style="display:inline;" onsubmit="return confirm('Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="button-ghost button-danger-soft">Clear history</button>
+                </form>
+                {% endif %}
+            </div>
         </div>
+        <div class="field field-tight search-field" id="recent-moves-search">
+            <label for="move-search-input">Search sorted files</label>
+            <div class="search-control">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <input type="search" id="move-search-input" placeholder="Type a filename..." value="{{ search_query }}" autocomplete="off" aria-describedby="move-search-status">
+                <button type="button" class="search-clear" id="move-search-clear" aria-label="Clear search" {% if not search_query %}hidden{% endif %}>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <span class="search-status" id="move-search-status" aria-live="polite">{% if search_query %}Showing matches for "{{ search_query }}"{% endif %}</span>
+        </div>
+        <div id="recent-moves-body" aria-live="polite">
         {% if page_obj.object_list %}
             <div class="table-shell">
                 <table>
-                    <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th>Summary</th></tr>
+                    <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th></th><th>Actions</th></tr>
                     {% for event in page_obj.object_list %}
                     <tr>
                         <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
@@ -277,35 +428,54 @@
                         <td>{{ event.get_method_display }}</td>
                         <td>
                             {% if event.success %}
-                            <span class="status-dot">Sorted</span>
+                            <span class="status-dot is-live">Sorted</span>
                             {% else %}
                             <span class="status-dot is-error">Failed</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if event.is_summarizable %}
-                                {% if event.summary %}
-                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="view">
+                            {% if event.explanation or event.sort_decision.matched_rule %}
+                            <button type="button" class="button-ghost why-toggle-btn" data-why-toggle="why-{{ event.pk }}" aria-expanded="false" aria-controls="why-{{ event.pk }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Why?</button>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if event.success and event.destination_path %}
+                            <div class="row-actions">
+                                <button type="button" class="button-ghost row-actions-trigger" data-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="move-actions-{{ event.pk }}">
+                                    Actions
                                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
-                                        <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
-                                    View summary
                                 </button>
-                                {% else %}
-                                <button type="button" class="button-ghost summarize-btn" data-move-id="{{ event.pk }}" data-action="generate">
-                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
-                                        <path d="M9 9h6M9 12h6M9 15h3M16.5 14.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5.5-1.2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    Summarize
-                                </button>
-                                {% endif %}
+                                <div class="row-actions-menu" id="move-actions-{{ event.pk }}" role="menu" hidden>
+                                    <button type="button" class="row-actions-item move-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Move to...</button>
+                                    {% if event.is_summarizable %}
+                                        {% if event.summary %}
+                                        <button type="button" class="row-actions-item summarize-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-action="view">View summary</button>
+                                        {% else %}
+                                        <button type="button" class="row-actions-item summarize-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-action="generate">Summarize</button>
+                                        {% endif %}
+                                    {% endif %}
+                                    <button type="button" class="row-actions-item undo-btn is-destructive" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Undo this move</button>
+                                </div>
+                            </div>
                             {% else %}
                             <span class="path-text">Not available</span>
                             {% endif %}
                         </td>
                     </tr>
+                    {% if event.explanation or event.sort_decision.matched_rule %}
+                    <tr id="why-{{ event.pk }}" class="why-row" hidden>
+                        <td colspan="7">
+                            <div class="why-panel">
+                                {% if event.explanation %}<p><strong>Reason:</strong> {{ event.explanation }}</p>{% endif %}
+                                {% if event.sort_decision.matched_rule %}<p><strong>Matched rule:</strong> {{ event.sort_decision.matched_rule }}</p>{% endif %}
+                                {% if event.confidence is not None %}<p><strong>Confidence:</strong> {{ event.confidence }}%</p>{% endif %}
+                                <p><strong>Method:</strong> {{ event.get_method_display }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
                     {% endfor %}
                 </table>
             </div>
@@ -335,12 +505,265 @@
                     </svg>
                 </span>
                 <div>
+                    {% if search_query %}
+                    <h3>No files match "{{ search_query }}".</h3>
+                    <p>Try a different part of the filename.</p>
+                    {% else %}
                     <h3>No files sorted yet.</h3>
                     <p>Once {{ profile.name }} is set up, each move will appear here.</p>
+                    {% endif %}
                 </div>
             </div>
         {% endif %}
+        </div>
     </section>
     {% endif %}
 </div>
+
+<!-- Move form (hidden, shown via JS) -->
+<div id="move-form" class="guide-overlay" hidden>
+    <div class="guide-panel panel-narrow">
+        <button type="button" class="guide-close" id="move-close">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <h3>Move file</h3>
+        <p class="help-text help-gap" id="move-filename"></p>
+        <form method="post" id="move-form-inner">
+            {% csrf_token %}
+            <div class="field">
+                <label for="move_destination">New folder</label>
+                <div class="field-control">
+                    <input type="text" id="move_destination" name="new_destination" placeholder="C:\Users\...\Subject\Category" required>
+                    <button type="button" class="button-ghost" onclick="openFolderBrowser('move_destination')">Browse</button>
+                </div>
+            </div>
+            <label class="check-label">
+                <input type="checkbox" name="confirm_external" value="1">
+                This folder is outside my usual Orch folders, move it anyway
+            </label>
+            <div id="move-feedback" class="help-text feedback-message"></div>
+            <div class="form-actions form-actions-spaced">
+                <button type="submit" id="move-submit">Move file</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var overlay = document.getElementById('move-form');
+    var filenameEl = document.getElementById('move-filename');
+    var form = document.getElementById('move-form-inner');
+    var feedback = document.getElementById('move-feedback');
+    var submitBtn = document.getElementById('move-submit');
+    if (!overlay) return;
+
+    function resetFeedback() {
+        feedback.classList.remove('is-success', 'is-danger');
+        feedback.textContent = '';
+    }
+
+    function hide() { overlay.hidden = true; resetFeedback(); }
+
+    // Re-run after every search swap below, since replacing
+    // #recent-moves-body's content wipes out any listeners already
+    // attached to the old .move-btn elements it contained.
+    function wireMoveButtons() {
+        document.querySelectorAll('.move-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                closeAllMenus();
+                filenameEl.textContent = 'Moving: ' + this.dataset.filename;
+                form.dataset.movePk = this.dataset.moveId;
+                document.getElementById('move_destination').value = '';
+                overlay.hidden = false;
+            });
+        });
+    }
+    wireMoveButtons();
+
+    function closeAllMenus() {
+        if (window.OrchDropdowns) window.OrchDropdowns.close(false);
+    }
+
+    function wireRowActionMenus() {
+        if (window.OrchDropdowns) window.OrchDropdowns.wire(moveBody || document);
+    }
+    wireRowActionMenus();
+
+    function wireWhyToggles() {
+        (moveBody || document).querySelectorAll('[data-why-toggle]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var row = document.getElementById(this.dataset.whyToggle);
+                if (!row) return;
+                var expanded = this.getAttribute('aria-expanded') === 'true';
+                row.hidden = expanded;
+                this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            });
+        });
+    }
+    wireWhyToggles();
+
+    function wireUndoButtons() {
+        document.querySelectorAll('.undo-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                closeAllMenus();
+                if (!window.confirm('Undo this move? "' + this.dataset.filename + '" will go back to where it was found.')) return;
+                var pk = this.dataset.moveId;
+                fetch('/moves/' + pk + '/undo/', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.ok) {
+                            window.location.reload();
+                        } else {
+                            window.alert(data.error || 'Could not undo that move.');
+                        }
+                    })
+                    .catch(function () {
+                        window.alert('Could not reach Orch. Try again.');
+                    });
+            });
+        });
+    }
+    wireUndoButtons();
+
+    document.getElementById('move-close').addEventListener('click', hide);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (submitBtn.disabled) return;
+        var pk = form.dataset.movePk;
+        submitBtn.disabled = true;
+        feedback.classList.remove('is-success', 'is-danger');
+        feedback.textContent = 'Moving...';
+
+        fetch('/moves/' + pk + '/relocate/', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                submitBtn.disabled = false;
+                if (data.ok) {
+                    feedback.classList.add('is-success');
+                    feedback.textContent = 'Moved.';
+                    setTimeout(function () { window.location.reload(); }, 600);
+                } else {
+                    feedback.classList.add('is-danger');
+                    feedback.textContent = data.error || 'Could not move that file.';
+                }
+            })
+            .catch(function () {
+                submitBtn.disabled = false;
+                feedback.classList.add('is-danger');
+                feedback.textContent = 'Could not reach Orch. Try again.';
+            });
+    });
+
+    // Instant search: re-fetches this same page with ?q=<query> as the
+    // user types, and swaps in just the fresh table: no submit button,
+    // no full page reload, so a search feels immediate.
+    var searchInput = document.getElementById('move-search-input');
+    var searchShell = document.getElementById('recent-moves-search');
+    var searchClear = document.getElementById('move-search-clear');
+    var searchStatus = document.getElementById('move-search-status');
+    var searchTotal = document.getElementById('recent-moves-total');
+    var moveBody = document.getElementById('recent-moves-body');
+    var searchTimer = null;
+    var searchController = null;
+    var searchRunId = 0;
+
+    function setSearchLoading(isLoading) {
+        if (searchShell) searchShell.classList.toggle('is-searching', isLoading);
+        if (moveBody) moveBody.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
+
+    function setSearchStatus(message) {
+        if (searchStatus) searchStatus.textContent = message || '';
+    }
+
+    function syncSearchControls() {
+        if (searchClear) searchClear.hidden = !searchInput.value;
+    }
+
+    function countVisibleRows() {
+        if (!moveBody) return 0;
+        return moveBody.querySelectorAll('table tr').length ? Math.max(0, moveBody.querySelectorAll('table tr').length - 1) : 0;
+    }
+
+    function runSearch(query) {
+        closeAllMenus();
+        var url = new URL(window.location.href);
+        var trimmedQuery = query.trim();
+        if (trimmedQuery) {
+            url.searchParams.set('q', trimmedQuery);
+        } else {
+            url.searchParams.delete('q');
+        }
+        url.searchParams.delete('page');
+
+        searchRunId += 1;
+        var runId = searchRunId;
+        if (searchController) searchController.abort();
+        searchController = window.AbortController ? new AbortController() : null;
+        setSearchLoading(true);
+        setSearchStatus(trimmedQuery ? 'Searching...' : 'Refreshing recent moves...');
+
+        var options = { credentials: 'same-origin' };
+        if (searchController) options.signal = searchController.signal;
+
+        fetch(url.toString(), options)
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                if (runId !== searchRunId) return;
+                var freshDoc = new DOMParser().parseFromString(html, 'text/html');
+                var freshBody = freshDoc.getElementById('recent-moves-body');
+                if (!freshBody) return;
+                moveBody.innerHTML = freshBody.innerHTML;
+                var freshTotal = freshDoc.getElementById('recent-moves-total');
+                if (freshTotal && searchTotal) searchTotal.textContent = freshTotal.textContent;
+                window.history.replaceState({}, '', url.toString());
+                wireMoveButtons();
+                wireRowActionMenus();
+                wireUndoButtons();
+                wireWhyToggles();
+                var visibleRows = countVisibleRows();
+                setSearchStatus(trimmedQuery ? visibleRows + ' visible match' + (visibleRows === 1 ? '' : 'es') : '');
+            })
+            .catch(function (error) {
+                if (error && error.name === 'AbortError') return;
+                setSearchStatus('Search could not refresh. Try again.');
+            })
+            .finally(function () {
+                if (runId === searchRunId) setSearchLoading(false);
+            });
+    }
+
+    if (searchInput) {
+        syncSearchControls();
+        searchInput.addEventListener('input', function () {
+            var query = searchInput.value;
+            syncSearchControls();
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () { runSearch(query); }, 200);
+        });
+        if (searchClear) {
+            searchClear.addEventListener('click', function () {
+                searchInput.value = '';
+                syncSearchControls();
+                clearTimeout(searchTimer);
+                runSearch('');
+                searchInput.focus();
+            });
+        }
+    }
+})();
+</script>
 {% endblock %}

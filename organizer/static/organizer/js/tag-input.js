@@ -1,4 +1,4 @@
-function initTagInput(containerId, entryId, hiddenId, initial, addLabel) {
+function initTagInput(containerId, entryId, hiddenId, initial, addLabel, labelFor) {
     var container = document.getElementById(containerId);
     var entry = document.getElementById(entryId);
     var hidden = document.getElementById(hiddenId);
@@ -13,11 +13,11 @@ function initTagInput(containerId, entryId, hiddenId, initial, addLabel) {
             chip.className = 'tag-chip';
 
             var label = document.createElement('span');
-            label.textContent = tag;
+            label.textContent = labelFor ? labelFor(tag) : tag;
 
             var remove = document.createElement('button');
             remove.type = 'button';
-            remove.setAttribute('aria-label', 'Remove ' + tag);
+            remove.setAttribute('aria-label', 'Remove ' + (labelFor ? labelFor(tag) : tag));
             remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
             remove.addEventListener('click', function () {
                 tags.splice(index, 1);

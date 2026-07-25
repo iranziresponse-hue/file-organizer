@@ -151,6 +151,73 @@ def check_deadlines(profile, log: Callable | None = None) -> int:
     return count
 
 
+def check_upcoming_classes(profile, minutes_before: int = 15, log: Callable | None = None) -> int:
+    """Check for lectures, tests, and exams starting soon and notify.
+
+    Cheap enough to call on every dashboard/study page load, same as
+    check_deadlines(): each entry only ever notifies once for the
+    occurrence it's currently pointing at, tracked on
+    last_notified_on, so repeated page loads never double-notify.
+
+    Uses the machine's own local clock (not Django's UTC "now"), since a
+    lecture reminder needs to fire against the wall-clock time the user
+    actually sees, not a timezone-shifted one -- this only makes sense
+    running on the student's own PC, set to their own local time.
+
+    Returns the number of notifications sent.
+    """
+    from organizer.models import TimetableEntry
+
+    now = datetime.now()
+    today = now.date()
+    weekday = now.weekday()  # Monday=0 ... matches TimetableEntry.WEEKDAY_CHOICES
+    window_end = (now + timedelta(minutes=minutes_before)).time()
+    count = 0
+
+    # Recurring weekly lectures (Teaching/Recess): match today's weekday,
+    # not a stored date, since the site never publishes a semester start
+    # date to anchor one against.
+    upcoming_classes = TimetableEntry.objects.filter(
+        profile=profile,
+        kind__in=["teaching", "recess"],
+        weekday=weekday,
+        start_time__gte=now.time(),
+        start_time__lte=window_end,
+    ).exclude(last_notified_on=today)
+    for entry in upcoming_classes:
+        label = f"{entry.course_code} {entry.course_name}".strip()
+        detail = f"Starts {entry.start_time.strftime('%H:%M')}"
+        if entry.room:
+            detail += f", {entry.room}"
+        notify(f"Upcoming lecture: {label}", detail, urgency="normal", profile=profile)
+        entry.last_notified_on = today
+        entry.save(update_fields=["last_notified_on"])
+        count += 1
+
+    # Tests/Examinations: only entries with a confidently-parsed date --
+    # never guess a reminder time from a date Orch couldn't fully resolve.
+    upcoming_exams = TimetableEntry.objects.filter(
+        profile=profile,
+        kind__in=["test", "examination"],
+        specific_date=today,
+        start_time__gte=now.time(),
+        start_time__lte=window_end,
+    ).exclude(last_notified_on=today)
+    for entry in upcoming_exams:
+        label = f"{entry.course_code} {entry.course_name}".strip()
+        notify(
+            f"Upcoming {entry.get_kind_display().lower()}: {label}",
+            f"Starts {entry.start_time.strftime('%H:%M')} today",
+            urgency="critical",
+            profile=profile,
+        )
+        entry.last_notified_on = today
+        entry.save(update_fields=["last_notified_on"])
+        count += 1
+
+    return count
+
+
 def notify_muele_sync(result: dict, profile=None) -> None:
     """Send a notification after a MUELE sync completes."""
     if result.get("downloaded", 0) > 0:
@@ -177,7 +244,12 @@ def notify_file_sorted(filename: str, method: str, destination: str, profile=Non
         "needs_sorting": "Needs sorting",
     }
     label = method_labels.get(method, method)
-    notify(label, f"{filename} → {Path(destination).parent.name}", urgency="low", profile=profile)
+    dest_path = Path(destination)
+    # Include the drive letter, not just the folder name -- Windows systems
+    # commonly route different profiles/downloads across multiple drives
+    # (C:, D:, ...), so "BIO101" alone doesn't say which one this landed on.
+    drive = dest_path.drive or ""
+    notify(label, f"{filename} → {drive}\\...\\{dest_path.parent.name}", urgency="low", profile=profile)
 
 
 # Import Path here to avoid circular imports at module level

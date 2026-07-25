@@ -1,40 +1,42 @@
-"""Minimal native shell window for Orch.
-
-The real dashboard/study cockpit is the Django site (opened in the system
-browser today via the tray menu's "Open dashboard"). This window is NOT an
-embedded browser -- it's a small native status panel with the TopBar floating
-over it, and its nav buttons just open the matching dashboard page in the
-system browser, same as the tray menu already does. That keeps this window
-free of any new heavy dependency (no QWebEngineView / PyQt6-WebEngine).
+"""Native desktop window for Orch: the real Django dashboard embedded
+directly in a taskbar-visible window via QWebEngineView, not just a tray
+icon plus a separate browser tab. The page has its own topbar/nav already
+(organizer/templates/organizer/base.html), so this window doesn't add a
+second one on top of it.
 """
 
-import webbrowser
-
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon, QPixmap
-from PyQt6.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QColor, QIcon
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QMainWindow
 
 from .assets import ORCH_ICON_PATH
 from .server import dashboard_url
-from .topbar import BAR_HEIGHT, TopBar
 
-# Maps a TopBar nav label to the dashboard path it should open.
-NAV_ROUTES = {
-    "Dashboard": "",
-    "Study": "study/",
-    "Profiles": "profiles/",
-    "Settings": "settings/",
-}
+# Matches base.html's --bg-deep. QWebEngineView defaults to a white page
+# background, which would flash visibly for an instant on a real reload
+# since there's a brief gap between navigation starting and the page's own
+# dark CSS painting.
+PAGE_BACKGROUND = QColor(10, 12, 20)
 
-WINDOW_BG = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0A0C14, stop:0.48 #121725, stop:1 #0A0C14)"
-
-
+# This window used to also run a QTimer every 30s that injected and ran a
+# "check for new activity, show a dismissible banner" JavaScript snippet
+# into the page (page().runJavaScript(...)). Every distinct flicker/freeze
+# bug chased across this app's whole history traced back to that one
+# mechanism in some form: a full navigate-and-reload, a DOM patch, a CSS
+# specificity bug that pinned the banner permanently visible, and finally
+# --disable-gpu-compositing (needed to stop a white flash tied to it)
+# freezing the window outright on this machine's GPU/driver. It was cut
+# entirely rather than patched a fifth time: it was solving a problem
+# (missing something that happened while the window was idle) that Orch's
+# native tray notifications (see gui/tray.py, notifications.py) already
+# solve, via a completely separate path that never touches this webview's
+# JS engine at all. No periodic runJavaScript() calls means nothing here
+# can compete with the page's own rendering for the render thread.
 class OrchMainWindow(QMainWindow):
-    """Native window: TopBar on top, a small status panel underneath.
-
-    watcher_controller is optional so this window can be built and tested
-    without wiring it to the real file watcher.
-    """
+    """Taskbar-visible window showing the live dashboard. Closing it hides
+    the window rather than quitting the app -- the tray icon and the
+    background watcher keep running either way (see gui/tray.py)."""
 
     def __init__(self, watcher_controller=None, parent=None):
         super().__init__(parent)
@@ -42,70 +44,19 @@ class OrchMainWindow(QMainWindow):
 
         self.setWindowTitle("Orch")
         self.setWindowIcon(QIcon(str(ORCH_ICON_PATH)))
-        self.resize(720, 480)
-        self.setMinimumSize(480, 360)
+        self.resize(1280, 820)
+        self.setMinimumSize(860, 560)
 
-        self._build_content()
+        self.webview = QWebEngineView(self)
+        self.webview.page().setBackgroundColor(PAGE_BACKGROUND)
+        self.webview.setUrl(QUrl(dashboard_url()))
+        self.setCentralWidget(self.webview)
 
-        # TopBar reparents itself onto this window and pins to (0, 0),
-        # so it must be created after the central widget is in place.
-        self.topbar = TopBar(self, icon_path=ORCH_ICON_PATH)
-        self.topbar.nav_clicked.connect(self._on_nav_clicked)
+    def open_path(self, path=""):
+        """Navigate the embedded view to a specific dashboard path, e.g.
+        "study/" or "profiles/new/" -- used by the tray menu."""
+        self.webview.setUrl(QUrl(dashboard_url() + path))
 
-    def _build_content(self):
-        central = QWidget()
-        central.setStyleSheet(f"background: {WINDOW_BG};")
-        self.setCentralWidget(central)
-
-        layout = QVBoxLayout(central)
-        # Top padding pushes content below the glass bar so it doesn't start
-        # out hidden underneath it; bar height + a little breathing room.
-        layout.setContentsMargins(24, BAR_HEIGHT + 24, 24, 24)
-        layout.setSpacing(10)
-        layout.addStretch(1)
-
-        logo = QLabel()
-        pixmap = QPixmap(str(ORCH_ICON_PATH))
-        if not pixmap.isNull():
-            logo.setPixmap(pixmap.scaled(56, 56, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(logo)
-
-        title = QLabel("Orch is running")
-        title.setFont(QFont("Space Grotesk", 18, QFont.Weight.Bold))
-        title.setStyleSheet("color: #E8ECF2;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
-
-        self.status_label = QLabel()
-        self.status_label.setStyleSheet("color: #AEB7C5; font-size: 13px;")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_label)
-        self._refresh_status()
-
-        hint = QLabel("Use Dashboard, Study, Profiles, or Settings above to open the full cockpit in your browser.")
-        hint.setStyleSheet("color: #6B7280; font-size: 12px;")
-        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        layout.addStretch(2)
-
-    def _refresh_status(self):
-        if self.watcher is None:
-            self.status_label.setText("Watcher status unavailable")
-            return
-        state = "Active" if self.watcher.running else "Paused"
-        self.status_label.setText(f"File watcher: {state}")
-
-    def _on_nav_clicked(self, label):
-        path = NAV_ROUTES.get(label, "")
-        webbrowser.open(dashboard_url() + path)
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        self._refresh_status()
-        # Window may not have its final size yet on first show; re-pin now
-        # that geometry is real instead of waiting for the next resize.
-        self.topbar._sync_geometry()
-        self.topbar.raise_()
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()

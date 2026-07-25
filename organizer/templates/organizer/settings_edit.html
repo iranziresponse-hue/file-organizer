@@ -85,6 +85,228 @@
                 </div>
             </div>
 
+            <div class="form-section">
+                <div class="form-section-header">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h3 style="margin:0;">Smart Orch</h3>
+                        {% if ai_enabled and ai_key_set %}
+                        <span class="status-dot">Active</span>
+                        {% else %}
+                        <span class="path-text">Not set up yet</span>
+                        {% endif %}
+                    </div>
+                    <p>Powers document summaries, course guides, and an optional extra routing suggestion in each profile when nothing else matches a file. Off by default; nothing sends anywhere until this is on and a key is set.</p>
+                </div>
+                <label class="setting-switch">
+                    <input type="checkbox" name="ai_enabled" {% if ai_enabled %}checked{% endif %}>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Smart reasoning</strong>
+                        <span>{% if ai_enabled %}Enabled for summaries and fallback routing{% else %}Off until you choose to enable it{% endif %}</span>
+                    </span>
+                </label>
+                <div class="field" style="margin-top:12px;">
+                    <label for="ai_api_key">API key{% if ai_key_set %} (currently set){% endif %}</label>
+                    <input type="password" id="ai_api_key" name="ai_api_key" placeholder="{% if ai_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                </div>
+                <details style="margin-top:8px; color:var(--muted);">
+                    <summary style="cursor:pointer; font-size:0.85rem;">Don't have a key yet? How do I get one?</summary>
+                    <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
+                        <li>Smart Orch runs on Groq, a free AI provider. Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> and sign up (free)</li>
+                        <li>Click <strong>Create API Key</strong>, name it "Orch", and copy it</li>
+                        <li>Paste it into the field above and save</li>
+                    </ol>
+                </details>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h3 style="margin:0;">YouTube recommendations</h3>
+                        {% if youtube_enabled and youtube_key_set %}
+                        <span class="status-dot">Active</span>
+                        {% else %}
+                        <span class="path-text">Not set up yet</span>
+                        {% endif %}
+                    </div>
+                    <p>Turns Resource Radar's video suggestions from a generic search link into real, specific videos for each topic. Off by default; without this, Resource Radar still works, just with a search link instead of a picked video.</p>
+                </div>
+                <label class="setting-switch">
+                    <input type="checkbox" name="youtube_enabled" {% if youtube_enabled %}checked{% endif %}>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Real video recommendations</strong>
+                        <span>{% if youtube_enabled %}Resource Radar can pick specific videos{% else %}Resource Radar will use search links{% endif %}</span>
+                    </span>
+                </label>
+                <div class="field" style="margin-top:12px;">
+                    <label for="youtube_api_key">API key{% if youtube_key_set %} (currently set){% endif %}</label>
+                    <input type="password" id="youtube_api_key" name="youtube_api_key" placeholder="{% if youtube_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                </div>
+                <details style="margin-top:8px; color:var(--muted);">
+                    <summary style="cursor:pointer; font-size:0.85rem;">Don't have a key yet? How do I get one?</summary>
+                    <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
+                        <li>Go to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project</li>
+                        <li>Enable the <strong>YouTube Data API v3</strong> for that project</li>
+                        <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials</strong>, choose <strong>API key</strong>, and copy it</li>
+                        <li>Paste it into the field above and save</li>
+                    </ol>
+                </details>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h3 style="margin:0;">Google Drive backup</h3>
+                        {% if drive_enabled and drive_connected %}
+                        <span class="status-dot">Active{% if drive_account_email %} - {{ drive_account_email }}{% endif %}</span>
+                        {% elif drive_client_configured %}
+                        <span class="path-text">Not connected yet</span>
+                        {% else %}
+                        <span class="path-text">Not set up yet</span>
+                        {% endif %}
+                    </div>
+                    <p>After Orch sorts a file into your profile, also upload a copy to an "Orch Backups" folder in your own Google Drive. Orch only ever sees files it creates there, never the rest of your Drive.</p>
+                </div>
+                <label class="setting-switch">
+                    <input type="checkbox" name="drive_enabled" {% if drive_enabled %}checked{% endif %}>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Drive backup channel</strong>
+                        <span>{% if drive_enabled %}Backup flow is enabled{% else %}Local-only until you turn this on{% endif %}</span>
+                    </span>
+                </label>
+                <div class="form-two" style="margin-top:12px;">
+                    <div class="field">
+                        <label for="drive_client_id">Client ID{% if drive_client_configured %} (currently set){% endif %}</label>
+                        <input type="password" id="drive_client_id" name="drive_client_id" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client ID here{% endif %}" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label for="drive_client_secret">Client secret{% if drive_client_configured %} (currently set){% endif %}</label>
+                        <input type="password" id="drive_client_secret" name="drive_client_secret" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client secret here{% endif %}" autocomplete="off">
+                    </div>
+                </div>
+                <details style="margin-top:8px; color:var(--muted);">
+                    <summary style="cursor:pointer; font-size:0.85rem;">Don't have a Client ID yet? How do I get one?</summary>
+                    <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
+                        <li>Go to <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project, then enable the <strong>Google Drive API</strong></li>
+                        <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials → OAuth client ID</strong>, and choose application type <strong>Desktop app</strong></li>
+                        <li>Copy the Client ID and Client secret it gives you into the fields above and save</li>
+                        <li>Come back here afterward and click Connect below</li>
+                    </ol>
+                </details>
+                {% if drive_client_configured %}
+                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <a class="button button-ghost" href="{% url 'drive_connect' %}">{% if drive_connected %}Reconnect Google Drive{% else %}Connect Google Drive{% endif %}</a>
+                    {% if drive_connected %}
+                    <form method="post" action="{% url 'drive_disconnect' %}" onsubmit="return confirm('Disconnect Google Drive? Backups will stop until you reconnect.');">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost">Disconnect</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Automation control</h3>
+                    <p>Orch earns trust before it earns automation. Your active profile still sorts itself automatically; everything else below is off by default. Turn on only the categories you want Orch to touch, and choose how much it's allowed to do without asking first.</p>
+                </div>
+                <div class="field">
+                    <label for="global_default_mode">When nothing matches your profile, a rule, or an enabled category</label>
+                    <select id="global_default_mode" name="global_default_mode">
+                        {% for value, label in settings.GLOBAL_DEFAULT_MODE_CHOICES %}
+                        <option value="{{ value }}" {% if settings.global_default_mode == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% for category in sort_categories %}
+                <div class="form-section" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+                    <label class="setting-switch">
+                        <input type="checkbox" name="category_{{ category.key }}_enabled" {% if category.enabled %}checked{% endif %}>
+                        <span class="toggle-track" aria-hidden="true"></span>
+                        <span class="setting-switch-copy">
+                            <strong>{{ category.label }} sorting</strong>
+                            <span>{% if category.enabled %}Enabled with {{ category.get_mode_display|lower }}{% else %}Off until you opt in{% endif %}</span>
+                        </span>
+                    </label>
+                    <div class="form-two" style="margin-top:12px;">
+                        <div class="field">
+                            <label for="category_{{ category.key }}_destination">Destination folder</label>
+                            <div class="field-control">
+                                <input type="text" id="category_{{ category.key }}_destination" name="category_{{ category.key }}_destination" value="{{ category.destination_path }}">
+                                <button type="button" class="button-ghost" onclick="openFolderBrowser('category_{{ category.key }}_destination')">Browse</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="category_{{ category.key }}_mode">Automation level</label>
+                            <select id="category_{{ category.key }}_mode" name="category_{{ category.key }}_mode">
+                                {% for value, label in category.MODE_CHOICES %}
+                                <option value="{{ value }}" {% if category.mode == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-two category-test" data-category="{{ category.key }}" style="margin-top:10px; align-items:end;">
+                        <div class="field">
+                            <label>Preview what this would catch</label>
+                            <input type="text" class="category-test-filename" placeholder="e.g. holiday-photo.jpg">
+                        </div>
+                        <div>
+                            <button type="button" class="button-ghost category-test-btn">Test</button>
+                            <span class="path-text category-test-result" style="display:block; margin-top:6px;"></span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if sensitive_category %}
+                <div class="form-section" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+                    <div class="form-section-header">
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <h3 style="margin:0;">Sensitive files</h3>
+                            <span class="status-dot">Always reviewed</span>
+                        </div>
+                        <p>Passwords, keys, certificates, recovery codes, and other secrets always go to the Decision Inbox first. This can't be turned off or set to auto-move: private files are never silent.</p>
+                    </div>
+                    <div class="field">
+                        <label for="sensitive_destination">Destination folder (used once you approve one)</label>
+                        <input type="text" id="sensitive_destination" value="{{ sensitive_category.destination_path }}" disabled>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if owner_mode_available %}
+            <div class="form-section">
+                <div class="form-section-header">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h3 style="margin:0;">Owner console</h3>
+                        {% if owner_mode %}
+                        <span class="status-dot">Active</span>
+                        {% else %}
+                        <span class="path-text">Not set up yet</span>
+                        {% endif %}
+                    </div>
+                    <p>Deeper diagnostics and direct database access for troubleshooting Orch itself, not something regular use needs. Turning this on adds an "Admin" link to the top navigation on this device only. This saves itself immediately, separate from the "Save settings" button below, so it can never get silently switched off by saving something else on this page.</p>
+                </div>
+                <label class="setting-switch toggle-switch">
+                    <input type="checkbox" id="owner-mode-toggle" {% if owner_mode %}checked{% endif %}>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Owner navigation</strong>
+                        <span class="toggle-label">{{ owner_mode|yesno:"Admin link shown,Admin link hidden" }}</span>
+                    </span>
+                    <span class="toggle-save-flash"></span>
+                </label>
+                {% if owner_mode and not owner_account_exists %}
+                <p class="help-text" style="margin-top:8px;">Open the new Admin link now: it'll walk you through setting an owner username and password the first time.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="form-actions">
                 <button type="submit">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -97,4 +319,84 @@
         </form>
     </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    function flash(flashEl, message, isError) {
+        flashEl.textContent = message;
+        flashEl.classList.toggle('error', !!isError);
+        flashEl.classList.add('show');
+        clearTimeout(flashEl._hideTimer);
+        flashEl._hideTimer = setTimeout(function () {
+            flashEl.classList.remove('show');
+        }, isError ? 4000 : 1800);
+    }
+
+    var checkbox = document.getElementById('owner-mode-toggle');
+    if (!checkbox) return;
+    var label = checkbox.parentElement.querySelector('.toggle-label');
+    var flashEl = checkbox.parentElement.querySelector('.toggle-save-flash');
+
+    checkbox.addEventListener('change', function () {
+        var wasChecked = !checkbox.checked;
+        checkbox.disabled = true;
+
+        var formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('enabled', checkbox.checked ? 'true' : 'false');
+
+        fetch('{% url "owner_mode_toggle" %}', { method: 'POST', body: formData, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                checkbox.disabled = false;
+                if (data.ok) {
+                    if (label) label.textContent = checkbox.checked ? 'Admin link shown' : 'Admin link hidden';
+                    flash(flashEl, 'Saved', false);
+                } else {
+                    checkbox.checked = wasChecked;
+                    flash(flashEl, data.error || 'Could not save. Try again.', true);
+                }
+            })
+            .catch(function () {
+                checkbox.disabled = false;
+                checkbox.checked = wasChecked;
+                flash(flashEl, 'Could not reach Orch. Try again.', true);
+            });
+    });
+})();
+</script>
+<script>
+(function () {
+    document.querySelectorAll('.category-test').forEach(function (block) {
+        var category = block.dataset.category;
+        var input = block.querySelector('.category-test-filename');
+        var btn = block.querySelector('.category-test-btn');
+        var resultEl = block.querySelector('.category-test-result');
+        if (!input || !btn || !resultEl) return;
+
+        btn.addEventListener('click', function () {
+            var filename = input.value.trim();
+            if (!filename) {
+                resultEl.textContent = 'Enter a filename to test.';
+                return;
+            }
+            var formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('category', category);
+            formData.append('test_filename', filename);
+
+            fetch('{% url "category_test" %}', { method: 'POST', body: formData, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    resultEl.textContent = data.action || data.error || 'No response.';
+                })
+                .catch(function () {
+                    resultEl.textContent = 'Error testing category.';
+                });
+        });
+    });
+})();
+</script>
 {% endblock %}

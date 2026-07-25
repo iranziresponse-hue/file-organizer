@@ -1,0 +1,81 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Organization DNA - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Organization DNA</h2>
+            <p>How Orch has actually been sorting your files, built entirely from your own local database, no external service involved.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ stats.total_moves }}</div><div class="label">Files sorted</div></div>
+        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.pending_review }}</div><div class="label">Waiting for review</div></div>
+        <div class="stat"><div class="value" style="color:var(--red);">{{ stats.held_sensitive }}</div><div class="label">Held for sensitive files</div></div>
+        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.accuracy }}%</div><div class="label">Suggestion accuracy</div></div>
+    </section>
+
+    <section class="overview-grid">
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Automation accuracy</h2><p class="card-subtitle">How often Orch's own suggestions were kept</p></div></div>
+            <div class="stat-row">
+                <div class="stat"><div class="value" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
+                <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Rejected</div></div>
+                <div class="stat"><div class="value">{{ stats.auto_moved }}</div><div class="label">Auto-moved</div></div>
+                <div class="stat"><div class="value">{{ stats.undo_rate }}%</div><div class="label">Undo rate</div></div>
+            </div>
+        </div>
+
+        <div class="card compact-card">
+            <div class="card-header"><div><h2>Most common file types</h2></div></div>
+            {% if top_extensions %}
+            <div class="meta-list" style="margin-top:8px;">
+                {% for row in top_extensions %}
+                <span class="suggestion-token"><strong>.{{ row.extension }}</strong><span class="path-text">({{ row.count }})</span></span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="help-text" style="margin-top:8px;">Nothing sorted yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Most active folders</h2><p class="card-subtitle">Where files land most often</p></div></div>
+        {% if top_folders %}
+        <div class="profile-list">
+            {% for row in top_folders %}
+            <article class="profile-row" style="grid-template-columns: 1fr auto;">
+                <div class="profile-main"><span class="path-text">{{ row.path }}</span></div>
+                <div class="profile-detail"><strong>{{ row.count }}</strong></div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <div><h3>No activity yet</h3><p>Once Orch sorts files, the folders it uses most will show up here.</p></div>
+        </div>
+        {% endif %}
+    </section>
+
+    {% if subject_rows %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Subjects with the most movement</h2></div></div>
+        <div class="meta-list" style="margin-top:8px;">
+            {% for row in subject_rows %}
+            <a href="{% url 'subject_memory_detail' row.course_code %}" class="suggestion-token">
+                <strong>{{ row.course_code|course_label }}</strong><span class="path-text">({{ row.total }})</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

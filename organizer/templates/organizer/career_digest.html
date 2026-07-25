@@ -1,0 +1,62 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Career Digest - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Weekly career digest</h2>
+            <p>What you studied, what you built, and what you can show for it, generated from your own activity.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" action="{% url 'career_digest_generate' %}">
+                {% csrf_token %}
+                <button type="submit">Generate this week's digest</button>
+            </form>
+            <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
+        </div>
+    </section>
+
+    {% if digests %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>History</h2></div></div>
+        <div class="profile-list">
+            {% for digest in digests %}
+            <article class="profile-row" style="grid-template-columns: 1fr auto;">
+                <div class="profile-main">
+                    <h3>{{ digest.period_start|date:"M j" }} to {{ digest.period_end|date:"M j, Y" }}</h3>
+                    <p class="path-text" style="white-space:pre-line;">{{ digest.content }}</p>
+                </div>
+                <div class="profile-actions">
+                    <form method="post" action="{% url 'content_drafts' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="raw_text" value="This week in my studies:
+
+{{ digest.content }}">
+                        <input type="hidden" name="post_type" value="course_reflection">
+                        <input type="hidden" name="topic" value="Week of {{ digest.period_start|date:'M j' }}">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Draft a post</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+            <div>
+                <h3>No digest yet</h3>
+                <p>Generate your first one above; it's built from your study activity and project updates this week.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -13,7 +13,12 @@ a = Analysis(
         ("organizer/static", "organizer/static"),
         ("organizer/core/certs", "organizer/core/certs"),
     ],
-    hiddenimports=[],
+    # Django resolves {% load %} tags and TEMPLATES["context_processors"]
+    # dotted paths via importlib at runtime, which PyInstaller's static
+    # import scanner can't see -- without these, the packaged exe would 500
+    # on any page (context_processors runs on every page; orch_extras loads
+    # wherever {% load orch_extras %} appears).
+    hiddenimports=["organizer.templatetags.orch_extras", "organizer.context_processors"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

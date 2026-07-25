@@ -1,10 +1,24 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
+{% load orch_extras %}
 
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    :root {
+    /* This page is always dark, with no light variant of the cockpit
+       gradient/cards below. Django's own stock chrome (nav-sidebar, the
+       app_list table) is themed entirely through its own --body-bg/
+       --darkened-bg/etc custom properties, not through classes we can
+       target directly, so re-declaring those same properties here is what
+       actually recolors it: overriding individual selectors like
+       ".module table" only reaches the table itself, not the --body-bg /
+       --darkened-bg zebra-striped <tr> backgrounds underneath. Matching
+       Django's own light/dark selectors (not just :root) means this stays
+       dark even if someone clicks the admin's built-in theme toggle, since
+       there's nothing here for it to switch to. */
+    :root,
+    html[data-theme="light"],
+    html[data-theme="dark"] {
         --orch-bg: #0A0C14;
         --orch-panel: rgba(255, 255, 255, 0.06);
         --orch-panel-strong: rgba(255, 255, 255, 0.1);
@@ -16,6 +30,26 @@
         --orch-good: #9BE7B0;
         --orch-warn: #FFD38A;
         --orch-bad: #FF9A9A;
+
+        --primary: #1B2436;
+        --primary-fg: #E8ECF2;
+        --body-fg: #E8ECF2;
+        --body-bg: #10131C;
+        --body-quiet-color: #AEB7C5;
+        --body-medium-color: #C7CEDA;
+        --body-loud-color: #FFFFFF;
+        --breadcrumbs-fg: #AEB7C5;
+        --breadcrumbs-link-fg: #E8ECF2;
+        --breadcrumbs-bg: #10131C;
+        --link-fg: #6EA8FF;
+        --link-hover-color: #8FBBFF;
+        --link-selected-fg: #A78BFA;
+        --hairline-color: rgba(255, 255, 255, 0.12);
+        --border-color: rgba(255, 255, 255, 0.18);
+        --error-fg: #FF9A9A;
+        --darkened-bg: #171B28;
+        --selected-bg: rgba(110, 168, 255, 0.14);
+        --selected-row: rgba(255, 211, 138, 0.12);
     }
 
     body {
@@ -372,6 +406,27 @@
                 </div>
             </div>
         </div>
+        <div class="orch-panel">
+            <h3>Automation accuracy</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Suggestions approved</strong><small>Of {{ orch_analytics.decisions_approved|add:orch_analytics.decisions_rejected }} resolved</small></div>
+                    <span class="orch-state {% if orch_analytics.automation_accuracy >= 70 %}good{% else %}warning{% endif %}">{{ orch_analytics.automation_accuracy }}%</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Suggestions rejected</strong><small>Decision inbox</small></div>
+                    <span class="orch-state">{{ orch_analytics.decisions_rejected }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Auto-moved</strong><small>No review needed</small></div>
+                    <span class="orch-state">{{ orch_analytics.decisions_auto_moved }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Undo rate</strong><small>Of successful moves</small></div>
+                    <span class="orch-state">{{ orch_analytics.undo_rate }}%</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <section class="orch-grid" aria-label="Live system metrics">
@@ -426,7 +481,7 @@
                 <div class="orch-row">
                     <div>
                         <strong>{{ move.filename }}</strong>
-                        <small>{{ move.profile.name|default:"No profile" }} &middot; {{ move.get_method_display }}{% if move.course_code %} for {{ move.course_code }}{% endif %}</small>
+                        <small>{{ move.profile.name|default:"No profile" }} &middot; {{ move.get_method_display }}{% if move.course_code %} for {{ move.course_code|course_label }}{% endif %}</small>
                         <small>{{ move.destination_path|default:"No destination recorded" }}</small>
                     </div>
                     <span class="orch-state {% if move.success %}good{% else %}bad{% endif %}">
@@ -569,6 +624,95 @@
                         <span class="orch-state bad" style="font-size:0.72rem;">{{ err.timestamp|slice:":10" }}</span>
                     </div>
                     {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="orch-two">
+        <div class="orch-panel">
+            <h3>Performance</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Files processed today</strong></div>
+                    <span class="orch-state">{{ orch_performance.files_processed_today }}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Failed moves today</strong></div>
+                    <span class="orch-state {% if orch_performance.failed_moves_today > 0 %}bad{% else %}good{% endif %}">
+                        {{ orch_performance.failed_moves_today }}
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Avg sort time today</strong></div>
+                    <span class="orch-state">{% if orch_performance.sort_avg_ms %}{{ orch_performance.sort_avg_ms }}ms{% else %}No data yet{% endif %}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Slowest file today</strong></div>
+                    <span class="orch-state">{% if orch_performance.sort_slowest %}{{ orch_performance.sort_slowest.detail|truncatechars:30 }} ({{ orch_performance.sort_slowest.duration_ms }}ms){% else %}No data yet{% endif %}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>MUELE sync</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <span class="orch-state">{% if orch_performance.muele_sync.avg_ms %}{{ orch_performance.muele_sync.avg_ms }}ms ({{ orch_performance.muele_sync.count }}){% else %}No data yet{% endif %}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Timetable sync</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <span class="orch-state">{% if orch_performance.timetable_sync.avg_ms %}{{ orch_performance.timetable_sync.avg_ms }}ms ({{ orch_performance.timetable_sync.count }}){% else %}No data yet{% endif %}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Summary generation</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <span class="orch-state">{% if orch_performance.summary_generate.avg_ms %}{{ orch_performance.summary_generate.avg_ms }}ms ({{ orch_performance.summary_generate.count }}){% else %}No data yet{% endif %}</span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Course guide generation</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <span class="orch-state">{% if orch_performance.course_guide_generate.avg_ms %}{{ orch_performance.course_guide_generate.avg_ms }}ms ({{ orch_performance.course_guide_generate.count }}){% else %}No data yet{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>Page load times</h3>
+            <div class="orch-list">
+                {% for page in orch_performance.page_loads %}
+                <div class="orch-row">
+                    <div><strong>{{ page.view }}</strong><small>{{ page.count }} loads, last {{ orch_performance.window_days }} days</small></div>
+                    <span class="orch-state {% if page.avg_ms > 300 %}warning{% else %}good{% endif %}">
+                        {{ page.avg_ms }}ms{% if page.avg_queries %} &middot; {{ page.avg_queries }} queries{% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="orch-row">
+                    <div>No page-load data yet</div>
+                    <span class="orch-state">Visit Dashboard, Study, Connections, MUELE Courses, Timeline, or Resource Radar to collect some</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="orch-panel">
+            <h3>Search index</h3>
+            <div class="orch-list">
+                <div class="orch-row">
+                    <div><strong>Status</strong></div>
+                    <span class="orch-state {% if orch_search_index.healthy %}good{% else %}bad{% endif %}">
+                        {{ orch_search_index.healthy|yesno:"Healthy,Needs attention" }}
+                    </span>
+                </div>
+                <div class="orch-row">
+                    <div><strong>Indexed rows</strong></div>
+                    <span class="orch-state">{{ orch_search_index.total_rows }}</span>
+                </div>
+                {% for record_type, count in orch_search_index.counts_by_type.items %}
+                <div class="orch-row">
+                    <div>{{ record_type }}</div>
+                    <span class="orch-state">{{ count }}</span>
+                </div>
+                {% endfor %}
+                {% if not orch_search_index.healthy %}
+                <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
+                    <div>
+                        <strong style="color:var(--orch-bad);">Search is falling back to plain filename matching</strong>
+                        <small style="color:var(--orch-bad);">{{ orch_search_index.error|truncatechars:120 }}</small>
+                    </div>
                 </div>
                 {% endif %}
             </div>

@@ -19,6 +19,7 @@ from organizer.models import (
     StudyGoal,
 )
 
+from . import makerere_curricula
 from . import topics as topics_core
 
 MUELE_BASE_URL = "https://muele.mak.ac.ug"
@@ -79,11 +80,12 @@ def sync_subject_memories(profile):
     memories = []
     for code in sorted(set(configured_codes) | set(event_stats.keys())):
         stats = event_stats.get(code, {})
+        name = makerere_curricula.name_for_code(code)
         memory, _ = SubjectMemory.objects.update_or_create(
             profile=profile,
             code=code,
             defaults={
-                "title": code,
+                "title": f"{code} - {name}" if name else code,
                 "resource_count": stats.get("resource_count", 0),
                 "last_touched_at": stats.get("last_touched_at"),
             },
@@ -288,6 +290,8 @@ def ensure_subject_rules(profile):
 
 
 def create_import_plan(root_path, profile=None, max_files=80):
+    from . import file_index
+
     root = Path(root_path)
     plan = FolderImportPlan.objects.create(profile=profile, root_path=str(root), status="draft")
     if not root.exists() or not root.is_dir():
@@ -298,6 +302,8 @@ def create_import_plan(root_path, profile=None, max_files=80):
     folders = []
     files = []
     subjects = set()
+    new_or_changed = 0
+    already_indexed = 0
     for path in root.rglob("*"):
         try:
             relative = str(path.relative_to(root))
@@ -307,8 +313,19 @@ def create_import_plan(root_path, profile=None, max_files=80):
             folders.append(relative)
             if path.name and not path.name.startswith("_"):
                 subjects.add(path.name[:32])
-        elif len(files) < max_files:
+            continue
+
+        # Recorded regardless of the max_files display cap below, so a
+        # folder far larger than that cap still gets full skip-detection
+        # on its next scan -- not just whichever 80 files happened to be
+        # the first ones this pass showed in the plan itself.
+        if file_index.check_and_record(path, profile=profile):
+            already_indexed += 1
+        else:
+            new_or_changed += 1
+        if len(files) < max_files:
             files.append(relative)
+
     proposed_subjects = sorted(subjects)[:40]
     plan.discovered_folders = folders[:120]
     plan.discovered_files = files
@@ -324,6 +341,10 @@ def create_import_plan(root_path, profile=None, max_files=80):
         for subject in proposed_subjects[:20]
     ]
     plan.status = "scanned"
+    if already_indexed:
+        plan.notes = (
+            f"{new_or_changed} new or changed file(s), {already_indexed} unchanged since a previous scan."
+        )
     plan.save()
     return plan
 

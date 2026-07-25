@@ -1,0 +1,163 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Flashcards - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Active recall</h2>
+            <p>Flashcards generated locally from your own past papers and notes; no invented answers.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ due_count }}</div><div class="label">Due now</div></div>
+        <div class="stat"><div class="value">{{ total_active }}</div><div class="label">Active cards</div></div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Practice</h2></div></div>
+        {% if next_card %}
+        <div id="practice-card" style="padding:16px 0;">
+            <p class="path-text">{{ next_card.get_card_type_display }}{% if next_card.subject_code %} &middot; {{ next_card.subject_code|course_label }}{% endif %}</p>
+            <h3 style="font-size:1.15rem; margin:8px 0 16px;">{{ next_card.front }}</h3>
+            <div id="practice-answer" hidden style="margin-bottom:16px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.06);">
+                {% if next_card.back %}{{ next_card.back }}{% else %}<span class="path-text">No answer recorded; check your own notes or past paper solutions.</span>{% endif %}
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="show-answer-btn" class="button-ghost">Show answer</button>
+                <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="remembered-form" hidden>
+                    {% csrf_token %}
+                    <input type="hidden" name="remembered" value="1">
+                    <button type="submit" class="button" style="background:var(--green);">I remembered</button>
+                </form>
+                <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="forgot-form" hidden>
+                    {% csrf_token %}
+                    <input type="hidden" name="remembered" value="0">
+                    <button type="submit" class="button-ghost" style="color:var(--red);">I forgot</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>All caught up</h3>
+                <p>Nothing due right now. Generate more cards below, or come back later.</p>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Generate cards</h2>
+                <p class="card-subtitle">From past-paper questions or from headings/definitions in your AI summaries</p>
+            </div>
+        </div>
+        {% if generation_sources %}
+        <div class="profile-list">
+            {% for code in generation_sources %}
+            <article class="profile-row">
+                <div class="profile-main"><h3>{{ code|course_label }}</h3></div>
+                <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+                    {% if code in subjects_with_past_papers %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="generate_past_papers">
+                        <input type="hidden" name="subject_code" value="{{ code }}">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">From past papers</button>
+                    </form>
+                    {% endif %}
+                    {% if code in subjects_with_summaries %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="generate_summaries">
+                        <input type="hidden" name="subject_code" value="{{ code }}">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">From notes</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="help-text">No past-paper analyses or AI summaries yet; run Past Paper Intelligence or summarize a file first.</p>
+        {% endif %}
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Add a card manually</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_manual">
+            <div class="form-two">
+                <div class="field">
+                    <label for="manual_subject_code">Subject code</label>
+                    <input type="text" id="manual_subject_code" name="subject_code" placeholder="e.g. CSC2100">
+                </div>
+                <div class="field">
+                    <label for="manual_front">Prompt</label>
+                    <input type="text" id="manual_front" name="front" placeholder="What should the card ask?" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="manual_back">Answer (optional)</label>
+                <textarea id="manual_back" name="back" rows="2"></textarea>
+            </div>
+            <div class="form-actions"><button type="submit">Add card</button></div>
+        </form>
+    </section>
+
+    {% if cards_by_subject %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>All cards</h2></div></div>
+        {% for subject_code, cards in cards_by_subject.items %}
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer; font-weight:600;">{{ subject_code|course_label }} ({{ cards|length }})</summary>
+            <div class="profile-list" style="margin-top:8px;">
+                {% for card in cards %}
+                <article class="profile-row">
+                    <div class="profile-main">
+                        <h3>{{ card.front|truncatechars:80 }}</h3>
+                        <span class="path-text">{{ card.get_card_type_display }}{% if card.source_label %} &middot; {{ card.source_label }}{% endif %}</span>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Seen / correct</span>
+                        <strong>{{ card.times_seen }} / {{ card.times_correct }}</strong>
+                    </div>
+                    <div class="profile-actions">
+                        <form method="post" action="{% url 'flashcard_delete' card.pk %}" onsubmit="return confirm('Delete this card?');">
+                            {% csrf_token %}
+                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                        </form>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </details>
+        {% endfor %}
+    </section>
+    {% endif %}
+</div>
+
+<script>
+(function(){
+    var showBtn = document.getElementById('show-answer-btn');
+    if (!showBtn) return;
+    showBtn.addEventListener('click', function(){
+        document.getElementById('practice-answer').hidden = false;
+        document.getElementById('remembered-form').hidden = false;
+        document.getElementById('forgot-form').hidden = false;
+        showBtn.hidden = true;
+    });
+})();
+</script>
+{% endblock %}

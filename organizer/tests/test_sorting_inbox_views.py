@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from organizer.models import MoveEvent, SortingInboxItem
+from organizer.models import MoveEvent, OrganizationMemoryRule, SortDecision
 
 from .helpers import SandboxedPathsTestCase
 
@@ -17,13 +17,12 @@ class SortingInboxPageTests(SandboxedPathsTestCase):
         self.assertContains(response, "No pending items")
 
     def test_pending_item_renders_with_stable_hooks_for_the_ajax_layer(self):
-        item = SortingInboxItem.objects.create(
+        item = SortDecision.objects.create(
             profile=self.profile,
             filename="BIO101 notes.pdf",
             source_path=str(self.downloads / "BIO101 notes.pdf"),
-            suggested_subject="BIO101",
             suggested_destination=str(self.profile_root / "BIO101"),
-            confidence=0.6,
+            confidence=60,
             status="pending",
         )
 
@@ -55,13 +54,14 @@ class InboxApproveViewTests(SandboxedPathsTestCase):
         self.source.parent.mkdir(parents=True, exist_ok=True)
         self.source.write_bytes(b"notes")
         self.destination = self.profile_root / "BIO101"
-        self.item = SortingInboxItem.objects.create(
+        self.item = SortDecision.objects.create(
             profile=self.profile,
             filename=self.source.name,
             source_path=str(self.source),
-            suggested_subject="BIO101",
             suggested_destination=str(self.destination),
-            confidence=0.6,
+            confidence=60,
+            explanation="Matched rule 'Route biology notes'",
+            matched_rule="Route biology notes",
             status="pending",
         )
 
@@ -73,6 +73,14 @@ class InboxApproveViewTests(SandboxedPathsTestCase):
         self.assertEqual(self.item.status, "approved")
         self.assertTrue((self.destination / self.source.name).exists())
         self.assertTrue(MoveEvent.objects.filter(profile=self.profile, filename=self.source.name).exists())
+
+    def test_approve_with_remember_creates_an_organization_memory_rule(self):
+        response = self.client.post(reverse("inbox_approve", args=[self.item.pk]), {"remember": "1"})
+
+        self.assertRedirects(response, reverse("sorting_inbox"))
+        rule = OrganizationMemoryRule.objects.get(profile=self.profile, match_type="extension", match_value="pdf")
+        self.assertEqual(rule.times_approved, 1)
+        self.assertEqual(rule.destination_path, str(self.destination))
 
     def test_approve_redirect_response_carries_a_message_with_the_stable_id(self):
         # inbox-actions.js swaps this exact element in on a successful
@@ -89,13 +97,27 @@ class InboxApproveViewTests(SandboxedPathsTestCase):
 
         self.assertNotIn('data-pk="%d"' % self.item.pk, response.content.decode())
 
-    def test_ignore_marks_item_ignored_and_leaves_file_in_place(self):
+    def test_ignore_marks_item_rejected_and_leaves_file_in_place(self):
         response = self.client.post(reverse("inbox_ignore", args=[self.item.pk]))
 
         self.assertRedirects(response, reverse("sorting_inbox"))
         self.item.refresh_from_db()
-        self.assertEqual(self.item.status, "ignored")
+        self.assertEqual(self.item.status, "rejected")
         self.assertTrue(self.source.exists())
+
+    def test_ignore_with_never_again_penalizes_the_matching_memory_rule(self):
+        OrganizationMemoryRule.objects.create(
+            profile=self.profile,
+            name="Files ending in .pdf",
+            match_type="extension",
+            match_value="pdf",
+            destination_path=str(self.destination),
+        )
+
+        self.client.post(reverse("inbox_ignore", args=[self.item.pk]), {"never_again": "1"})
+
+        rule = OrganizationMemoryRule.objects.get(profile=self.profile, match_type="extension", match_value="pdf")
+        self.assertEqual(rule.times_rejected, 1)
 
     def test_reroute_moves_file_to_the_chosen_destination(self):
         new_destination = self.profile_root / "Custom" / "Folder"
@@ -107,7 +129,7 @@ class InboxApproveViewTests(SandboxedPathsTestCase):
 
         self.assertRedirects(response, reverse("sorting_inbox"))
         self.item.refresh_from_db()
-        self.assertEqual(self.item.status, "rerouted")
+        self.assertEqual(self.item.status, "approved")
         self.assertTrue((new_destination / self.source.name).exists())
 
     def test_reroute_without_a_destination_leaves_item_pending(self):
@@ -118,3 +140,30 @@ class InboxApproveViewTests(SandboxedPathsTestCase):
         # inbox-actions.js relies on this to detect the failure and fall
         # back to a real page reload instead of silently removing the row.
         self.assertIn('data-pk="%d"' % self.item.pk, response.content.decode())
+
+    def test_reroute_outside_trusted_roots_is_rejected_unconfirmed(self):
+        outside = self.profile_root.parent / "Somewhere Else Entirely"
+
+        response = self.client.post(
+            reverse("inbox_reroute", args=[self.item.pk]),
+            {"new_destination": str(outside)},
+            follow=True,
+        )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.status, "pending")
+        self.assertFalse(outside.exists())
+        self.assertContains(response, "outside your usual Orch folders")
+
+    def test_reroute_outside_trusted_roots_succeeds_once_confirmed(self):
+        outside = self.profile_root.parent / "Somewhere Else Entirely"
+
+        response = self.client.post(
+            reverse("inbox_reroute", args=[self.item.pk]),
+            {"new_destination": str(outside), "confirm_external": "1"},
+        )
+
+        self.assertRedirects(response, reverse("sorting_inbox"))
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.status, "approved")
+        self.assertTrue((outside / self.source.name).exists())

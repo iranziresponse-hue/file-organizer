@@ -1,0 +1,55 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Smart Study Timetable - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Smart study timetable</h2>
+            <p>Not a generic calendar; a priority engine. Regenerated fresh every time from your assignments, exams, classes, weak areas, and past papers.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    {% if grouped %}
+    {% for day, blocks in grouped.items %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>{{ blocks.0.day_label }}</h2><p class="card-subtitle">{{ day|date:"l, M j" }}</p></div></div>
+        <div class="profile-list">
+            {% for block in blocks %}
+            <article class="profile-row {% if block.priority == 'high' %}is-warning{% endif %}">
+                <div class="profile-main">
+                    <h3>{{ block.action }}</h3>
+                    <span class="path-text">{{ block.reason }}</span>
+                </div>
+                <div class="profile-detail">
+                    {% if block.subject_code %}
+                    <a href="{% url 'subject_memory_detail' block.subject_code %}" class="meta-token">{{ block.subject_code|course_label }}</a>
+                    {% endif %}
+                    <strong style="{% if block.priority == 'high' %}color:var(--red);{% elif block.priority == 'low' %}color:var(--muted);{% endif %}">
+                        {{ block.priority|capfirst }}
+                    </strong>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="m7 16 4-6 4 4 4-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>Nothing urgent scheduled</h3>
+                <p>Connect your timetable, set some deadlines in the Assignment Tracker, or run Past Paper Intelligence for a subject to populate this.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

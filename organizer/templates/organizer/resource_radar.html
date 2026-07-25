@@ -1,5 +1,6 @@
 {% extends "organizer/base.html" %}
 {% load static %}
+{% load orch_extras %}
 
 {% block title %}Resource Radar - Orch{% endblock %}
 
@@ -19,7 +20,7 @@
             <select name="subject_code" aria-label="Subject filter">
                 <option value="">All subjects</option>
                 {% for memory in subject_memories %}
-                <option value="{{ memory.code }}" {% if current_subject == memory.code %}selected{% endif %}>{{ memory.code }}</option>
+                <option value="{{ memory.code }}" {% if current_subject == memory.code %}selected{% endif %}>{{ memory.code|course_label }}</option>
                 {% endfor %}
             </select>
             <button type="submit">
@@ -45,7 +46,7 @@
                 {% for memory in subject_memories %}
                 <article class="profile-row">
                     <div class="profile-main">
-                        <h3>{{ memory.code }}</h3>
+                        <h3>{{ memory.code|course_label }}</h3>
                         <span class="path-text">{{ memory.resource_count }} resources tracked</span>
                     </div>
                     <div class="profile-detail">
@@ -90,14 +91,23 @@
         {% if recommendations %}
         <div class="profile-list">
             {% for item in recommendations %}
-            <article class="profile-row" data-pk="{{ item.pk }}">
+            {% with video_id=item.url|youtube_video_id %}
+            <article class="profile-row{% if video_id %} has-video-frame{% endif %}" data-pk="{{ item.pk }}">
+                {% if video_id %}
+                <div class="video-frame" data-video-id="{{ video_id }}" role="button" tabindex="0" aria-label="Play video: {{ item.title }}">
+                    <img class="video-frame-thumb" src="https://i.ytimg.com/vi/{{ video_id }}/hqdefault.jpg" alt="" loading="lazy">
+                    <span class="video-frame-play" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7-11-7Z"/></svg>
+                    </span>
+                </div>
+                {% endif %}
                 <div class="profile-main">
                     <h3>{{ item.title }}</h3>
                     <span class="path-text">{{ item.reason }}</span>
                     <span class="path-text">Query: {{ item.query }}</span>
                 </div>
                 <div class="profile-detail">
-                    <span class="path-text">{{ item.subject_code|default:"General" }}</span>
+                    <span class="path-text">{{ item.subject_code|course_label|default:"General" }}</span>
                     <strong>{{ item.get_source_type_display }}</strong>
                 </div>
                 <div class="profile-actions" id="rec-actions-{{ item.pk }}">
@@ -116,6 +126,7 @@
                     </form>
                 </div>
             </article>
+            {% endwith %}
             {% endfor %}
         </div>
         {% else %}
@@ -135,4 +146,5 @@
     </section>
 </div>
 <script src="{% static 'organizer/js/resource-radar-actions.js' %}"></script>
+<script src="{% static 'organizer/js/video-facade.js' %}"></script>
 {% endblock %}

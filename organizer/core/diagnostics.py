@@ -151,6 +151,80 @@ def get_error_summary(days: int = 7) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Performance Health Panel
+# ---------------------------------------------------------------------------
+
+def get_performance_summary(days: int = 7) -> dict:
+    """Performance Health Panel data: how long things are actually taking,
+    not just whether they succeeded. Everything here comes from
+    PerformanceMetric rows recorded by organizer.core.perf.measure() /
+    measure_view() -- there's no data from before that instrumentation
+    shipped, so a fresh install shows zeros/empty until real usage
+    accumulates some."""
+    from django.db.models import Avg, Count
+
+    from . import perf
+    from organizer.models import MoveEvent, PerformanceMetric
+
+    today = timezone.localdate()
+    since = timezone.now() - timedelta(days=days)
+
+    files_today = MoveEvent.objects.filter(timestamp__date=today)
+    sort_today = PerformanceMetric.objects.filter(operation="sort_file", created_at__date=today)
+    slowest = sort_today.order_by("-duration_ms").first()
+
+    def _op_stats(operation):
+        agg = PerformanceMetric.objects.filter(
+            operation=operation, created_at__gte=since
+        ).aggregate(avg_ms=Avg("duration_ms"), count=Count("id"))
+        return {
+            "avg_ms": round(agg["avg_ms"]) if agg["avg_ms"] else None,
+            "count": agg["count"],
+        }
+
+    page_loads = []
+    for view_name in sorted(perf.WATCHED_VIEWS):
+        agg = PerformanceMetric.objects.filter(
+            operation="page_load", detail=view_name, created_at__gte=since
+        ).aggregate(avg_ms=Avg("duration_ms"), avg_queries=Avg("query_count"), count=Count("id"))
+        if agg["count"]:
+            page_loads.append({
+                "view": view_name,
+                "avg_ms": round(agg["avg_ms"]),
+                "avg_queries": round(agg["avg_queries"]) if agg["avg_queries"] is not None else None,
+                "count": agg["count"],
+            })
+
+    sort_avg = sort_today.aggregate(avg=Avg("duration_ms"))["avg"]
+
+    return {
+        "window_days": days,
+        "files_processed_today": files_today.count(),
+        "failed_moves_today": files_today.filter(success=False).count(),
+        "sort_avg_ms": round(sort_avg) if sort_avg else None,
+        "sort_slowest": (
+            {"detail": slowest.detail, "duration_ms": slowest.duration_ms} if slowest else None
+        ),
+        "muele_sync": _op_stats("muele_sync"),
+        "timetable_sync": _op_stats("timetable_sync"),
+        "summary_generate": _op_stats("summary_generate"),
+        "course_guide_generate": _op_stats("course_guide_generate"),
+        "page_loads": page_loads,
+        "watcher": get_watcher_status(),
+    }
+
+
+def get_search_index_health() -> dict:
+    """Search silently falls back to a plain filename filter if the FTS5
+    index is broken (see organizer.core.search_index's module docstring) --
+    good for not breaking the dashboard, bad for anyone ever finding out
+    the index itself needs attention. This is that "finding out" path."""
+    from . import search_index
+
+    return search_index.health_check()
+
+
+# ---------------------------------------------------------------------------
 # Database health
 # ---------------------------------------------------------------------------
 
@@ -294,13 +368,14 @@ def check_folder_permissions(folder_path: str) -> dict:
 
 
 def check_all_watched_folders() -> list[dict]:
-    """Check permissions for all configured watched folders."""
+    """Check permissions for all configured watched folders. AppSettings is
+    a get-or-create singleton (see AppSettings.get_solo) -- callers get a
+    real check against the default folders even before the user has ever
+    opened Settings, instead of a silent empty list."""
     from organizer.models import AppSettings
 
     results = []
-    settings = AppSettings.objects.first()
-    if not settings:
-        return []
+    settings = AppSettings.get_solo()
 
     # Primary downloads
     if settings.downloads_path:

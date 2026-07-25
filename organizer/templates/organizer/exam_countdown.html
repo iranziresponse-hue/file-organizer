@@ -1,0 +1,125 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Exam Countdown - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Exam countdown</h2>
+            <p>Days left per paper, revision coverage, and what to study today, built from your synced timetable and review queue.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>{% if is_exam_period %}Exam period is on{% else %}Semester context{% endif %}</h2>
+                <p class="card-subtitle">
+                    {% if is_exam_period %}
+                        {{ remaining_weeks }} week{{ remaining_weeks|pluralize }} left in this period.
+                    {% else %}
+                        {{ remaining_weeks }} week{{ remaining_weeks|pluralize }} left in the current period.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if upcoming_periods %}
+        <div class="meta-list" style="margin-top:8px;">
+            {% for period in upcoming_periods %}
+            <span class="suggestion-token {% if period.is_exam_period %}text-live{% endif %}">
+                <strong>{{ period.name }}</strong>
+                <span class="path-text">{{ period.start|date:"M j" }} - {{ period.end|date:"M j, Y" }}</span>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    {% if next_best %}
+    <section class="card compact-card" style="border-color:var(--cyan);">
+        <div class="card-header"><div><h2>Next best action</h2></div></div>
+        <p class="help-text" style="font-size:1rem; color:var(--text);">{{ next_best }}</p>
+    </section>
+    {% endif %}
+
+    {% if exams %}
+    <section class="overview-grid">
+        {% for row in exams %}
+        <div class="card compact-card {% if row.urgency == 'critical' %}is-warning{% endif %}">
+            <div class="card-header">
+                <div>
+                    <h2>{{ row.entry.course_code|default:row.entry.course_name|course_label }}</h2>
+                    <p class="card-subtitle">{{ row.entry.get_kind_display }}{% if row.entry.room %} &middot; {{ row.entry.room }}{% endif %}</p>
+                </div>
+                <span class="status-dot {% if row.urgency == 'critical' %}is-error{% elif row.urgency == 'warning' %}is-warning{% endif %}">
+                    {{ row.days_left }} day{{ row.days_left|pluralize }} left
+                </span>
+            </div>
+            <div class="stat-row">
+                <div class="stat">
+                    <div class="value">{{ row.coverage_percent }}%</div>
+                    <div class="label">Revision coverage</div>
+                </div>
+                <div class="stat">
+                    <div class="value">{{ row.reviews_done }}/{{ row.reviews_total }}</div>
+                    <div class="label">Reviews done</div>
+                </div>
+                <div class="stat">
+                    <div class="value">{{ row.open_assignments }}</div>
+                    <div class="label">Open assignments</div>
+                </div>
+                <div class="stat">
+                    <div class="value">{{ row.past_papers_available }}</div>
+                    <div class="label">Past papers available</div>
+                </div>
+            </div>
+            {% if row.entry.course_code %}
+            <a class="button button-ghost" href="{% url 'subject_memory_detail' row.entry.course_code %}" style="margin-top:12px;">Open course brain</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>No upcoming exams tracked yet</h3>
+                <p>Connect your Makerere timetable to pull in test and examination dates automatically.</p>
+                <a class="button button-ghost" href="{% url 'timetable_connect' %}" style="margin-top:12px;">Connect timetable</a>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if undated %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>Date not yet confirmed</h2>
+                <p class="card-subtitle">Makerere Timetable published these without a resolvable date, so no countdown until it does</p>
+            </div>
+        </div>
+        <div class="profile-list">
+            {% for entry in undated %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>{{ entry.course_code|default:entry.course_name|course_label }}</h3>
+                    <span class="path-text">{{ entry.get_kind_display }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="path-text">{{ entry.date_label|default:"No date published" }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

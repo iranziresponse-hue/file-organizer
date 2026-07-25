@@ -9,18 +9,20 @@
             <span class="eyebrow">Makerere MUELE</span>
             <h2>Your courses</h2>
             <p>Manage which courses Orch syncs and downloads materials from.</p>
+            <p class="path-text">
+                Last successful sync:
+                <strong>{% if connection.last_sync_at %}{{ connection.last_sync_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</strong>
+                {% if connection.status == "error" %}&middot; <span style="color:var(--red);">Last attempt failed, showing the most recent successful sync above</span>{% endif %}
+            </p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <form method="post" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" name="action" value="sync_now" class="button">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Sync now
-                </button>
-            </form>
+            <button type="button" class="button" id="muele-sync-now-btn">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Sync now
+            </button>
             <form method="post" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" name="action" value="refresh_courses" class="button-ghost">
@@ -84,7 +86,7 @@
                     <td>{{ course.course_name }}</td>
                     <td><span class="meta-token">{{ course.course_code|default:"-" }}</span></td>
                     <td>
-                        <label class="toggle-switch" style="display:inline-flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted); cursor:pointer;">
+                        <label class="toggle-switch">
                             <input type="checkbox" class="auto-download-toggle" data-course-id="{{ course.course_id }}" {% if course.auto_download %}checked{% endif %}>
                             <span class="toggle-track" aria-hidden="true"></span>
                             <span class="toggle-label">{{ course.auto_download|yesno:"On,Off" }}</span>
@@ -117,17 +119,29 @@
                 <label for="college">College (optional)</label>
                 <input type="text" id="college" name="college" value="{{ connection.config.college|default:'' }}" placeholder="COCIS, CHS, COBAMS...">
             </div>
-            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                <input type="checkbox" name="sync_targets" value="course_files" style="width:auto;" {% if "course_files" in connection.config.sync_targets %}checked{% endif %}>
-                Download course files automatically
+            <label class="setting-switch">
+                <input type="checkbox" name="sync_targets" value="course_files" {% if "course_files" in connection.config.sync_targets %}checked{% endif %}>
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="setting-switch-copy">
+                    <strong>Course files</strong>
+                    <span>Download lecture notes and resources automatically</span>
+                </span>
             </label>
-            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                <input type="checkbox" name="sync_targets" value="assignments" style="width:auto;" {% if "assignments" in connection.config.sync_targets %}checked{% endif %}>
-                Track assignments and deadlines
+            <label class="setting-switch">
+                <input type="checkbox" name="sync_targets" value="assignments" {% if "assignments" in connection.config.sync_targets %}checked{% endif %}>
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="setting-switch-copy">
+                    <strong>Assignments</strong>
+                    <span>Track deadlines from MUELE inside Orch</span>
+                </span>
             </label>
-            <label style="display:flex; align-items:center; gap:10px; text-transform:none; font-weight:500; color:var(--muted);">
-                <input type="checkbox" name="sync_targets" value="calendar" style="width:auto;" {% if "calendar" in connection.config.sync_targets %}checked{% endif %}>
-                Sync calendar events
+            <label class="setting-switch">
+                <input type="checkbox" name="sync_targets" value="calendar" {% if "calendar" in connection.config.sync_targets %}checked{% endif %}>
+                <span class="toggle-track" aria-hidden="true"></span>
+                <span class="setting-switch-copy">
+                    <strong>Calendar signals</strong>
+                    <span>Use schedule events for planning and reminders</span>
+                </span>
             </label>
             <div class="form-actions">
                 <a class="button button-ghost" href="{% url 'study_home' %}">Back to Study</a>
@@ -149,6 +163,57 @@
         flashEl._hideTimer = setTimeout(function () {
             flashEl.classList.remove('show');
         }, isError ? 4000 : 1800);
+    }
+
+    var syncBtn = document.getElementById('muele-sync-now-btn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function () {
+            var originalHtml = syncBtn.innerHTML;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>Syncing...';
+
+            var formData = new FormData();
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            formData.append('action', 'sync_now');
+
+            // Sync now runs as a background job (organizer.core.jobs)
+            // instead of blocking this request; this button gets a task id
+            // back right away and polls for the result.
+            fetch('{% url "muele_courses" %}', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.ok) {
+                        syncBtn.disabled = false;
+                        syncBtn.innerHTML = originalHtml;
+                        alert(data.error || 'Sync failed.');
+                        return;
+                    }
+                    orchPollTask(data.task_id, {
+                        statusUrlTemplate: '{% url "task_status" 999999999 %}',
+                        // The old flow showed a "Sync complete: X downloaded..."
+                        // flash message after its full-page POST redirect;
+                        // this alert is the closest equivalent now that the
+                        // sync itself finishes off the request/response cycle.
+                        onDone: function (result) {
+                            if (result.result_message) alert(result.result_message);
+                            window.location.reload();
+                        },
+                        onFailed: function (result) {
+                            syncBtn.disabled = false;
+                            syncBtn.innerHTML = originalHtml;
+                            alert(result.result_message || 'Sync failed.');
+                        },
+                    });
+                })
+                .catch(function () {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = originalHtml;
+                    alert('Could not reach Orch. Try again.');
+                });
+        });
     }
 
     document.querySelectorAll('.auto-download-toggle').forEach(function(checkbox) {

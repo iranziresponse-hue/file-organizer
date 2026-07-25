@@ -149,6 +149,101 @@ def _build_reading_list(files: list, profile_name: str) -> str:
     return "\n".join(lines)
 
 
+def _build_flashcard_sheet(profile, subject_code: str | None = None) -> str:
+    """A Markdown Q/A sheet from active Flashcards -- returns "" (no file
+    written by the caller) if there are none in scope, never an empty
+    placeholder section."""
+    from organizer.models import Flashcard
+
+    cards = Flashcard.objects.filter(profile=profile, status="active")
+    if subject_code:
+        cards = cards.filter(subject_code=subject_code)
+    if not cards.exists():
+        return ""
+
+    type_labels = dict(Flashcard.CARD_TYPE_CHOICES)
+    by_type: dict[str, list] = {}
+    for card in cards.order_by("subject_code", "card_type", "-created_at"):
+        by_type.setdefault(card.card_type, []).append(card)
+
+    lines = [f"# Flashcards: {profile.name}", ""]
+    for card_type, cards_of_type in by_type.items():
+        lines.append(f"## {type_labels.get(card_type, card_type)}")
+        lines.append("")
+        for card in cards_of_type:
+            subject_prefix = f"[{card.subject_code}] " if card.subject_code else ""
+            lines.append(f"**Q:** {subject_prefix}{card.front}")
+            back = card.back.strip() if card.back.strip() else "*(answer not recorded, fill in from your own notes)*"
+            lines.append(f"**A:** {back}")
+            lines.append("")
+    return "\n".join(lines)
+
+
+def _build_past_paper_brief(profile, subject_code: str | None = None) -> str:
+    """A short Markdown brief of each relevant PastPaperAnalysis' top
+    topics -- returns "" if there's no analysis in scope."""
+    from organizer.models import PastPaperAnalysis
+
+    analyses = PastPaperAnalysis.objects.filter(profile=profile)
+    if subject_code:
+        analyses = analyses.filter(subject_code=subject_code)
+    if not analyses.exists():
+        return ""
+
+    lines = [f"# Past Paper Intelligence: {profile.name}", ""]
+    for analysis in analyses.order_by("subject_code"):
+        lines.append(f"## {analysis.subject_code}")
+        lines.append(f"{analysis.paper_count} paper(s) analyzed, {len(analysis.questions)} question(s) extracted.")
+        lines.append("")
+        if analysis.topics:
+            lines.append("High-probability revision areas:")
+            for topic in analysis.topics[:10]:
+                lines.append(f"- {topic.get('name', '')} (weight {topic.get('weight', 0)})")
+            lines.append("")
+    return "\n".join(lines)
+
+
+def _build_revision_priorities(profile, subject_code: str | None = None) -> str:
+    """Weak topics (from the Weakness Radar) plus grade-target projections
+    -- returns "" if there's nothing to report in scope."""
+    from organizer.models import GradeTarget
+
+    from . import grade_planner, weakness_radar
+
+    weak_rows = weakness_radar.build_radar(profile)["subject_weak_areas"]
+    if subject_code:
+        weak_rows = [row for row in weak_rows if row["code"] == subject_code]
+
+    targets = GradeTarget.objects.filter(profile=profile)
+    if subject_code:
+        targets = targets.filter(subject_code=subject_code)
+
+    if not weak_rows and not targets.exists():
+        return ""
+
+    lines = [f"# Revision Priorities: {profile.name}", ""]
+    if weak_rows:
+        lines.append("## Weak topics")
+        for row in weak_rows:
+            for area in row["weak_areas"]:
+                lines.append(f"- {row['code']}: {area}")
+        lines.append("")
+    if targets.exists():
+        lines.append("## Grade targets")
+        for target in targets:
+            result = grade_planner.required_exam_score(
+                coursework_weight=target.coursework_weight,
+                coursework_score=target.coursework_score,
+                test_weight=target.test_weight,
+                test_score=target.test_score,
+                exam_weight=target.exam_weight,
+                target_percent=target.target_percent,
+            )
+            lines.append(f"- {target.subject_code}: {result['message']}")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def _generate_study_guide_pdf(
     title: str,
     files: list,
@@ -400,6 +495,28 @@ def create_knowledge_pack(
             pdf_path = bundle_dir / f"{_sanitize_filename(title)}_study_guide.pdf"
             pdf_path.write_bytes(pdf_bytes)
 
+        # 6b. Revision content: flashcards, past-paper brief, weak areas +
+        # grade targets. Each is skipped entirely (no file written) rather
+        # than writing an empty placeholder when there's nothing in scope.
+        if log:
+            log("Building revision content...")
+        pack_subject_code = subject_code if scope == "subject" else None
+
+        flashcard_sheet = _build_flashcard_sheet(profile, pack_subject_code)
+        has_flashcard_sheet = bool(flashcard_sheet)
+        if has_flashcard_sheet:
+            (bundle_dir / "flashcards.md").write_text(flashcard_sheet, encoding="utf-8")
+
+        past_paper_brief = _build_past_paper_brief(profile, pack_subject_code)
+        has_past_paper_brief = bool(past_paper_brief)
+        if has_past_paper_brief:
+            (bundle_dir / "past_paper_analysis.md").write_text(past_paper_brief, encoding="utf-8")
+
+        revision_priorities = _build_revision_priorities(profile, pack_subject_code)
+        has_revision_priorities = bool(revision_priorities)
+        if has_revision_priorities:
+            (bundle_dir / "revision_priorities.md").write_text(revision_priorities, encoding="utf-8")
+
         # 7. Build manifest
         manifest = {
             "title": title,
@@ -413,6 +530,9 @@ def create_knowledge_pack(
             "has_folder_map": True,
             "has_reading_list": True,
             "has_study_guide_pdf": pdf_bytes is not None,
+            "has_flashcard_sheet": has_flashcard_sheet,
+            "has_past_paper_brief": has_past_paper_brief,
+            "has_revision_priorities": has_revision_priorities,
             "folder_structure": folder_map["structure"],
         }
         manifest_path = bundle_dir / "manifest.json"

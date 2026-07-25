@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load orch_extras %}
 
 {% block title %}Digest - Orch{% endblock %}
 
@@ -91,7 +92,7 @@
             <div class="meta-list" style="margin-top:8px;">
                 {% for subject in digest.metrics.subjects %}
                 <span class="suggestion-token">
-                    <strong>{{ subject.course_code }}</strong>
+                    <strong>{{ subject.course_code|course_label }}</strong>
                     <span class="path-text">({{ subject.total }})</span>
                 </span>
                 {% endfor %}
@@ -128,7 +129,7 @@
 
 <style>
 .summary-body h1 { font-size: 1.4rem; margin-bottom: 12px; }
-.summary-body h2 { font-size: 1.1rem; margin: 20px 0 8px; color: #A5F3FC; }
+.summary-body h2 { font-size: 1.1rem; margin: 20px 0 8px; color: #F7D878; }
 .summary-body p { color: rgba(232,236,242,0.88); line-height: 1.7; margin-bottom: 10px; }
 .summary-body li { color: var(--muted); margin-left: 18px; padding: 2px 0; }
 .summary-body br { display: block; content: ""; margin-top: 8px; }

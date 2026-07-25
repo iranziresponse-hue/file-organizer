@@ -8,7 +8,7 @@ from unittest import mock
 from django.utils import timezone
 
 from organizer.core import review, watcher
-from organizer.models import CourseConfig, FolderRule, MoveEvent, ReviewItem, SortingInboxItem
+from organizer.models import CourseConfig, FolderRule, MoveEvent, ReviewItem, SortDecision
 
 from .helpers import SandboxedPathsTestCase
 
@@ -82,10 +82,10 @@ class WatcherRuleAndInboxTests(SandboxedPathsTestCase):
         watcher.move_downloaded_file(target, ai_enabled=False)
 
         self.assertTrue(target.exists())
-        inbox_item = SortingInboxItem.objects.get(profile=self.profile)
+        inbox_item = SortDecision.objects.get(profile=self.profile)
         self.assertEqual(inbox_item.filename, "unknown handout.pdf")
         self.assertEqual(inbox_item.status, "pending")
-        self.assertIn("Review uncertain files", inbox_item.reason)
+        self.assertIn("Review uncertain files", inbox_item.explanation)
 
 
 class ReviewRescheduleWorkflowTests(SandboxedPathsTestCase):

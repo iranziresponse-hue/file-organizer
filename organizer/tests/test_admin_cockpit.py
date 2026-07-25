@@ -3,7 +3,7 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from organizer.models import MoveEvent, ReviewItem
+from organizer.models import MoveEvent, PerformanceMetric, ReviewItem
 
 from .helpers import SandboxedPathsTestCase
 
@@ -14,6 +14,25 @@ class UserNavigationTests(SandboxedPathsTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "/admin/")
+        self.assertNotContains(response, ">Admin<")
+
+    def test_admin_link_appears_once_owner_mode_is_on(self):
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):
+            response = self.client.get(reverse("dashboard"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("owner_console"))
+
+    def test_admin_link_never_appears_on_a_packaged_build_even_if_owner_mode_is_on(self):
+        # A packaged build is what students actually download -- owner mode
+        # must not be reachable there no matter what the local config file
+        # or an env var says, since every copy runs on 127.0.0.1 for
+        # whoever has it open, not just this developer.
+        with mock.patch("organizer.core.owner_access.is_packaged_build", return_value=True):
+            response = self.client.get(reverse("dashboard"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "/owner/")
 
 
 class AdminCockpitTests(SandboxedPathsTestCase):
@@ -50,6 +69,64 @@ class AdminCockpitTests(SandboxedPathsTestCase):
         self.assertContains(response, "CSC2100 notes.pdf")
         self.assertContains(response, "Review CSC2100 notes")
         self.assertContains(response, "File decisions")
+
+    def test_shows_performance_metrics_when_present(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="password",
+        )
+        self.client.force_login(user)
+        PerformanceMetric.objects.create(operation="sort_file", duration_ms=250, detail="slow.pdf")
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Performance")
+        self.assertContains(response, "250ms")
+        self.assertContains(response, "slow.pdf")
+
+    def test_performance_panel_falls_back_cleanly_if_diagnostics_breaks(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="password",
+        )
+        self.client.force_login(user)
+
+        with mock.patch(
+            "organizer.core.diagnostics.get_performance_summary", side_effect=Exception("boom")
+        ):
+            response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Performance")
+
+    def test_shows_search_index_health(self):
+        from organizer.core import search_index
+
+        user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="password",
+        )
+        self.client.force_login(user)
+        search_index.index("move_event", 1, profile_id=1, title="a.pdf", body="a.pdf")
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Search index")
+        self.assertContains(response, "Healthy")
+
+    def test_search_index_panel_falls_back_cleanly_if_diagnostics_breaks(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="password",
+        )
+        self.client.force_login(user)
+
+        with mock.patch(
+            "organizer.core.diagnostics.get_search_index_health", side_effect=Exception("boom")
+        ):
+            response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Search index")
+        self.assertContains(response, "Needs attention")
 
 
 class OwnerAccessTests(SandboxedPathsTestCase):

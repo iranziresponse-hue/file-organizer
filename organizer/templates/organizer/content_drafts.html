@@ -1,0 +1,80 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Post Composer - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Post composer</h2>
+            <p>Orch drafts. Orch beautifies. You approve. Then you click Post yourself, nothing is ever posted automatically.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
+    </section>
+
+    {% if not ai_enabled %}
+    <section class="card compact-card">
+        <p class="help-text">Smart Orch is off, so drafts here use the local raw version only. Turn it on in Settings for polished/professional/short/website variants.</p>
+    </section>
+    {% endif %}
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>New draft</h2></div></div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="topic">Topic</label>
+                    <input type="text" id="topic" name="topic" placeholder="What's this post about?">
+                </div>
+                <div class="field">
+                    <label for="post_type">Type</label>
+                    <select id="post_type" name="post_type">
+                        {% for value, label in post_type_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label for="raw_text">Draft text</label>
+                <textarea id="raw_text" name="raw_text" rows="4" required></textarea>
+            </div>
+            <div class="form-actions"><button type="submit">Create draft</button></div>
+        </form>
+    </section>
+
+    {% if drafts %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Drafts ({{ drafts|length }})</h2></div></div>
+        <div class="profile-list">
+            {% for draft in drafts %}
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3><a href="{% url 'content_draft_detail' draft.pk %}">{{ draft.topic|default:draft.raw_text|truncatechars:70 }}</a></h3>
+                    <span class="path-text">{{ draft.get_post_type_display }}</span>
+                </div>
+                <div class="profile-detail">
+                    <span class="status-dot {% if draft.status == 'posted' %}is-live{% elif draft.status == 'approved' %}is-warning{% endif %}">{{ draft.get_status_display }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <div>
+                <h3>No drafts yet</h3>
+                <p>Create one above, or generate one from a project or your weekly digest.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

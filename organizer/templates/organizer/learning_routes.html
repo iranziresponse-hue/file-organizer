@@ -1,5 +1,6 @@
 {% extends "organizer/base.html" %}
 {% load static %}
+{% load orch_extras %}
 
 {% block title %}Learning Routes - Orch{% endblock %}
 
@@ -19,7 +20,7 @@
             <select name="subject_code" aria-label="Subject">
                 <option value="">Best next route</option>
                 {% for memory in subject_memories %}
-                <option value="{{ memory.code }}">{{ memory.code }}</option>
+                <option value="{{ memory.code }}">{{ memory.code|course_label }}</option>
                 {% endfor %}
             </select>
             <input type="text" name="theme" placeholder="Optional topic">
@@ -51,7 +52,7 @@
                 </div>
                 <div class="profile-detail">
                     <span class="path-text">{{ route.theme }}</span>
-                    <strong>{{ route.subject_code }}</strong>
+                    <strong>{{ route.subject_code|course_label }}</strong>
                 </div>
             </article>
             <div class="profile-list" style="margin:0 0 20px 24px;">

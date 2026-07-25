@@ -36,6 +36,31 @@ class ContentCategoryTests(SandboxedPathsTestCase):
         self.assertEqual(rules.get_content_category("Untitled document.docx"), "05 Reference and Extra Reading")
 
 
+class CategoryFromPathTests(SandboxedPathsTestCase):
+    def test_finds_the_category_folder_in_a_full_path(self):
+        path = "C:/School/Year 2/Semester 1/CSC2100/03 Past Papers and Tests/2023 exam.pdf"
+        self.assertEqual(rules.category_from_path(path), "03 Past Papers and Tests")
+
+    def test_works_regardless_of_which_of_the_five_it_is(self):
+        for category in [
+            "01 Lecture Notes and Slides",
+            "02 Assignments and Coursework",
+            "03 Past Papers and Tests",
+            "04 Reports and Projects",
+            "05 Reference and Extra Reading",
+        ]:
+            with self.subTest(category=category):
+                path = f"C:/School/BIO101/{category}/file.pdf"
+                self.assertEqual(rules.category_from_path(path), category)
+
+    def test_unrecognized_path_returns_none(self):
+        self.assertIsNone(rules.category_from_path("C:/Personal/Media/Images/photo.png"))
+
+    def test_blank_path_returns_none(self):
+        self.assertIsNone(rules.category_from_path(""))
+        self.assertIsNone(rules.category_from_path(None))
+
+
 class GetDestinationTests(SandboxedPathsTestCase):
     def _write_config(self, groups=("TST1000", "TST2000"), primary="Year 2", secondary="Semester 1"):
         paths.config_path(self.profile_root).write_text(json.dumps({

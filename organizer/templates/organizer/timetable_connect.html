@@ -1,0 +1,184 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Connect Timetable - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-narrow">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Makerere Timetable</span>
+            <h2>Connect your class timetable</h2>
+            <p>Pulls your real lecture, test, and exam schedule from timetable.mak.ac.ug so Orch can notify you before each one. No login needed on the site itself, but Orch needs to know your exact group (like "SE-2") to fetch the right timetable, not a guess.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    {% if connection %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>Already connected</h3>
+                <p class="card-subtitle">
+                    Group <strong>{{ connection.config.group }}</strong>, {{ connection.config.college }}.
+                    {% if connection.last_sync_at %}Last synced {{ connection.last_sync_at|date:"M j, Y, g:i A" }}.{% else %}Not synced yet.{% endif %}
+                </p>
+            </div>
+            <a class="button" href="{% url 'timetable_view' %}">View timetable</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h3>{% if connection %}Reconnect or change group{% else %}Pick your timetable{% endif %}</h3>
+                <p class="card-subtitle">Each choice is fetched live from the real site, nothing here is guessed.</p>
+            </div>
+        </div>
+
+        <form method="post" class="form-grid" id="timetable-connect-form">
+            {% csrf_token %}
+            <div class="form-two">
+                <div class="field">
+                    <label for="academic_year_id">Academic year</label>
+                    <select id="academic_year_id" name="academic_year_id" required>
+                        <option value="">Select - Academic Year</option>
+                        {% for year in years %}
+                        <option value="{{ year.id }}">{{ year.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" id="academic_year_label" name="academic_year_label">
+                </div>
+                <div class="field">
+                    <label for="semester_id">Semester</label>
+                    <select id="semester_id" name="semester_id" required disabled>
+                        <option value="">Select an academic year first</option>
+                    </select>
+                    <input type="hidden" id="semester_label" name="semester_label">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="college">College</label>
+                <select id="college" name="college" required disabled>
+                    <option value="">Select a semester first</option>
+                </select>
+                <p class="help-text">This is Teaching timetables only. Test/exam timetables sync automatically for the same group once connected.</p>
+            </div>
+
+            <div class="field">
+                <label for="group">Group</label>
+                <select id="group" name="group" required disabled>
+                    <option value="">Select a college first</option>
+                </select>
+                <p class="help-text">This is your specific lecture/lab stream, e.g. "SE-2" for Software Engineering Year 2. Check timetable.mak.ac.ug directly if you're not sure which one is yours.</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3l7 3v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Connect and sync
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<script>
+(function () {
+    var academicYearSelect = document.getElementById('academic_year_id');
+    var academicYearLabel = document.getElementById('academic_year_label');
+    var semesterSelect = document.getElementById('semester_id');
+    var semesterLabel = document.getElementById('semester_label');
+    var collegeSelect = document.getElementById('college');
+    var groupSelect = document.getElementById('group');
+    var csrfToken = document.querySelector('#timetable-connect-form [name=csrfmiddlewaretoken]').value;
+
+    function resetSelect(select, placeholder) {
+        select.innerHTML = '';
+        var option = document.createElement('option');
+        option.value = '';
+        option.textContent = placeholder;
+        select.appendChild(option);
+        select.disabled = true;
+    }
+
+    function fillSelect(select, items, placeholder) {
+        select.innerHTML = '';
+        var placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = placeholder;
+        select.appendChild(placeholderOption);
+        items.forEach(function (item) {
+            var option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.name;
+            select.appendChild(option);
+        });
+        select.disabled = false;
+    }
+
+    function postJson(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+            },
+            body: body,
+            credentials: 'same-origin',
+        }).then(function (r) { return r.json(); });
+    }
+
+    academicYearSelect.addEventListener('change', function () {
+        resetSelect(semesterSelect, 'Loading...');
+        resetSelect(collegeSelect, 'Select a semester first');
+        resetSelect(groupSelect, 'Select a college first');
+        if (!academicYearSelect.value) {
+            resetSelect(semesterSelect, 'Select an academic year first');
+            return;
+        }
+        academicYearLabel.value = academicYearSelect.options[academicYearSelect.selectedIndex].textContent;
+        postJson('{% url "timetable_semesters" %}', 'academic_year_id=' + encodeURIComponent(academicYearSelect.value))
+            .then(function (data) {
+                fillSelect(semesterSelect, data.items || [], 'Select - Semester');
+            });
+    });
+
+    semesterSelect.addEventListener('change', function () {
+        resetSelect(collegeSelect, 'Loading...');
+        resetSelect(groupSelect, 'Select a college first');
+        if (!semesterSelect.value) {
+            resetSelect(collegeSelect, 'Select a semester first');
+            return;
+        }
+        semesterLabel.value = semesterSelect.options[semesterSelect.selectedIndex].textContent;
+        postJson('{% url "timetable_colleges" %}',
+            'academic_year_id=' + encodeURIComponent(academicYearSelect.value) +
+            '&semester_id=' + encodeURIComponent(semesterSelect.value) +
+            '&kind=teaching')
+            .then(function (data) {
+                fillSelect(collegeSelect, data.items || [], 'Select - College');
+            });
+    });
+
+    collegeSelect.addEventListener('change', function () {
+        resetSelect(groupSelect, 'Loading...');
+        if (!collegeSelect.value) {
+            resetSelect(groupSelect, 'Select a college first');
+            return;
+        }
+        postJson('{% url "timetable_groups" %}',
+            'academic_year_id=' + encodeURIComponent(academicYearSelect.value) +
+            '&semester_id=' + encodeURIComponent(semesterSelect.value) +
+            '&kind=teaching' +
+            '&college=' + encodeURIComponent(collegeSelect.value))
+            .then(function (data) {
+                fillSelect(groupSelect, data.items || [], 'Select - Group');
+            });
+    });
+})();
+</script>
+{% endblock %}

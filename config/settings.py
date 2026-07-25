@@ -103,6 +103,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'organizer.context_processors.owner_console',
             ],
         },
     },
@@ -118,6 +119,20 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+
+# In-process cache for a few explicitly signal-invalidated computations
+# (see organizer/core/resource_cache.py) -- local memory, not a paid
+# service, and deliberately NOT persisted across restarts: this process is
+# the only thing that ever writes the cached data (gui/server.py runs the
+# whole app, GUI included, in one process), so a stale value can only ever
+# come from *this* run, and losing the cache on restart is a feature, not
+# a bug, here.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
 

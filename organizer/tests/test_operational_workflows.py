@@ -11,7 +11,7 @@ from organizer.models import (
     FolderRule,
     IntegrationConnection,
     MoveEvent,
-    SortingInboxItem,
+    SortDecision,
 )
 
 from .helpers import SandboxedPathsTestCase
@@ -67,13 +67,12 @@ class SortingEngineWorkflowTests(SandboxedPathsTestCase):
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_bytes(b"notes")
         destination = self.profile_root / "Year 1" / "Semester 1" / "BIO101" / "Notes"
-        item = SortingInboxItem.objects.create(
+        item = SortDecision.objects.create(
             profile=self.profile,
             filename=source.name,
             source_path=str(source),
-            suggested_subject="BIO101",
             suggested_destination=str(destination),
-            confidence=0.75,
+            confidence=75,
             status="pending",
         )
 
@@ -85,18 +84,17 @@ class SortingEngineWorkflowTests(SandboxedPathsTestCase):
         self.assertEqual(item.status, "approved")
         self.assertTrue(MoveEvent.objects.filter(profile=self.profile, filename=source.name).exists())
 
-    def test_reroute_marks_item_as_rerouted_after_success(self):
+    def test_reroute_marks_item_as_approved_after_success(self):
         source = self.downloads / "BIO101 lab.pdf"
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_bytes(b"notes")
         destination = self.profile_root / "Custom" / "Lab"
-        item = SortingInboxItem.objects.create(
+        item = SortDecision.objects.create(
             profile=self.profile,
             filename=source.name,
             source_path=str(source),
-            suggested_subject="BIO101",
             suggested_destination=str(self.profile_root / "Wrong"),
-            confidence=0.25,
+            confidence=25,
             status="pending",
         )
 
@@ -104,7 +102,7 @@ class SortingEngineWorkflowTests(SandboxedPathsTestCase):
 
         self.assertTrue(rerouted)
         item.refresh_from_db()
-        self.assertEqual(item.status, "rerouted")
+        self.assertEqual(item.status, "approved")
         self.assertTrue((destination / source.name).exists())
 
 
@@ -206,6 +204,56 @@ class EnsureSubjectFoldersNamingTests(SandboxedPathsTestCase):
         self.assertEqual(result["existing"], ["CSC1102"])
 
 
+class RelocateMoveEventTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+        self.original_folder = self.profile_root / "Year 1" / "Semester 1" / "BIO101"
+        self.original_folder.mkdir(parents=True)
+        self.file_path = self.original_folder / "notes.pdf"
+        self.file_path.write_text("real content")
+        self.event = MoveEvent.objects.create(
+            profile=self.profile,
+            filename="notes.pdf",
+            source_path="C:/Downloads/notes.pdf",
+            destination_path=str(self.file_path),
+            method="course_code",
+            course_code="BIO101",
+            success=True,
+        )
+
+    def test_moves_the_real_file_and_updates_the_event(self):
+        new_folder = self.profile_root / "Year 1" / "Semester 1" / "BIO101_Archive"
+
+        moved = sorting.relocate_move_event(self.event, str(new_folder))
+
+        self.assertTrue(moved)
+        self.assertFalse(self.file_path.exists())
+        new_path = new_folder / "notes.pdf"
+        self.assertTrue(new_path.exists())
+        self.assertEqual(new_path.read_text(), "real content")
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.destination_path, str(new_path))
+        # source_path is untouched -- Undo must still know where the file
+        # originally came from, regardless of how many times it's relocated.
+        self.assertEqual(self.event.source_path, "C:/Downloads/notes.pdf")
+
+    def test_fails_cleanly_if_the_file_is_no_longer_there(self):
+        self.file_path.unlink()
+
+        moved = sorting.relocate_move_event(self.event, str(self.profile_root / "Somewhere"))
+
+        self.assertFalse(moved)
+
+    def test_fails_cleanly_for_an_unsuccessful_event(self):
+        self.event.success = False
+        self.event.save()
+
+        moved = sorting.relocate_move_event(self.event, str(self.profile_root / "Somewhere"))
+
+        self.assertFalse(moved)
+
+
 class ImportPlanWorkflowTests(SandboxedPathsTestCase):
     def setUp(self):
         super().setUp()
@@ -281,6 +329,38 @@ class UndoWorkflowTests(SandboxedPathsTestCase):
         self.assertTrue(restored)
         self.assertTrue(original.exists())
         self.assertTrue(MoveEvent.objects.filter(error_message=f"Undo of move #{event.pk}").exists())
+        event.refresh_from_db()
+        self.assertFalse(event.undo_available)
+
+    def test_restore_move_marks_its_linked_sort_decision_as_undone(self):
+        original = self.downloads / "notes.pdf"
+        moved = self.profile_root / "Year 1" / "notes.pdf"
+        moved.parent.mkdir(parents=True, exist_ok=True)
+        moved.write_bytes(b"notes")
+        profile = self.make_profile()
+        event = MoveEvent.objects.create(
+            profile=profile,
+            filename="notes.pdf",
+            source_path=str(original),
+            destination_path=str(moved),
+            method="course_code",
+            course_code="CSC100",
+            success=True,
+        )
+        decision = SortDecision.objects.create(
+            profile=profile,
+            move_event=event,
+            filename="notes.pdf",
+            source_path=str(original),
+            final_destination=str(moved),
+            decision_type="profile_auto",
+            status="moved",
+        )
+
+        self.assertTrue(undo.restore_move(event))
+
+        decision.refresh_from_db()
+        self.assertEqual(decision.status, "undone")
 
 
 class DiagnosticsWorkflowTests(SandboxedPathsTestCase):

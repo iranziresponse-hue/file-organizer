@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load orch_extras %}
 
 {% block title %}Review Queue - Orch{% endblock %}
 
@@ -83,7 +84,7 @@
             <div class="meta-list" style="margin-top:8px;">
                 {% for item in stats.by_subject %}
                 <span class="suggestion-token">
-                    <strong>{{ item.subject_code }}</strong>
+                    <strong>{{ item.subject_code|course_label }}</strong>
                     <span class="path-text">({{ item.count }})</span>
                 </span>
                 {% endfor %}
@@ -123,7 +124,7 @@
                 <div class="profile-detail">
                     <span class="path-text">Subject</span>
                     {% if item.subject_code %}
-                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code }}</a>
+                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code|course_label }}</a>
                     {% else %}
                         <span class="path-text">-</span>
                     {% endif %}
@@ -182,7 +183,7 @@
                 <div class="profile-detail">
                     <span class="path-text">Subject</span>
                     {% if item.subject_code %}
-                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code }}</a>
+                        <a href="{% url 'subject_memory_detail' item.subject_code %}" class="meta-token">{{ item.subject_code|course_label }}</a>
                     {% endif %}
                 </div>
             </article>

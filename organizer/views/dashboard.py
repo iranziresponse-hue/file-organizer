@@ -1,0 +1,1409 @@
+import json
+import re
+import string
+from collections import Counter
+from datetime import datetime, timedelta
+from pathlib import Path
+from urllib.parse import quote
+
+from django.contrib import messages
+from django.contrib.auth import get_user_model, login
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from ..core import (
+    diagnostics,
+    digest as digest_core,
+    makerere,
+    makerere_curricula,
+    muele_api,
+    muele_downloader,
+    notifications,
+    owner_access,
+    paths,
+    perf,
+    rules,
+    study,
+)
+from ..core import summarize as summarize_core
+from ..core.watcher import write_log
+from ..models import (
+    AppSettings,
+    AssignmentItem,
+    CareerDigest,
+    CareerProfile,
+    ContentDraft,
+    CourseConfig,
+    CourseGuide,
+    ExportBundle,
+    FileSummary,
+    Flashcard,
+    FolderImportPlan,
+    FolderRule,
+    GlobalSortCategory,
+    GradeTarget,
+    IntegrationConnection,
+    LearningActivity,
+    LearningDigest,
+    LearningRoute,
+    MoveEvent,
+    Notification,
+    OrganizationMemoryRule,
+    PastPaperAnalysis,
+    Profile,
+    Project,
+    ProjectUpdate,
+    PublishedPost,
+    ResourceRecommendation,
+    ReviewItem,
+    SortDecision,
+    StudyFocusSession,
+    SubjectMemory,
+    SubjectTheme,
+    StudyGoal,
+    SuggestedCourseUnit,
+    TimetableEntry,
+)
+
+
+PURPOSE_LABEL_DEFAULTS = {
+    "school": {"primary_label": "Year", "secondary_label": "Semester"},
+    "online": {"primary_label": "Year", "secondary_label": "Course"},
+    "research": {"primary_label": "Topic", "secondary_label": "Phase"},
+    "work": {"primary_label": "Department", "secondary_label": "Training Cycle"},
+    "custom": {"primary_label": "Year", "secondary_label": "Semester"},
+}
+
+
+def _owner_not_found():
+    return HttpResponse("Not found", status=404)
+
+
+def owner_console(request):
+    if not owner_access.request_allowed(request):
+        return _owner_not_found()
+
+    User = get_user_model()
+    if not User.objects.filter(is_staff=True).exists():
+        return redirect("owner_setup")
+
+    return redirect("admin:index")
+
+
+def owner_setup(request):
+    if not owner_access.request_allowed(request):
+        return _owner_not_found()
+
+    User = get_user_model()
+    if User.objects.filter(is_staff=True).exists():
+        return redirect("owner_console")
+
+    errors = []
+    values = {"username": "", "email": ""}
+
+    if request.method == "POST":
+        values["username"] = request.POST.get("username", "").strip()
+        values["email"] = request.POST.get("email", "").strip()
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        if not values["username"]:
+            errors.append("Choose an owner username.")
+        elif User.objects.filter(username=values["username"]).exists():
+            errors.append("That username is already in use.")
+
+        if password != confirm_password:
+            errors.append("The passwords do not match.")
+
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            errors.extend(exc.messages)
+
+        if not errors:
+            user = User.objects.create_superuser(
+                username=values["username"],
+                email=values["email"],
+                password=password,
+            )
+            login(request, user)
+            messages.success(request, "Owner access is ready.")
+            return redirect("admin:index")
+
+    return render(
+        request,
+        "organizer/owner_setup.html",
+        {
+            "errors": errors,
+            "values": values,
+            "owner_config_path": owner_access.owner_config_path(),
+        },
+    )
+
+
+def _write_config_json(profile, config):
+    payload = {
+        "_comment": (
+            "Edit this from the Orch dashboard, or by hand at the start of a "
+            f"new {profile.secondary_label.lower()}. primary_value/"
+            f"secondary_value become folder names under {profile.root_path}."
+        ),
+        "primary_value": config.primary_value,
+        "secondary_value": config.secondary_value,
+        "groups": config.groups,
+    }
+    try:
+        target = paths.config_path(profile.root_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return True, None
+    except OSError as exc:
+        return False, str(exc)
+
+
+def _parse_groups(raw):
+    return [g.strip() for g in raw.split(",") if g.strip()]
+
+
+def _save_unverified_course_units(program, primary_value, secondary_value, codes):
+    """When Orch has no verified curriculum for this program/year/semester,
+    keep what the student actually typed so an admin can later check it
+    against an official Makerere source and add it to makerere_curricula.py
+    by hand. Never treated as verified, never shown to other students as fact."""
+    if makerere_curricula.get_course_units(program, primary_value, secondary_value):
+        return
+    for code in codes:
+        SuggestedCourseUnit.objects.get_or_create(
+            program=program,
+            primary_value=primary_value,
+            secondary_value=secondary_value,
+            code=code,
+        )
+
+
+_SKIP_DIR_NAMES = {"$recycle.bin", "system volume information"}
+
+
+def _is_accessible_dir(path):
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def browse_folders(request):
+    """Read-only directory listing of this machine's own filesystem, used by
+    the folder-browser picker and the existing-subfolder suggestions in the
+    profile forms. The dashboard only ever binds to 127.0.0.1 (see
+    gui/server.py), so this is local-machine-only, same trust boundary as
+    everything else here -- no separate auth layer, consistent with the rest
+    of the app.
+    """
+    raw_path = request.GET.get("path", "").strip()
+
+    if not raw_path:
+        drives = []
+        for letter in string.ascii_uppercase:
+            root = Path(f"{letter}:/")
+            if _is_accessible_dir(root):
+                drives.append({"name": f"{letter}:\\", "path": str(root)})
+        return JsonResponse({"path": "", "parent": None, "folders": drives})
+
+    path = Path(raw_path)
+    if not _is_accessible_dir(path):
+        return JsonResponse({"error": "That folder doesn't exist or can't be opened."}, status=400)
+
+    try:
+        children = [
+            p for p in path.iterdir()
+            if _is_accessible_dir(p) and not p.name.startswith(".") and p.name.lower() not in _SKIP_DIR_NAMES
+        ]
+    except OSError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    folders = sorted(
+        ({"name": p.name, "path": str(p)} for p in children),
+        key=lambda f: f["name"].lower(),
+    )
+    parent = str(path.parent) if path.parent != path else None
+    return JsonResponse({"path": str(path), "parent": parent, "folders": folders})
+
+
+def activity_ping(request):
+    """Tiny, side-effect-free check for whether anything new has happened
+    since the caller last looked, for the embedded desktop window's
+    background poll (gui/main_window.py). Touches no rendered content --
+    the window shows a small "New activity" banner itself when this
+    changes, rather than Orch silently patching the page for it."""
+    profile = Profile.get_active()
+    if not profile:
+        return JsonResponse({"latest": None})
+
+    from ..models import Notification
+
+    last_move = MoveEvent.objects.filter(profile=profile).order_by("-timestamp").first()
+    last_notification = Notification.objects.filter(profile=profile).order_by("-created_at").first()
+    timestamps = [
+        t for t in (
+            last_move.timestamp if last_move else None,
+            last_notification.created_at if last_notification else None,
+        ) if t
+    ]
+    latest = max(timestamps).isoformat() if timestamps else None
+    return JsonResponse({"latest": latest})
+
+
+def command_palette_search(request):
+    """Backs the Ctrl/Cmd+K command palette's file/summary results (the
+    static nav destinations it also shows are matched client-side, see
+    command-palette.js -- no server round trip needed for a fixed list).
+
+    Reuses the same FTS5 index and safe-fallback shape as the dashboard's
+    own Recent Moves search (see dashboard()'s search_query handling
+    above): both move_event and file_summary rows resolve back to a
+    MoveEvent (FileSummary.record_id is its own MoveEvent's pk, see
+    organizer/signals.py), so results always link to a working, existing
+    page -- the dashboard filtered to that one file -- rather than a
+    detail page that may not exist for every result.
+    """
+    query = request.GET.get("q", "").strip()
+    profile = Profile.get_active()
+    if not query or not profile:
+        return JsonResponse({"results": []})
+
+    from ..core import search_index
+
+    try:
+        matches = search_index.search(
+            query, profile.pk, record_types=["move_event", "file_summary"], limit=8,
+        )
+    except Exception:
+        return JsonResponse({"results": []})
+
+    event_ids = list(dict.fromkeys(record_id for _, record_id in matches))[:8]
+    events_by_id = MoveEvent.objects.in_bulk(event_ids)
+
+    results = []
+    for event_id in event_ids:
+        event = events_by_id.get(event_id)
+        if not event:
+            continue
+        results.append({
+            "title": event.filename,
+            "subtitle": event.course_code or event.destination_path,
+            "url": f"{reverse('dashboard')}?q={quote(event.filename)}",
+        })
+    return JsonResponse({"results": results})
+
+
+def _today_window():
+    now = timezone.localtime()
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+    return now, start, end
+
+
+def _short_timesince(value):
+    if not value:
+        return "Never"
+    current = timezone.now()
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value, timezone.get_current_timezone())
+    seconds = max(0, int((current - value).total_seconds()))
+    if seconds < 60:
+        return "Just now"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} min ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} hr ago"
+    days = hours // 24
+    return f"{days} day{'s' if days != 1 else ''} ago"
+
+
+def _next_class(profile, now):
+    if not profile:
+        return None
+    today = now.date()
+    current_time = now.time()
+    classes = TimetableEntry.objects.filter(profile=profile).filter(
+        Q(specific_date=today) | Q(specific_date__isnull=True, weekday=today.weekday())
+    )
+    return classes.filter(start_time__gte=current_time).order_by("start_time").first()
+
+
+def _app_status(profile, last_move):
+    watcher = diagnostics.get_watcher_status()
+    folders = diagnostics.check_all_watched_folders()
+    folders_ok = bool(folders) and all(
+        item.get("exists") and item.get("is_dir") and item.get("readable") and item.get("writable")
+        for item in folders
+    )
+    # "value" names the folder Orch actually watches, since the watcher is
+    # a background thread of this same process (always on whenever the app
+    # is open, not a separately toggled service) -- claiming "Paused"
+    # purely because no file has arrived in the last minute would be
+    # misleading, not honest status. "state"/"detail" still reflect the
+    # watcher's own last-seen-activity signal.
+    primary_folder = next((item for item in folders if item.get("label") == "Primary downloads"), None)
+    watched_folder_name = Path(primary_folder["path"]).name if primary_folder and primary_folder.get("path") else None
+    connected_sources = (
+        IntegrationConnection.objects.filter(Q(profile=profile) | Q(profile__isnull=True), status="connected")
+        if profile else []
+    )
+    connected_count = connected_sources.count() if profile else 0
+    connected_labels = [connection.get_provider_display() for connection in connected_sources[:2]] if profile else []
+
+    return [
+        {
+            "label": "File watcher",
+            "value": f"Watching {watched_folder_name}" if watched_folder_name else "Not configured",
+            "detail": _short_timesince(datetime.fromisoformat(watcher["last_activity"])) if watcher.get("last_activity") else "No recent check yet",
+            "state": "live" if watched_folder_name and folders_ok else "warning",
+        },
+        {
+            "label": "Folders",
+            "value": "Ready" if folders_ok else "Needs setup",
+            "detail": "Downloads and study folders are reachable" if folders_ok else "Check folder paths in Settings",
+            "state": "live" if folders_ok else "warning",
+        },
+        {
+            "label": "Notifications",
+            "value": "Ready" if profile else "Needs profile",
+            "detail": "Orch can show reminders while this profile is active" if profile else "Activate a profile first",
+            "state": "live" if profile else "warning",
+        },
+        {
+            "label": "Sync",
+            "value": "Connected" if connected_count else "Optional",
+            "detail": ", ".join(connected_labels) if connected_labels else "Connect MUELE or timetable when you need it",
+            "state": "live" if connected_count else "muted",
+        },
+        {
+            "label": "Last activity",
+            "value": _short_timesince(last_move.timestamp) if last_move else "None yet",
+            "detail": last_move.filename if last_move else "Sorted files will appear here",
+            "state": "live" if last_move else "muted",
+        },
+    ]
+
+
+def _today_panel(profile, events, now, start, end):
+    if not profile:
+        return []
+    files_sorted_today = events.filter(success=True, timestamp__gte=start, timestamp__lt=end).count()
+    classes_today = TimetableEntry.objects.filter(profile=profile).filter(
+        Q(specific_date=now.date()) | Q(specific_date__isnull=True, weekday=now.date().weekday())
+    ).count()
+    reviews_due_today = ReviewItem.objects.filter(profile=profile, status="queued", due_at__gte=start, due_at__lt=end).count()
+    muele_items_today = (
+        AssignmentItem.objects.filter(profile=profile, source="muele", created_at__gte=start, created_at__lt=end).count()
+        + events.filter(method="muele_sync", timestamp__gte=start, timestamp__lt=end).count()
+    )
+    unsorted_waiting = SortDecision.objects.filter(profile=profile, status="pending").count()
+
+    return [
+        {
+            "label": "Files sorted today",
+            "value": files_sorted_today,
+            "detail": "New sorted moves",
+            "state": "live" if files_sorted_today else "muted",
+        },
+        {
+            "label": "Classes today",
+            "value": classes_today,
+            "detail": "From timetable",
+            "state": "live" if classes_today else "muted",
+        },
+        {
+            "label": "Reviews due today",
+            "value": reviews_due_today,
+            "detail": "Queued review items",
+            "state": "warning" if reviews_due_today else "muted",
+        },
+        {
+            "label": "New MUELE items",
+            "value": muele_items_today,
+            "detail": "Synced today",
+            "state": "live" if muele_items_today else "muted",
+        },
+        {
+            "label": "Unsorted waiting",
+            "value": unsorted_waiting,
+            "detail": "Decision inbox",
+            "state": "warning" if unsorted_waiting else "muted",
+        },
+    ]
+
+
+def _next_best_action(profile, now, start, end):
+    if not profile:
+        return {
+            "title": "Create your first profile",
+            "detail": "Start with one context before Orch can recommend a next step.",
+            "url": reverse("start"),
+            "label": "Start setup",
+            "state": "warning",
+        }
+
+    pending = SortDecision.objects.filter(profile=profile, status="pending").count()
+    if pending:
+        return {
+            "title": f"Sort {pending} uncertain file{'s' if pending != 1 else ''}",
+            "detail": "Approve, reroute, or ignore the files waiting for your decision.",
+            "url": reverse("sorting_inbox"),
+            "label": "Open inbox",
+            "state": "warning",
+        }
+
+    review = ReviewItem.objects.filter(profile=profile, status="queued", due_at__lte=end).order_by("due_at").first()
+    if review:
+        subject = review.subject_code or "General"
+        return {
+            "title": f"Review {subject} notes",
+            "detail": review.title,
+            "url": reverse("review_queue"),
+            "label": "Start review",
+            "state": "live",
+        }
+
+    # A summary Smart Orch just wrote is worth reading while it's fresh --
+    # a 48h window (vs. the weekly digest check below) because summaries
+    # land per-file, far more often than once a week, and nudging days
+    # later would just be noise once the reader's already moved on.
+    fresh_summary = FileSummary.objects.filter(
+        move_event__profile=profile, created_at__gte=now - timedelta(hours=48),
+    ).order_by("-created_at").first()
+    if fresh_summary:
+        return {
+            "title": f"Read: {fresh_summary.move_event.filename}",
+            "detail": "Smart Orch just wrote a summary for this file.",
+            # Opens the same #summary-overlay modal as every "View summary"
+            # row action (see summary.js) instead of linking straight to
+            # move_summary_view, which is a JSON endpoint the modal fetches
+            # from, not a page meant to be navigated to on its own.
+            "summary_move_id": fresh_summary.move_event_id,
+            "label": "Read summary",
+            "state": "live",
+        }
+
+    # Same idea for the strongest still-unwatched video Resource Radar has
+    # found -- only a real, specific video (a "watch?v=" URL from a
+    # configured YouTube key), never the plain search-results fallback
+    # link, since there's nothing to "watch" about a search page.
+    top_video = ResourceRecommendation.objects.filter(
+        profile=profile, source_type="youtube", status="suggested", url__contains="watch?v=",
+    ).order_by("-score").first()
+    if top_video:
+        return {
+            "title": f"Watch: {top_video.title}",
+            "detail": top_video.reason or "A video pick based on your subject memory.",
+            "url": reverse("resource_radar"),
+            "label": "Watch it",
+            "state": "live",
+        }
+
+    timetable_connected = IntegrationConnection.objects.filter(profile=profile, provider="mak_timetable").exists()
+    if not timetable_connected:
+        return {
+            "title": "Connect timetable",
+            "detail": "Let Orch show classes today and upcoming class reminders.",
+            "url": reverse("timetable_connect"),
+            "label": "Connect",
+            "state": "warning",
+        }
+
+    this_week_digest = LearningDigest.objects.filter(profile=profile, created_at__gte=now - timedelta(days=7)).exists()
+    if not this_week_digest:
+        return {
+            "title": "Generate digest",
+            "detail": "Summarize this week's files, subjects, reviews, and open follow-ups.",
+            "post_action": "create_digest",
+            "url": reverse("study_home"),
+            "label": "Generate",
+            "state": "live",
+        }
+
+    route = LearningRoute.objects.filter(profile=profile).exclude(status="done").order_by("status", "-updated_at").first()
+    if route:
+        return {
+            "title": route.title,
+            "detail": f"Continue {route.subject_code}: {route.theme}",
+            "url": reverse("learning_routes"),
+            "label": "Open route",
+            "state": "live" if route.status == "active" else "warning",
+        }
+
+    return {
+        "title": "Open timeline",
+        "detail": "Review what Orch has organized and what changed recently.",
+        "url": reverse("timeline"),
+        "label": "View timeline",
+        "state": "muted",
+    }
+
+
+def _live_activity_feed(profile, events, limit=10):
+    if not profile:
+        return []
+
+    feed = []
+    for event in events.order_by("-timestamp")[:limit]:
+        feed.append({
+            "title": "File sorted" if event.success else "File needs attention",
+            "detail": event.filename,
+            "meta": event.get_method_display(),
+            "when": event.timestamp,
+            "state": "live" if event.success else "warning",
+        })
+
+    for item in ReviewItem.objects.filter(profile=profile).order_by("-created_at")[:limit]:
+        feed.append({
+            "title": "Review scheduled",
+            "detail": item.title,
+            "meta": item.subject_code or "General",
+            "when": item.created_at,
+            "state": "warning" if item.due_at <= timezone.now() else "live",
+        })
+
+    for item in AssignmentItem.objects.filter(profile=profile, source="muele").order_by("-created_at")[:limit]:
+        feed.append({
+            "title": "MUELE item found",
+            "detail": item.title,
+            "meta": item.subject_code or "MUELE",
+            "when": item.created_at,
+            "state": "warning" if item.status == "open" else "live",
+        })
+
+    for digest in LearningDigest.objects.filter(profile=profile).order_by("-created_at")[:limit]:
+        feed.append({
+            "title": "Digest created",
+            "detail": digest.title,
+            "meta": "Study digest",
+            "when": digest.created_at,
+            "state": "live",
+        })
+
+    for session in StudyFocusSession.objects.filter(profile=profile).order_by("-started_at")[:limit]:
+        feed.append({
+            "title": "Focus session started",
+            "detail": session.title,
+            "meta": f"{session.target_minutes} min",
+            "when": session.started_at,
+            "state": "live" if session.status == "active" else "muted",
+        })
+
+    return sorted(feed, key=lambda item: item["when"], reverse=True)[:limit]
+
+
+def _focus_context(profile):
+    if not profile:
+        return {}
+
+    memories = list(SubjectMemory.objects.filter(profile=profile).order_by("code"))
+    config = getattr(profile, "config", None)
+    codes = []
+    if config:
+        codes.extend(config.groups or [])
+    codes.extend(memory.code for memory in memories)
+    seen = set()
+    subjects = []
+    for code in codes:
+        clean = str(code).strip()
+        if clean and clean.lower() not in seen:
+            subjects.append(clean)
+            seen.add(clean.lower())
+
+    review_files = ReviewItem.objects.filter(profile=profile, status="queued").order_by("due_at")[:8]
+    resources = ResourceRecommendation.objects.filter(profile=profile).exclude(status="dismissed").order_by("status", "-score")[:8]
+    weak_areas = []
+    for memory in memories:
+        for area in memory.weak_areas or []:
+            weak_areas.append({"subject_code": memory.code, "name": area})
+
+    return {
+        "focus_subjects": subjects,
+        "focus_review_items": review_files,
+        "focus_resources": resources,
+        "focus_weak_areas": weak_areas[:10],
+        "active_focus_session": StudyFocusSession.objects.filter(profile=profile, status="active").order_by("-started_at").first(),
+    }
+
+
+def _command_items(profile, next_action):
+    items = [
+        {"label": "Open inbox", "detail": "Sort uncertain files", "url": reverse("sorting_inbox")},
+        {"label": "Add folder rule", "detail": "Create a routing rule", "url": reverse("folder_rules")},
+        {"label": "Generate digest", "detail": "Create a study digest", "post_action": "create_digest"},
+        {"label": "Open Focus Mode", "detail": "Start a timed study block", "anchor": "focus-mode"},
+        {"label": "Open Resource Radar", "detail": "Find videos and books", "url": reverse("resource_radar")},
+        {"label": "Open system setup", "detail": "Review app readiness", "url": reverse("first_run")},
+    ]
+    if next_action:
+        items.insert(0, {
+            "label": next_action["title"],
+            "detail": next_action["detail"],
+            "url": next_action.get("url"),
+            "post_action": next_action.get("post_action"),
+        })
+    if profile:
+        config = getattr(profile, "config", None)
+        for code in (config.groups if config else [])[:10]:
+            items.append({
+                "label": f"Go to {code}",
+                "detail": "Open subject memory",
+                "url": reverse("subject_memory_detail", args=[code]),
+            })
+    return items
+
+
+def _service_item(name, state, detail, insight, url=None, action_label="Open"):
+    status_labels = {
+        "live": "Connected",
+        "warning": "Missing",
+        "muted": "Available",
+    }
+    status_classes = {
+        "live": "",
+        "warning": "is-warning",
+        "muted": "is-muted",
+    }
+    return {
+        "name": name,
+        "state": state,
+        "status": status_labels.get(state, "Available"),
+        "status_class": status_classes.get(state, "is-muted"),
+        "detail": detail,
+        "insight": insight,
+        "url": url,
+        "action_label": action_label,
+    }
+
+
+def _service_mesh_context(profile, app_status_items, pending_decisions=0):
+    from ..core import ai_classify, drive_api, youtube_api
+
+    muele_connection = (
+        IntegrationConnection.objects.filter(profile=profile, provider="muele").first()
+        if profile else None
+    )
+    timetable_connection = (
+        IntegrationConnection.objects.filter(profile=profile, provider="mak_timetable").first()
+        if profile else None
+    )
+    timetable_entries = TimetableEntry.objects.filter(profile=profile).count() if profile else 0
+    muele_connected = bool(muele_connection and muele_connection.status == "connected")
+    timetable_connected = bool(timetable_connection and timetable_entries)
+
+    ai_config = ai_classify.load_ai_config() or {}
+    youtube_config = youtube_api.load_youtube_config() or {}
+    drive_config = drive_api.load_drive_config() or {}
+    smart_orch_ready = bool(ai_config.get("enabled") and ai_config.get("api_key"))
+    youtube_ready = bool(youtube_config.get("enabled") and youtube_config.get("api_key"))
+    drive_configured = bool(drive_config.get("enabled") and drive_config.get("client_id"))
+    drive_connected = bool(drive_configured and drive_api.is_connected())
+
+    GlobalSortCategory.ensure_defaults()
+    enabled_global_categories = GlobalSortCategory.objects.exclude(key="sensitive").filter(enabled=True)
+    enabled_global_count = enabled_global_categories.count()
+    learned_rules = OrganizationMemoryRule.objects.filter(profile=profile, enabled=True).count() if profile else 0
+
+    career_profile = CareerProfile.objects.filter(profile=profile).first() if profile else None
+    project_count = Project.objects.filter(profile=profile).count() if profile else 0
+    draft_count = ContentDraft.objects.filter(profile=profile).exclude(status="posted").count() if profile else 0
+    latest_digest = CareerDigest.objects.filter(profile=profile).first() if profile else None
+
+    lanes = [
+        {
+            "title": "Academic feeds",
+            "detail": "Class time, course material, and deadline signals.",
+            "items": [
+                _service_item(
+                    "Makerere MUELE",
+                    "live" if muele_connected else "warning",
+                    "Course files and assignment deadlines" if muele_connected else "Connect to sync course files and deadlines",
+                    f"Last sync {_short_timesince(muele_connection.last_sync_at)}" if muele_connection and muele_connection.last_sync_at else "Turns scattered MUELE activity into dashboard priority",
+                    reverse("muele_courses") if muele_connected else reverse("muele_connect"),
+                    "Manage" if muele_connected else "Connect",
+                ),
+                _service_item(
+                    "Makerere Timetable",
+                    "live" if timetable_connected else "warning",
+                    f"{timetable_entries} timetable entries synced" if timetable_connected else "Connect your group timetable",
+                    "Powers classes today, exam reminders, and study planning",
+                    reverse("timetable_view") if timetable_connected else reverse("timetable_connect"),
+                    "View" if timetable_connected else "Connect",
+                ),
+                _service_item(
+                    "Resource Radar",
+                    "live" if youtube_ready else "muted",
+                    "YouTube API configured" if youtube_ready else "Works with search links; API improves video picks",
+                    "Finds videos and books from weak topics without blocking the study flow",
+                    reverse("resource_radar"),
+                    "Open",
+                ),
+            ],
+        },
+        {
+            "title": "Career signal",
+            "detail": "Projects, posts, portfolio evidence, and weekly visibility.",
+            "items": [
+                _service_item(
+                    "Career Command Center",
+                    "live" if career_profile else "warning",
+                    career_profile.get_career_track_display() if career_profile else "Choose a career track",
+                    career_profile.weekly_goal if career_profile and career_profile.weekly_goal else "Connects semester work to professional direction",
+                    reverse("career_home"),
+                    "Open",
+                ),
+                _service_item(
+                    "Project Studio",
+                    "live" if project_count else "warning",
+                    f"{project_count} project{'s' if project_count != 1 else ''} tracked" if project_count else "Add the project evidence you are building",
+                    "Turns engineering work into portfolio cases and post material",
+                    reverse("project_studio"),
+                    "Open",
+                ),
+                _service_item(
+                    "Post Composer",
+                    "live" if draft_count else "muted",
+                    f"{draft_count} draft{'s' if draft_count != 1 else ''} ready" if draft_count else "Draft weekly career updates from your work",
+                    "Beautify, approve, then post manually or publish through a future custom channel",
+                    reverse("content_drafts"),
+                    "Draft",
+                ),
+                _service_item(
+                    "Weekly Career Digest",
+                    "live" if latest_digest else "muted",
+                    f"Latest digest {_short_timesince(latest_digest.created_at)}" if latest_digest else "No weekly career digest yet",
+                    "Summarizes what you studied, built, and can show publicly",
+                    reverse("career_digest"),
+                    "Generate",
+                ),
+            ],
+        },
+        {
+            "title": "Protection layer",
+            "detail": "Trust-first automation, backups, and explainable decisions.",
+            "items": [
+                _service_item(
+                    "File Watcher",
+                    app_status_items[0]["state"],
+                    app_status_items[0]["value"],
+                    app_status_items[0]["detail"],
+                    reverse("first_run"),
+                    "Check",
+                ),
+                _service_item(
+                    "Smart Orch",
+                    "live" if smart_orch_ready else "muted",
+                    "Configured for summaries and fallback reasoning" if smart_orch_ready else "Optional API not configured",
+                    "Never required; rules and local memory still work without paid services",
+                    reverse("settings_edit"),
+                    "Settings",
+                ),
+                _service_item(
+                    "Decision Inbox",
+                    "warning" if pending_decisions else "live",
+                    f"{pending_decisions} waiting" if pending_decisions else "Clear",
+                    f"{learned_rules} learned rule{'s' if learned_rules != 1 else ''} active",
+                    reverse("sorting_inbox"),
+                    "Review",
+                ),
+                _service_item(
+                    "Global Sorting",
+                    "live" if enabled_global_count else "muted",
+                    f"{enabled_global_count} opt-in categor{'ies' if enabled_global_count != 1 else 'y'} enabled",
+                    "Non-profile files stay conservative until the user opts in",
+                    reverse("settings_edit"),
+                    "Tune",
+                ),
+                _service_item(
+                    "Google Drive Backup",
+                    "live" if drive_connected else "warning" if drive_configured else "muted",
+                    "Connected" if drive_connected else "Configured but not connected" if drive_configured else "Optional backup channel",
+                    "Keeps sorted academic evidence recoverable without changing local-first behavior",
+                    reverse("settings_edit"),
+                    "Settings",
+                ),
+            ],
+        },
+    ]
+
+    all_items = [item for lane in lanes for item in lane["items"]]
+    connected_count = sum(1 for item in all_items if item["state"] == "live")
+    total_count = len(all_items)
+    missing_count = total_count - connected_count
+    readiness = round((connected_count / total_count) * 100) if total_count else 0
+    priority_action = next((item for item in all_items if item["state"] == "warning"), None)
+    quiet_items = [item for item in all_items if item["state"] == "muted"]
+    next_activation = priority_action or (quiet_items[0] if quiet_items else None)
+
+    return {
+        "readiness": readiness,
+        "connected_count": connected_count,
+        "missing_count": missing_count,
+        "total_count": total_count,
+        "lanes": lanes,
+        "priority_action": priority_action,
+        "next_activation": next_activation,
+        "headline": (
+            f"{connected_count} live systems are powering Orch"
+            if connected_count
+            else "Orch is ready for its first live connection"
+        ),
+        "detail": (
+            f"Activate {next_activation['name']} next for a stronger academic and career cockpit."
+            if next_activation
+            else "Every core system is live. Orch has a full operating picture."
+        ),
+    }
+
+
+def _dashboard_priority_cards(profile, service_mesh, pending_inbox_count):
+    # "Academic priority" (a copy of next_best_action) and "Safety layer"
+    # (a copy of app_status_items[0], the file-watcher tile) used to live
+    # here too -- both were pure restatements of facts the mission-control
+    # hero and its now_strip already show above this deck, so this only
+    # carries the two signals genuinely not shown anywhere else on the page.
+    return [
+        {
+            "label": "Career signal",
+            "title": "Build visible evidence",
+            "detail": "Turn projects, lessons, and society work into portfolio-ready proof.",
+            "meta": f"{service_mesh['connected_count']} career and service systems live",
+            "state": "live" if profile else "warning",
+            "url": reverse("career_home"),
+            "action_label": "Open career",
+        },
+        {
+            "label": "Decision inbox",
+            "title": "Approval gate",
+            "detail": "Uncertain and protected files wait here before Orch changes anything.",
+            "meta": f"{pending_inbox_count} waiting" if pending_inbox_count else "Clear",
+            "state": "warning" if pending_inbox_count else "live",
+            "url": reverse("sorting_inbox"),
+            "action_label": "Review",
+        },
+    ]
+
+
+def _cockpit_context(request, profile, events, last_move):
+    now, start, end = _today_window()
+    next_class = _next_class(profile, now)
+    app_status_items = _app_status(profile, last_move)
+    today_items = _today_panel(profile, events, now, start, end)
+    next_action = _next_best_action(profile, now, start, end)
+    pending_inbox_count = SortDecision.objects.filter(profile=profile, status="pending").count() if profile else 0
+    service_mesh = _service_mesh_context(profile, app_status_items, pending_decisions=pending_inbox_count)
+
+    now_strip = [
+        {
+            "label": "File watcher",
+            "detail": f"{app_status_items[0]['value']} - {app_status_items[0]['detail']}",
+            "state": app_status_items[0]["state"],
+        },
+        {
+            "label": "Active profile",
+            "detail": profile.name if profile else "No active profile",
+            "state": "live" if profile else "warning",
+        },
+        {
+            "label": "Last file sorted",
+            "detail": _short_timesince(last_move.timestamp) if last_move else "No files yet",
+            "state": "live" if last_move else "muted",
+        },
+        {
+            "label": "Decision Inbox",
+            "detail": f"{pending_inbox_count} waiting" if pending_inbox_count else "Clear",
+            "state": "warning" if pending_inbox_count else "muted",
+        },
+    ]
+
+    return {
+        "now_strip": now_strip,
+        "today_items": today_items,
+        "next_best_action": next_action,
+        "live_feed": _live_activity_feed(profile, events),
+        "app_status_items": app_status_items,
+        "health_items": app_status_items,
+        "service_mesh": service_mesh,
+        "priority_cards": _dashboard_priority_cards(profile, service_mesh, pending_inbox_count),
+        "next_class": next_class,
+        "command_items": _command_items(profile, next_action),
+        **_focus_context(profile),
+    }
+
+
+def _create_focus_session(request, profile):
+    subject_code = request.POST.get("focus_subject", "").strip()
+    raw_minutes = request.POST.get("focus_minutes", "25").strip()
+    try:
+        minutes = max(5, min(240, int(raw_minutes)))
+    except ValueError:
+        minutes = 25
+
+    review_ids = [int(pk) for pk in request.POST.getlist("focus_review_items") if pk.isdigit()]
+    resource_ids = [int(pk) for pk in request.POST.getlist("focus_resources") if pk.isdigit()]
+    weak_areas = request.POST.getlist("focus_weak_areas")
+    title_subject = subject_code or profile.name
+    session = StudyFocusSession.objects.create(
+        profile=profile,
+        subject_code=subject_code,
+        title=f"{title_subject} focus session",
+        target_minutes=minutes,
+        review_item_ids=review_ids,
+        resource_ids=resource_ids,
+        weak_areas=weak_areas,
+        notes=request.POST.get("focus_notes", "").strip(),
+    )
+    LearningActivity.objects.create(
+        profile=profile,
+        activity_type="manual_note",
+        subject_code=subject_code,
+        title=f"Focus session started: {title_subject}",
+        details=f"{minutes} minute focus block",
+        metadata={"focus_session_id": session.pk},
+    )
+    return session
+
+
+@perf.measure_view
+def dashboard(request):
+    profile = Profile.get_active()
+    if profile:
+        notifications.check_deadlines(profile, log=write_log)
+        notifications.check_upcoming_classes(profile, log=write_log)
+    events = MoveEvent.objects.filter(profile=profile) if profile else MoveEvent.objects.none()
+    method_counts = list(events.values("method").annotate(total=Count("id")).order_by("-total"))
+    method_labels = dict(MoveEvent.METHOD_CHOICES)
+    for row in method_counts:
+        row["label"] = method_labels.get(row["method"], row["method"])
+        last_of_method = events.filter(method=row["method"]).order_by("-timestamp").first()
+        row["last_event"] = last_of_method
+    last_move = events.filter(success=True).order_by("-timestamp").first()
+    course_counts = (
+        events.exclude(course_code__isnull=True)
+        .exclude(course_code="")
+        .values("course_code")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+    config = getattr(profile, "config", None) if profile else None
+    guided_codes = set(
+        CourseGuide.objects.filter(profile=profile).values_list("course_code", flat=True)
+    ) if profile else set()
+
+    # Recent Moves search: filters just the table, not the stat boxes above
+    # it, so searching for one file doesn't make the overall counts look
+    # like they changed. Indexed (FTS5) first, matching filenames, course
+    # codes, and summary text -- falls back to the plain filename-only
+    # icontains this used before if the index query fails for any reason,
+    # rather than showing a broken/empty table.
+    search_query = request.GET.get("q", "").strip()
+    if search_query:
+        try:
+            from ..core import search_index
+
+            matches = search_index.search(
+                search_query, profile.pk if profile else None,
+                record_types=["move_event", "file_summary"], limit=500,
+            )
+            table_events = events.filter(pk__in={record_id for _, record_id in matches})
+        except Exception:
+            table_events = events.filter(filename__icontains=search_query)
+    else:
+        table_events = events
+
+    # Paginate recent events -- 25 per page instead of loading all 50 at once.
+    # select_related avoids one extra query per row for each: the "Why?"
+    # panel's event.sort_decision.matched_rule lookup, and the Actions
+    # menu's event.summary check (both reverse-OneToOne, both looped over
+    # in dashboard.html -- an N+1 for every row on the page otherwise).
+    paginator = Paginator(table_events.select_related("sort_decision", "summary"), 25)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    # MUELE integration status for the dashboard panel
+    muele_connection = None
+    muele_courses_count = 0
+    muele_upcoming_deadlines = []
+    muele_last_synced_course = None
+    if profile:
+        from ..models import AssignmentItem, IntegrationConnection, MueleCourse
+
+        muele_connection = IntegrationConnection.objects.filter(
+            profile=profile, provider="muele"
+        ).first()
+        if muele_connection:
+            muele_courses_count = MueleCourse.objects.filter(
+                connection=muele_connection, auto_download=True
+            ).count()
+            muele_upcoming_deadlines = AssignmentItem.objects.filter(
+                profile=profile, source="muele", status="open"
+            ).order_by("due_at")[:5]
+            muele_last_synced_course = (
+                MueleCourse.objects.filter(connection=muele_connection)
+                .exclude(last_sync_at__isnull=True)
+                .order_by("-last_sync_at")
+                .first()
+            )
+
+    context = {
+        "profile": profile,
+        "has_any_profile": Profile.objects.exists(),
+        "page_obj": page_obj,
+        "method_counts": method_counts,
+        "course_counts": course_counts,
+        "config": config,
+        "guided_codes": guided_codes,
+        "total_moves": events.count(),
+        "last_move": last_move,
+        "muele_connection": muele_connection,
+        "muele_courses_count": muele_courses_count,
+        "muele_upcoming_deadlines": muele_upcoming_deadlines,
+        "muele_next_deadline": muele_upcoming_deadlines[0] if muele_upcoming_deadlines else None,
+        "muele_last_synced_course": muele_last_synced_course,
+        "search_query": search_query,
+    }
+    context.update(_cockpit_context(request, profile, events, last_move))
+    return render(request, "organizer/dashboard.html", context)
+
+
+def profiles_list(request):
+    profiles = Profile.objects.all()
+    return render(request, "organizer/profiles_list.html", {"profiles": profiles})
+
+
+
+
+def profile_wizard(request):
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        purpose = request.POST.get("purpose") or "custom"
+        primary_label = request.POST.get("primary_label", "").strip() or "Year"
+        secondary_label = request.POST.get("secondary_label", "").strip() or "Semester"
+        root_path = request.POST.get("root_path", "").strip()
+        primary_value = request.POST.get("primary_value", "").strip()
+        secondary_value = request.POST.get("secondary_value", "").strip()
+        groups = _parse_groups(request.POST.get("groups", ""))
+        ai_fallback_enabled = bool(request.POST.get("ai_fallback_enabled"))
+
+        if not name or not root_path:
+            messages.error(request, "A profile needs at least a name and a folder to organize into.")
+            return render(request, "organizer/profile_wizard.html", {
+                "purposes": Profile.PURPOSE_CHOICES,
+                "purpose_defaults": PURPOSE_LABEL_DEFAULTS,
+                "form": request.POST,
+            })
+
+        profile = Profile.objects.create(
+            name=name,
+            purpose=purpose,
+            setup_path="manual",
+            primary_label=primary_label,
+            secondary_label=secondary_label,
+            root_path=root_path,
+            ai_fallback_enabled=ai_fallback_enabled,
+            is_active=True,
+        )
+        config = CourseConfig.objects.create(
+            profile=profile,
+            primary_value=primary_value,
+            secondary_value=secondary_value,
+            groups=groups,
+        )
+        ok, error = _write_config_json(profile, config)
+        study.ensure_learning_foundation(profile)
+        if ok:
+            messages.success(request, f"'{profile.name}' is set up and active.")
+        else:
+            messages.error(request, f"Profile saved, but could not write _config.json: {error}")
+
+        return redirect("dashboard")
+
+    return render(request, "organizer/profile_wizard.html", {
+        "purposes": Profile.PURPOSE_CHOICES,
+        "purpose_defaults": PURPOSE_LABEL_DEFAULTS,
+    })
+
+
+def start(request):
+    """First stop when setting up a profile: a Makerere-specific guided
+    path, or the generic wizard for everyone else."""
+    return render(request, "organizer/start.html")
+
+
+def makerere_wizard(request):
+    colleges_json = makerere.as_json()
+    curricula_json = {name: data["years"] for name, data in makerere_curricula.CURRICULA.items()}
+
+    if request.method == "POST":
+        college_name = request.POST.get("college", "").strip()
+        school_name = request.POST.get("school", "").strip()
+        program = request.POST.get("program", "").strip()
+        year_value = request.POST.get("year_value", "").strip()
+        semester_value = request.POST.get("semester_value", "").strip()
+        root_path = request.POST.get("root_path", "").strip()
+        groups = _parse_groups(request.POST.get("groups", ""))
+        ai_fallback_enabled = bool(request.POST.get("ai_fallback_enabled"))
+
+        college = makerere.get_college_by_name(college_name)
+
+        if not college or not school_name or not program or not root_path or not year_value or not semester_value:
+            messages.error(
+                request,
+                "Pick your college and school, fill in your program, year, semester, and a folder to organize into.",
+            )
+            return render(request, "organizer/makerere_wizard.html", {
+                "colleges": makerere.COLLEGES,
+                "colleges_json": colleges_json,
+                "curricula_json": curricula_json,
+                "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
+                "form": request.POST,
+            })
+
+        profile_name = f"{program} ({college['code']}) - Makerere University"
+        profile = Profile.objects.create(
+            name=profile_name,
+            purpose="school",
+            setup_path="makerere",
+            primary_label="Year",
+            secondary_label="Semester",
+            root_path=root_path,
+            ai_fallback_enabled=ai_fallback_enabled,
+            is_active=True,
+        )
+        config = CourseConfig.objects.create(
+            profile=profile,
+            primary_value=f"Year {year_value}",
+            secondary_value=f"Semester {semester_value}",
+            groups=groups,
+        )
+        _save_unverified_course_units(program, config.primary_value, config.secondary_value, groups)
+        ok, error = _write_config_json(profile, config)
+        study.ensure_learning_foundation(profile)
+
+        from ..core import sorting
+        folder_result = sorting.ensure_subject_folders(profile)
+
+        if ok:
+            extras = []
+            if folder_result["created"]:
+                extras.append(f"created {len(folder_result['created'])} folder(s)")
+            if folder_result["renamed"]:
+                extras.append(f"named {len(folder_result['renamed'])} existing folder(s)")
+            if extras:
+                messages.success(request, f"'{profile.name}' is set up and active. {', '.join(extras).capitalize()}.")
+            else:
+                messages.success(request, f"'{profile.name}' is set up and active.")
+        else:
+            messages.error(request, f"Profile saved, but could not write _config.json: {error}")
+
+        return redirect("dashboard")
+
+    return render(request, "organizer/makerere_wizard.html", {
+        "colleges": makerere.COLLEGES,
+        "colleges_json": colleges_json,
+        "curricula_json": curricula_json,
+        "default_root_hint": str(paths.PERSONAL_ROOT / "Makerere"),
+    })
+
+
+def profile_edit(request, pk):
+    profile = get_object_or_404(Profile, pk=pk)
+    config = getattr(profile, "config", None)
+
+    if request.method == "POST":
+        from ..core import sorting
+
+        if request.POST.get("action") == "sync_folders":
+            result = sorting.ensure_subject_folders(profile)
+            parts = []
+            if result["created"]:
+                parts.append(f"created {len(result['created'])} folder(s): {', '.join(result['created'])}")
+            if result["renamed"]:
+                parts.append(f"named {len(result['renamed'])} existing folder(s): {', '.join(result['renamed'])}")
+            if parts:
+                messages.success(request, f"Done: {'; '.join(parts)}.")
+            elif result["existing"]:
+                messages.info(request, f"All {len(result['existing'])} subject folders already exist and are already named. Nothing to change.")
+            else:
+                messages.info(request, "No subjects configured yet -- add some below first.")
+            return redirect("profile_edit", pk=profile.pk)
+
+        profile.name = request.POST.get("name", "").strip() or profile.name
+        profile.primary_label = request.POST.get("primary_label", "").strip() or profile.primary_label
+        profile.secondary_label = request.POST.get("secondary_label", "").strip() or profile.secondary_label
+        profile.root_path = request.POST.get("root_path", "").strip() or profile.root_path
+        profile.ai_fallback_enabled = bool(request.POST.get("ai_fallback_enabled"))
+        profile.save()
+
+        if config is None:
+            config = CourseConfig(profile=profile)
+        config.primary_value = request.POST.get("primary_value", "").strip()
+        config.secondary_value = request.POST.get("secondary_value", "").strip()
+        config.groups = _parse_groups(request.POST.get("groups", ""))
+        config.save()
+
+        ok, error = _write_config_json(profile, config)
+        folder_result = sorting.ensure_subject_folders(profile)
+        if ok:
+            extras = []
+            if folder_result["created"]:
+                extras.append(f"created {len(folder_result['created'])} new subject folder(s)")
+            if folder_result["renamed"]:
+                extras.append(f"named {len(folder_result['renamed'])} existing folder(s)")
+            if extras:
+                messages.success(request, f"Profile updated, {', '.join(extras)}.")
+            else:
+                messages.success(request, "Profile updated.")
+        else:
+            messages.error(request, f"Saved to database but could not write _config.json: {error}")
+
+        return redirect("profile_edit", pk=profile.pk)
+
+    return render(request, "organizer/profile_edit.html", {"profile": profile, "config": config})
+
+
+def profile_activate(request, pk):
+    profile = get_object_or_404(Profile, pk=pk)
+    if request.method == "POST":
+        profile.is_active = True
+        profile.save()
+        messages.success(request, f"'{profile.name}' is now active.")
+    return redirect("profiles_list")
+
+
+def profile_delete(request, pk):
+    profile = get_object_or_404(Profile, pk=pk)
+    if request.method == "POST":
+        name = profile.name
+        profile.delete()
+        messages.success(request, f"Deleted '{name}'.")
+    return redirect("profiles_list")
+
+
+def settings_edit(request):
+    from ..core import ai_classify, drive_api, owner_access, youtube_api
+
+    settings = AppSettings.get_solo()
+    ai_config = ai_classify.load_ai_config() or {}
+    youtube_config = youtube_api.load_youtube_config() or {}
+    drive_config = drive_api.load_drive_config() or {}
+    GlobalSortCategory.ensure_defaults()
+
+    if request.method == "POST":
+        settings.downloads_path = request.POST.get("downloads_path", "").strip() or settings.downloads_path
+        settings.secondary_downloads_path = request.POST.get("secondary_downloads_path", "").strip()
+        settings.library_inbox_path = request.POST.get("library_inbox_path", "").strip() or settings.library_inbox_path
+        try:
+            settings.installer_stale_days = max(1, int(request.POST.get("installer_stale_days", "")))
+        except ValueError:
+            pass
+        try:
+            settings.installer_delete_days = max(1, int(request.POST.get("installer_delete_days", "")))
+        except ValueError:
+            pass
+        global_default_mode = request.POST.get("global_default_mode", "")
+        if global_default_mode in dict(AppSettings.GLOBAL_DEFAULT_MODE_CHOICES):
+            settings.global_default_mode = global_default_mode
+        settings.save()
+
+        # Automation Control: one enabled/destination/mode triple per
+        # opt-in category. `sensitive` is deliberately excluded -- its
+        # UI is locked and it's never submitted as an editable field.
+        for category in GlobalSortCategory.objects.exclude(key="sensitive"):
+            category.enabled = request.POST.get(f"category_{category.key}_enabled") == "on"
+            destination = request.POST.get(f"category_{category.key}_destination", "").strip()
+            if destination:
+                category.destination_path = destination
+            mode = request.POST.get(f"category_{category.key}_mode", "")
+            if mode in dict(GlobalSortCategory.MODE_CHOICES):
+                category.mode = mode
+            category.save()
+
+        ai_enabled = bool(request.POST.get("ai_enabled"))
+        ai_api_key = request.POST.get("ai_api_key", "").strip()
+        if ai_enabled or ai_api_key or paths.AI_CONFIG_PATH.exists():
+            ai_config["enabled"] = ai_enabled
+            if ai_api_key:
+                ai_config["api_key"] = ai_api_key
+            ai_config.setdefault("model", "llama-3.1-8b-instant")
+            ai_config.setdefault("base_url", "https://api.groq.com/openai/v1")
+            paths.AI_CONFIG_PATH.write_text(json.dumps(ai_config, indent=2), encoding="utf-8")
+
+        youtube_enabled = bool(request.POST.get("youtube_enabled"))
+        youtube_api_key = request.POST.get("youtube_api_key", "").strip()
+        if youtube_enabled or youtube_api_key or paths.YOUTUBE_CONFIG_PATH.exists():
+            youtube_config["enabled"] = youtube_enabled
+            if youtube_api_key:
+                youtube_config["api_key"] = youtube_api_key
+            paths.YOUTUBE_CONFIG_PATH.write_text(json.dumps(youtube_config, indent=2), encoding="utf-8")
+
+        drive_enabled = bool(request.POST.get("drive_enabled"))
+        drive_client_id = request.POST.get("drive_client_id", "").strip()
+        drive_client_secret = request.POST.get("drive_client_secret", "").strip()
+        if drive_enabled or drive_client_id or paths.DRIVE_CONFIG_PATH.exists():
+            drive_config["enabled"] = drive_enabled
+            if drive_client_id:
+                drive_config["client_id"] = drive_client_id
+            if drive_client_secret:
+                drive_config["client_secret"] = drive_client_secret
+            paths.DRIVE_CONFIG_PATH.write_text(json.dumps(drive_config, indent=2), encoding="utf-8")
+
+        messages.success(request, "Settings saved.")
+        return redirect("settings_edit")
+
+    User = get_user_model()
+    drive_connection = IntegrationConnection.objects.filter(provider="drive").first()
+    return render(request, "organizer/settings_edit.html", {
+        "settings": settings,
+        "default_downloads": str(paths.DEFAULT_DOWNLOADS),
+        "default_library_inbox": str(paths.DEFAULT_LIBRARY_INBOX),
+        "ai_enabled": ai_config.get("enabled", False),
+        "ai_key_set": bool(ai_config.get("api_key")),
+        "youtube_enabled": youtube_config.get("enabled", False),
+        "youtube_key_set": bool(youtube_config.get("api_key")),
+        "drive_enabled": drive_config.get("enabled", False),
+        "drive_client_configured": bool(drive_config.get("client_id") and drive_config.get("client_secret")),
+        "drive_connected": drive_api.is_connected(),
+        "drive_account_email": drive_connection.config.get("email") if drive_connection else None,
+        "owner_mode": owner_access.owner_mode_enabled(),
+        "owner_mode_available": owner_access.feature_available(),
+        "owner_account_exists": User.objects.filter(is_staff=True).exists(),
+        "sort_categories": GlobalSortCategory.objects.exclude(key="sensitive"),
+        "sensitive_category": GlobalSortCategory.objects.filter(key="sensitive").first(),
+    })
+
+
+def owner_mode_toggle(request):
+    """Its own tiny save, independent of the big Settings form -- it used
+    to be one more field on that form, which meant saving ANY other
+    setting (changing the downloads folder, say) with the checkbox
+    visually unchecked would silently turn owner mode back off and hide
+    the Admin link again, even for someone who'd already set up their
+    account. A standalone toggle can't be reset by an unrelated save."""
+    from ..core import owner_access
+
+    if not owner_access.feature_available():
+        return _owner_not_found()
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    enabled = request.POST.get("enabled") == "true"
+    owner_access.owner_config_path().write_text(
+        json.dumps({"owner_mode": enabled}, indent=2), encoding="utf-8"
+    )
+    return JsonResponse({"ok": True, "enabled": enabled})
+
+

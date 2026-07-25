@@ -95,8 +95,7 @@
         {% if digests %}
         <div class="profile-list">
             {% for digest in digests %}
-            <a href="{% url 'digest_detail' digest.pk %}" style="text-decoration:none;">
-            <article class="profile-row" style="cursor:pointer;">
+            <article class="profile-row">
                 <div class="profile-main">
                     <h3>{{ digest.title }}</h3>
                     <span class="path-text">{{ digest.period_start|date:"M d" }} - {{ digest.period_end|date:"M d, Y" }}</span>
@@ -114,12 +113,11 @@
                     <strong>{{ digest.metrics.open_assignments|default:"0" }}</strong>
                 </div>
                 <div class="profile-actions">
-                    <span class="button button-ghost" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
-                        View →
-                    </span>
+                    <a class="button button-ghost" href="{% url 'digest_detail' digest.pk %}" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
+                        View
+                    </a>
                 </div>
             </article>
-            </a>
             {% endfor %}
         </div>
         {% else %}

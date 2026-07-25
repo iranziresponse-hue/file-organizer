@@ -26,7 +26,7 @@
     }
 
     function syncStats(freshDoc) {
-        ['stat-pending', 'stat-approved', 'stat-rerouted', 'stat-ignored'].forEach(function (id) {
+        ['stat-pending', 'stat-approved', 'stat-rejected', 'stat-moved'].forEach(function (id) {
             var freshEl = freshDoc.getElementById(id);
             var liveEl = document.getElementById(id);
             if (freshEl && liveEl) liveEl.textContent = freshEl.textContent;

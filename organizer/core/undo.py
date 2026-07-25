@@ -54,7 +54,19 @@ def restore_move(event, log: Callable | None = None) -> bool:
             course_code=event.course_code or "",
             success=True,
             error_message=f"Undo of move #{event.pk}",
+            undo_available=False,
         )
+
+        # The original move is no longer something to undo further -- the
+        # file's back where it started. Also flip its SortDecision (if any)
+        # to "undone" so the trust layer's own audit trail stays accurate.
+        event.undo_available = False
+        event.save(update_fields=["undo_available"])
+        sort_decision = getattr(event, "sort_decision", None)
+        if sort_decision is not None:
+            sort_decision.status = "undone"
+            sort_decision.save(update_fields=["status"])
+
         return True
     except OSError as exc:
         if log:
@@ -102,6 +114,7 @@ def get_restorable_moves(profile, limit: int = 20):
     events = MoveEvent.objects.filter(
         profile=profile,
         success=True,
+        undo_available=True,
     ).order_by("-timestamp")[:limit]
 
     restorable = []
@@ -116,7 +129,9 @@ def get_undo_stats(profile) -> dict:
     from organizer.models import MoveEvent
 
     recent = MoveEvent.objects.filter(profile=profile, success=True).order_by("-timestamp")[:50]
-    restorable = sum(1 for e in recent if e.destination_path and Path(e.destination_path).exists())
+    restorable = sum(
+        1 for e in recent if e.undo_available and e.destination_path and Path(e.destination_path).exists()
+    )
 
     return {
         "recent_moves": recent.count(),

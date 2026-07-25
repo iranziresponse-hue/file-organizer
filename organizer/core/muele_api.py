@@ -105,6 +105,85 @@ def clear_token() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-connection token management -- store_token/load_token/clear_token above
+# hold the *pending* token from an in-progress login, before a connection
+# row exists yet. Once a profile's MUELE IntegrationConnection is actually
+# created, its token moves here, keyed by connection.pk -- otherwise two
+# profiles each connecting their own MUELE account would silently share (and
+# overwrite) one global token. Same store/load/clear contract, same keyring
+# service, same never-throws discipline.
+# ---------------------------------------------------------------------------
+
+
+def _connection_token_key(connection) -> str:
+    return f"muele_token_{connection.pk}"
+
+
+def store_connection_token(connection, token: str) -> tuple[bool, str | None]:
+    """Store a MUELE token for one specific connection. Returns (True, None)
+    on success or (False, error_message) if the keyring is unavailable."""
+    try:
+        import keyring
+
+        keyring.set_password(_KEYRING_SERVICE, _connection_token_key(connection), token)
+        return True, None
+    except ImportError:
+        logger.warning("keyring package not installed; cannot store MUELE connection token.")
+        return False, "The keyring package is not installed, so the token can't be saved securely."
+    except Exception as exc:
+        logger.warning("Could not store MUELE connection token in the OS keyring: %s", exc)
+        return False, f"Could not save the token to your OS credential store: {exc}"
+
+
+def load_connection_token(connection) -> str | None:
+    """Load the MUELE token for one specific connection. Returns None if not
+    set or the keyring is unavailable -- never throws.
+
+    Self-healing for connections that were `connected` before per-connection
+    tokens existed: if nothing is stored under this connection's own key
+    yet, but a pending/global token is still sitting there from before this
+    migration, adopt it as this connection's token (and clear the global
+    copy) rather than reporting a working connection as suddenly
+    disconnected. Only the first connection to check after an upgrade sees
+    this path; from then on the global key is empty.
+    """
+    try:
+        import keyring
+
+        token = keyring.get_password(_KEYRING_SERVICE, _connection_token_key(connection))
+        if token:
+            return token
+    except ImportError:
+        logger.warning("keyring package not installed; treating MUELE connection as disconnected.")
+        return None
+    except Exception as exc:
+        logger.warning("Could not read MUELE connection token from the OS keyring: %s", exc)
+        return None
+
+    legacy_token = load_token()
+    if legacy_token:
+        stored, _ = store_connection_token(connection, legacy_token)
+        if stored:
+            clear_token()
+            return legacy_token
+    return None
+
+
+def clear_connection_token(connection) -> None:
+    """Remove one connection's MUELE token from the OS keyring. Never throws."""
+    try:
+        import keyring
+
+        keyring.delete_password(_KEYRING_SERVICE, _connection_token_key(connection))
+    except ImportError:
+        logger.warning("keyring package not installed; nothing to clear.")
+    except keyring.errors.PasswordDeleteError:
+        pass
+    except Exception as exc:
+        logger.warning("Could not clear MUELE connection token from the OS keyring: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Automatic token generation via MUELE login
 # ---------------------------------------------------------------------------
 

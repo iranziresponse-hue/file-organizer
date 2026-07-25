@@ -9,7 +9,7 @@
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
             <h2>Decision inbox</h2>
-            <p>Review files that rules flagged for manual approval. Approve, reroute, or ignore each item.</p>
+            <p>Files Orch held or suggested instead of moving silently. Every row explains why: approve, teach Orch to always do this, move it somewhere else, or reject the suggestion.</p>
         </div>
         <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
     </section>
@@ -17,8 +17,8 @@
     <section class="stat-row" id="inbox-stats">
         <div class="stat stat-primary"><div class="value" id="stat-pending">{{ stats.pending }}</div><div class="label">Pending</div></div>
         <div class="stat"><div class="value" id="stat-approved" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
-        <div class="stat"><div class="value" id="stat-rerouted" style="color:var(--cyan);">{{ stats.rerouted }}</div><div class="label">Rerouted</div></div>
-        <div class="stat"><div class="value" id="stat-ignored" style="color:var(--muted);">{{ stats.ignored }}</div><div class="label">Ignored</div></div>
+        <div class="stat"><div class="value" id="stat-rejected" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Rejected</div></div>
+        <div class="stat"><div class="value" id="stat-moved" style="color:var(--cyan);">{{ stats.moved }}</div><div class="label">Auto-moved</div></div>
     </section>
 
     {% if pending_items %}
@@ -26,32 +26,42 @@
         <div class="card-header"><div><h2>Pending items (<span id="pending-count">{{ pending_items|length }}</span>)</h2></div></div>
         <div class="profile-list" id="pending-list">
             {% for item in pending_items %}
-            <article class="profile-row" data-pk="{{ item.pk }}" style="grid-template-columns: minmax(180px,1.5fr) minmax(100px,0.6fr) minmax(80px,0.3fr) auto;">
+            <article class="profile-row" data-pk="{{ item.pk }}" style="grid-template-columns: minmax(200px,1.6fr) minmax(90px,0.4fr) auto;">
                 <div class="profile-main">
                     <h3>{{ item.filename }}</h3>
-                    <span class="path-text">{{ item.reason|default:"Awaiting review" }}</span>
+                    <span class="path-text">{{ item.explanation|default:"Awaiting review" }}</span>
                     {% if item.source_path %}<span class="path-text" style="font-size:0.78rem;">{{ item.source_path }}</span>{% endif %}
-                </div>
-                <div class="profile-detail">
-                    <span class="path-text">Suggested</span>
-                    <strong>{{ item.suggested_subject|default:"-" }}</strong>
+                    {% if item.suggested_destination %}<span class="path-text" style="font-size:0.78rem;">&rarr; {{ item.suggested_destination }}</span>{% endif %}
                 </div>
                 <div class="profile-detail">
                     <span class="path-text">Confidence</span>
-                    <strong>{{ item.confidence }}</strong>
+                    <strong>{{ item.confidence }}%</strong>
+                    {% if item.decision_type == "held_sensitive" %}
+                        <span class="path-text" style="color:var(--red);">Sensitive</span>
+                    {% endif %}
                 </div>
                 <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
                     <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
                             <svg viewBox="0 0 24 24" fill="none" style="width:14px;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            Approve
+                            Approve once
                         </button>
                     </form>
-                    <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reroute</button>
+                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="remember" value="1">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Teach Orch to always route files like this here">Always do this</button>
+                    </form>
+                    <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Move somewhere else</button>
                     <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Ignore</button>
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reject</button>
+                    </form>
+                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="never_again" value="1">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Stop suggesting this pattern in future">Never suggest again</button>
                     </form>
                 </div>
             </article>
@@ -63,7 +73,7 @@
     <div id="reroute-form" class="guide-overlay" hidden>
         <div class="guide-panel" style="max-width:500px;">
             <button type="button" class="guide-close" id="reroute-close"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-            <h3>Reroute file</h3>
+            <h3>Move to a different folder</h3>
             <p class="help-text" id="reroute-filename" style="margin-bottom:16px;"></p>
             <form method="post" id="reroute-form-inner" data-inbox-action>
                 {% csrf_token %}
@@ -75,8 +85,12 @@
                         <button type="button" class="button-ghost" onclick="openFolderBrowser('new_destination')">Browse</button>
                     </div>
                 </div>
+                <label style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:500; color:var(--muted); margin-top:8px;">
+                    <input type="checkbox" name="confirm_external" value="1" style="width:auto;">
+                    This folder is outside my usual Orch folders, move it anyway
+                </label>
                 <div class="form-actions" style="margin-top:12px;">
-                    <button type="submit">Reroute & approve</button>
+                    <button type="submit">Move & approve</button>
                 </div>
             </form>
         </div>
@@ -85,7 +99,7 @@
     <section class="card compact-card">
         <div class="empty-state">
             <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/></svg></span>
-            <div><h3>No pending items</h3><p>The inbox is empty. Files with review rules will appear here.</p></div>
+            <div><h3>No pending items</h3><p>The inbox is empty. Sensitive files and anything Orch isn't confident about will show up here for review.</p></div>
         </div>
     </section>
     {% endif %}
@@ -99,15 +113,18 @@
             var filename = document.getElementById('reroute-filename');
             var form = document.getElementById('reroute-form-inner');
             var pk = this.dataset.itemPk;
-            filename.textContent = 'Rerouting: ' + this.dataset.filename;
+            filename.textContent = 'Moving: ' + this.dataset.filename;
             form.action = '/study/inbox/' + pk + '/reroute/';
             form.dataset.itemPk = pk;
             overlay.hidden = false;
         });
     });
-    document.getElementById('reroute-close').addEventListener('click', function(){
-        document.getElementById('reroute-form').hidden = true;
-    });
+    var rerouteClose = document.getElementById('reroute-close');
+    if (rerouteClose) {
+        rerouteClose.addEventListener('click', function(){
+            document.getElementById('reroute-form').hidden = true;
+        });
+    }
 })();
 </script>
 <script src="{% static 'organizer/js/inbox-actions.js' %}"></script>

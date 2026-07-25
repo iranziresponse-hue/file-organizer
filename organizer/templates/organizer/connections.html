@@ -1,0 +1,166 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Connections - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading connections-hero">
+        <div>
+            <span class="eyebrow">{% if profile %}{{ profile.name }}{% else %}App-wide{% endif %}</span>
+            <h2>Connections</h2>
+            <p>Every service Orch can use, what is already connected, what can be added, and why each setup step matters.</p>
+            <div class="hero-icon-row" role="list" aria-label="Jump to a connection category">
+                {% for group in groups %}
+                <a class="hero-icon-tip" role="listitem" href="#group-{{ forloop.counter }}" data-tip="{{ group.title }}: {{ group.detail }}">
+                    {% if group.title == "Academic systems" %}
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3 2 8l10 5 10-5-10-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                        <path d="M6 10.5V16c0 1 2.5 3 6 3s6-2 6-3v-5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M22 8v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    </svg>
+                    {% elif group.title == "Intelligence" %}
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 7.8 11.4 6.2 12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M19 14.5c.3 1.3.9 1.9 2.2 2.2-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-.9 2.2-2.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+                    </svg>
+                    {% elif group.title == "Storage and workspace" %}
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M7 18a4.5 4.5 0 0 1-.4-8.98A5.5 5.5 0 0 1 17.5 9.5 4 4 0 0 1 17 18H7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    </svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M22 2 11 13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {% endif %}
+                    <span class="sr-only">{{ group.title }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% if next_action and next_action.action %}
+        <a class="button button-live" href="{{ next_action.action.url }}">{{ next_action.action.label }} {{ next_action.title }}</a>
+        {% endif %}
+    </section>
+
+    <section class="connection-summary-grid" aria-label="Connection summary">
+        <div class="connection-stat">
+            <strong>{{ connected_count }}/{{ total_count }}</strong>
+            <span>Connected</span>
+        </div>
+        <div class="connection-stat">
+            <strong>{{ actionable_count }}</strong>
+            <span>Can add now</span>
+        </div>
+        <div class="connection-stat">
+            <strong>{{ blocked_count }}</strong>
+            <span>Not connected</span>
+        </div>
+        <div class="connection-stat">
+            <strong>{% if next_action %}{{ next_action.status_label }}{% else %}Clear{% endif %}</strong>
+            <span>Next move</span>
+        </div>
+    </section>
+
+    {% if failed_backup_count %}
+    <section class="card compact-card">
+        <div class="card-header">
+            <div>
+                <h2>{{ failed_backup_count }} Drive backup{{ failed_backup_count|pluralize }} didn't go through</h2>
+                <p class="card-subtitle">Usually unstable internet, an expired token, or Drive being offline at the time. The sorted files themselves are fine; only the cloud copy is missing.</p>
+            </div>
+            <button type="button" class="button" id="retry-backups-btn">Retry now</button>
+        </div>
+        <div id="retry-backups-result" class="help-text" hidden></div>
+    </section>
+    {% endif %}
+
+    {% for group in groups %}
+    <section class="connection-group" id="group-{{ forloop.counter }}">
+        <div class="connection-group-header">
+            <div>
+                <h2>{{ group.title }}</h2>
+                <p>{{ group.detail }}</p>
+            </div>
+        </div>
+        <div class="connection-grid">
+            {% for card in group.cards %}
+            <article class="connection-card is-{{ card.status_class }}">
+                <div class="connection-card-head">
+                    <div>
+                        <span class="connection-area">{{ card.area }}</span>
+                        <h3>{{ card.title }}</h3>
+                    </div>
+                    <span class="connection-status is-{{ card.status_class }}">{{ card.status_label }}</span>
+                </div>
+                <p>{{ card.detail }}</p>
+                <div class="connection-reason">
+                    <strong>Why connect:</strong> {{ card.reason }}
+                </div>
+                <div class="connection-footer">
+                    <div class="connection-meta">
+                        <strong>{{ card.meta }}</strong>
+                        <span>{{ card.scope }}</span>
+                    </div>
+                    {% if card.action %}
+                    <a class="button {% if card.status == 'connected' %}button-ghost{% elif card.status == 'add' or card.status == 'setup' %}button-live{% else %}button-ghost{% endif %}" href="{{ card.action.url }}">{{ card.action.label }}</a>
+                    {% else %}
+                    <span class="path-text">No action yet</span>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+
+{% if failed_backup_count %}
+<script>
+(function () {
+    var btn = document.getElementById('retry-backups-btn');
+    var resultEl = document.getElementById('retry-backups-result');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.textContent = 'Retrying...';
+
+        fetch('{% url "drive_backup_retry" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            credentials: 'same-origin',
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    btn.disabled = false;
+                    btn.textContent = 'Retry now';
+                    alert(data.error || 'Could not start the retry.');
+                    return;
+                }
+                orchPollTask(data.task_id, {
+                    statusUrlTemplate: '{% url "task_status" 999999999 %}',
+                    onDone: function (result) {
+                        resultEl.hidden = false;
+                        resultEl.textContent = result.result_message || 'Done.';
+                        setTimeout(function () { window.location.reload(); }, 1500);
+                    },
+                    onFailed: function (result) {
+                        btn.disabled = false;
+                        btn.textContent = 'Retry now';
+                        resultEl.hidden = false;
+                        resultEl.textContent = result.result_message || 'Something went wrong.';
+                    },
+                });
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.textContent = 'Retry now';
+                alert('Could not reach Orch. Try again.');
+            });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

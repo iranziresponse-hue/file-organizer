@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 
-def submit_support_message(name: str, email: str, message: str, page_url: str = "") -> tuple:
+def submit_support_message(name: str, email: str, subject: str, message: str, page_url: str = "") -> tuple:
     """Save the message, then try to email it. Returns (support_message, error).
     error is None on a clean send; otherwise a short, honest reason the
     message was saved but not emailed -- the message itself is never lost.
@@ -18,6 +18,7 @@ def submit_support_message(name: str, email: str, message: str, page_url: str = 
     record = SupportMessage.objects.create(
         sender_name=name.strip(),
         sender_email=email.strip(),
+        subject=subject.strip(),
         message=message.strip(),
         page_url=page_url.strip(),
     )
@@ -28,7 +29,7 @@ def submit_support_message(name: str, email: str, message: str, page_url: str = 
         record.save(update_fields=["email_error"])
         return record, error
 
-    subject = f"Orch support message from {name.strip() or 'a user'}"
+    email_subject = f"Orch support: {subject.strip() or 'no subject'}"
     body = (
         f"From: {name.strip() or '(no name given)'}\n"
         f"Reply-to: {email.strip() or '(no email given)'}\n"
@@ -38,7 +39,7 @@ def submit_support_message(name: str, email: str, message: str, page_url: str = 
 
     try:
         send_mail(
-            subject,
+            email_subject,
             body,
             settings.DEFAULT_FROM_EMAIL,
             [settings.SUPPORT_INBOX_ADDRESS],

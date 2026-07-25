@@ -12,7 +12,7 @@ from unittest import mock
 
 from django.test import TestCase
 
-from organizer.core import paths
+from organizer.core import owner_access, paths
 
 
 class SandboxedPathsTestCase(TestCase):
@@ -29,6 +29,10 @@ class SandboxedPathsTestCase(TestCase):
         self.work_unsorted = root / "Work" / "_Unsorted"
         self.library_inbox = root / "Library" / "00 New - Sort Me"
         self.log_path = root / "organize-log.txt"
+        self.ai_config_path = root / "ai_config.json"
+        self.youtube_config_path = root / "youtube_config.json"
+        self.drive_config_path = root / "drive_config.json"
+        self.owner_config_path = root / "orch-owner.json"
 
         # A profile's root and Documents\Personal already exist for real
         # users -- mirror that here so code that assumes the parent exists
@@ -42,6 +46,16 @@ class SandboxedPathsTestCase(TestCase):
             "PERSONAL_ROOT": self.personal_root,
             "IMPORTANT_ROOT": self.personal_root / "Important",
             "LOG_PATH": self.log_path,
+            # Without this, any test that writes AI settings would clobber
+            # the real, gitignored ai_config.json (a real API key) sitting
+            # next to the project -- this file is never sandboxed by
+            # accident, only ever by this explicit override.
+            "AI_CONFIG_PATH": self.ai_config_path,
+            # Same reasoning as AI_CONFIG_PATH -- a real, gitignored YouTube
+            # API key can sit next to the project too.
+            "YOUTUBE_CONFIG_PATH": self.youtube_config_path,
+            # Same again for a real, gitignored Google Drive OAuth client.
+            "DRIVE_CONFIG_PATH": self.drive_config_path,
             # DEFAULT_DOWNLOADS/DEFAULT_LIBRARY_INBOX are only ever read by
             # AppSettings.get_solo() the first time it creates its row --
             # patch them directly rather than relying on them being derived
@@ -52,6 +66,14 @@ class SandboxedPathsTestCase(TestCase):
         }
         for name, value in overrides.items():
             self.enterContext(mock.patch.object(paths, name, value))
+
+        # owner_config_path() is a function, not a module constant, and
+        # points at the real project's orch-owner.json by default -- redirect
+        # it the same way as AI_CONFIG_PATH above, so tests exercising the
+        # owner-mode toggle can never flip that switch on this machine.
+        self.enterContext(
+            mock.patch.object(owner_access, "owner_config_path", return_value=self.owner_config_path)
+        )
 
     def make_profile(self, **overrides):
         from organizer.models import Profile
@@ -81,3 +103,16 @@ class SandboxedPathsTestCase(TestCase):
             setattr(settings, key, value)
         settings.save()
         return settings
+
+    def make_category(self, key, **overrides):
+        """Opt a GlobalSortCategory into the trust-layer pipeline for a
+        test. Categories are never pre-seeded by the migration (they're
+        lazily created via GlobalSortCategory.ensure_defaults(), same
+        pattern as AppSettings.get_solo()) -- update_or_create so this
+        works whether or not ensure_defaults() has run yet."""
+        from organizer.models import GlobalSortCategory
+
+        fields = {"label": key.title(), "enabled": True, "mode": "auto", "destination_path": ""}
+        fields.update(overrides)
+        category, _ = GlobalSortCategory.objects.update_or_create(key=key, defaults=fields)
+        return category

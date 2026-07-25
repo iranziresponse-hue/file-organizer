@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest import mock
 
 from django.urls import reverse
@@ -69,7 +70,7 @@ class MoveSummarizeViewTests(SandboxedPathsTestCase):
         response = self.client.post(reverse("move_summarize", args=[event.pk]))
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("AI isn't configured", response.json()["error"])
+        self.assertIn("Smart Orch isn't turned on", response.json()["error"])
         self.assertFalse(FileSummary.objects.exists())
 
     @mock.patch("organizer.core.summarize.requests.post")
@@ -135,3 +136,34 @@ class MoveSummaryPdfViewTests(SandboxedPathsTestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn("attachment", response["Content-Disposition"])
+
+
+class MoveClearHistoryViewTests(SandboxedPathsTestCase):
+    def test_get_is_not_allowed(self):
+        response = self.client.get(reverse("move_clear_history"))
+        self.assertEqual(response.status_code, 405)
+
+    def test_without_an_active_profile_redirects_without_deleting(self):
+        MoveEvent.objects.create(filename="notes.pdf", destination_path="x", method="course_code")
+
+        response = self.client.post(reverse("move_clear_history"))
+
+        self.assertRedirects(response, reverse("dashboard"))
+        self.assertEqual(MoveEvent.objects.count(), 1)
+
+    def test_deletes_only_the_active_profiles_events(self):
+        profile = self.make_profile()
+        other_root = Path(self._tmp.name) / "Other"
+        other_root.mkdir()
+        other_profile = self.make_profile(name="Other", root_path=str(other_root), is_active=False)
+
+        MoveEvent.objects.create(profile=profile, filename="mine.pdf", destination_path="x", method="course_code")
+        MoveEvent.objects.create(profile=other_profile, filename="theirs.pdf", destination_path="x", method="course_code")
+        MoveEvent.objects.create(filename="orphaned.pdf", destination_path="x", method="course_code")
+
+        response = self.client.post(reverse("move_clear_history"))
+
+        self.assertRedirects(response, reverse("dashboard"))
+        self.assertFalse(MoveEvent.objects.filter(profile=profile).exists())
+        self.assertTrue(MoveEvent.objects.filter(profile=other_profile).exists())
+        self.assertTrue(MoveEvent.objects.filter(profile__isnull=True).exists())

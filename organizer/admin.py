@@ -10,24 +10,36 @@ from types import MethodType
 from .models import (
     AppSettings,
     AssignmentItem,
+    CareerDigest,
+    CareerProfile,
+    ContentDraft,
     CourseConfig,
     CourseGuide,
     CurriculumEntry,
     ExportBundle,
     FileSummary,
+    Flashcard,
     FolderImportPlan,
     FolderRule,
+    GlobalSortCategory,
+    GradeTarget,
     IntegrationConnection,
     LearningActivity,
     LearningDigest,
     LearningRoute,
     MoveEvent,
     Notification,
+    OrganizationMemoryRule,
+    PastPaperAnalysis,
     Profile,
+    Project,
+    ProjectUpdate,
+    PublishedPost,
     SupportMessage,
     ResourceRecommendation,
     ReviewItem,
-    SortingInboxItem,
+    SortDecision,
+    StudyFocusSession,
     SubjectMemory,
     SubjectTheme,
     StudyGoal,
@@ -78,8 +90,9 @@ def _operations_context():
     failed_moves = MoveEvent.objects.filter(success=False).count()
     moves_24h = MoveEvent.objects.filter(timestamp__gte=today_start).count()
     pending_reviews = ReviewItem.objects.filter(status="queued").count()
+    active_focus_sessions = StudyFocusSession.objects.filter(status="active").count()
     overdue_reviews = ReviewItem.objects.filter(status="queued", due_at__lt=now).count()
-    pending_inbox = SortingInboxItem.objects.filter(status="pending").count()
+    pending_inbox = SortDecision.objects.filter(status="pending").count()
     open_assignments = AssignmentItem.objects.filter(status="open").count()
     enabled_rules = FolderRule.objects.filter(enabled=True).count()
     planned_integrations = IntegrationConnection.objects.filter(status="planned").count()
@@ -155,6 +168,16 @@ def _operations_context():
     total_reviews = ReviewItem.objects.count()
     completed_reviews = ReviewItem.objects.filter(status="done").count()
 
+    # Automation accuracy -- how often Orch's own suggestions were approved
+    # vs rejected, and how often an auto-move was undone. Cheap aggregation
+    # over SortDecision/MoveEvent, no separately-tracked stats needed.
+    decisions_approved = SortDecision.objects.filter(status="approved").count()
+    decisions_rejected = SortDecision.objects.filter(status="rejected").count()
+    decisions_auto_moved = SortDecision.objects.filter(status="moved").count()
+    decisions_resolved = decisions_approved + decisions_rejected
+    automation_accuracy = _percent(decisions_approved, decisions_resolved)
+    undo_rate = _percent(MoveEvent.objects.filter(undo_available=False, success=True).count(), successful_moves)
+
     # Activity trend (last 7 days)
     activity_trend = []
     for i in range(7):
@@ -192,6 +215,8 @@ def _operations_context():
         integration_failures = diagnostics.get_integration_failures()
         recent_errors = diagnostics.get_recent_errors(days=1, limit=10)
         backups = diagnostics.list_backups()
+        performance = diagnostics.get_performance_summary()
+        search_index_health = diagnostics.get_search_index_health()
     except Exception:
         watcher_status = {"running": False, "recent_errors": [], "files_watched_24h": 0}
         error_summary = {"total_failed": 0, "total_success": 0, "failure_rate": 0}
@@ -200,6 +225,14 @@ def _operations_context():
         integration_failures = []
         recent_errors = []
         backups = []
+        performance = {
+            "window_days": 7, "files_processed_today": 0, "failed_moves_today": 0,
+            "sort_avg_ms": None, "sort_slowest": None, "muele_sync": {"avg_ms": None, "count": 0},
+            "timetable_sync": {"avg_ms": None, "count": 0}, "summary_generate": {"avg_ms": None, "count": 0},
+            "course_guide_generate": {"avg_ms": None, "count": 0}, "page_loads": [],
+            "watcher": {"running": False, "recent_errors": [], "files_watched_24h": 0},
+        }
+        search_index_health = {"healthy": False, "total_rows": 0, "counts_by_type": {}, "error": "Diagnostics unavailable"}
 
     return {
         "orch_diagnostics": {
@@ -211,9 +244,16 @@ def _operations_context():
             "recent_errors": recent_errors,
             "backups": backups,
         },
+        "orch_performance": performance,
+        "orch_search_index": search_index_health,
         "orch_analytics": {
             "weekly_moves": weekly_moves,
             "monthly_moves": monthly_moves,
+            "decisions_approved": decisions_approved,
+            "decisions_rejected": decisions_rejected,
+            "decisions_auto_moved": decisions_auto_moved,
+            "automation_accuracy": automation_accuracy,
+            "undo_rate": undo_rate,
             "weekly_activities": weekly_activities,
             "monthly_activities": monthly_activities,
             "weekly_digests": weekly_digests,
@@ -258,10 +298,16 @@ def _operations_context():
                 "url": _admin_changelist(ReviewItem),
             },
             {
+                "label": "Focus sessions",
+                "value": StudyFocusSession.objects.count(),
+                "detail": f"{active_focus_sessions} active",
+                "url": _admin_changelist(StudyFocusSession),
+            },
+            {
                 "label": "Decision inbox",
                 "value": pending_inbox,
                 "detail": "pending approvals",
-                "url": _admin_changelist(SortingInboxItem),
+                "url": _admin_changelist(SortDecision),
             },
             {
                 "label": "Open assignments",
@@ -293,7 +339,7 @@ def _operations_context():
         "orch_profile_rows": profile_rows,
         "orch_health": health,
         "orch_recent_moves": MoveEvent.objects.select_related("profile").order_by("-timestamp")[:10],
-        "orch_inbox_items": SortingInboxItem.objects.select_related("profile").order_by("-created_at")[:8],
+        "orch_inbox_items": SortDecision.objects.select_related("profile").order_by("-created_at")[:8],
         "orch_reviews": ReviewItem.objects.select_related("profile").filter(status="queued").order_by("due_at")[:8],
         "orch_integrations": IntegrationConnection.objects.select_related("profile").order_by("provider", "display_name")[:8],
         "orch_updated_at": now,
@@ -301,7 +347,9 @@ def _operations_context():
             "profiles": _admin_changelist(Profile),
             "moves": _admin_changelist(MoveEvent),
             "reviews": _admin_changelist(ReviewItem),
-            "inbox": _admin_changelist(SortingInboxItem),
+            "focus": _admin_changelist(StudyFocusSession),
+            "inbox": _admin_changelist(SortDecision),
+            "memory": _admin_changelist(OrganizationMemoryRule),
             "rules": _admin_changelist(FolderRule),
             "imports": _admin_changelist(FolderImportPlan),
             "integrations": _admin_changelist(IntegrationConnection),
@@ -418,6 +466,30 @@ class CourseGuideAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
 
+@admin.register(PastPaperAnalysis)
+class PastPaperAnalysisAdmin(admin.ModelAdmin):
+    list_display = ("subject_code", "profile", "paper_count", "generated_at")
+    list_filter = ("profile",)
+    search_fields = ("subject_code", "profile__name")
+    date_hierarchy = "generated_at"
+
+
+@admin.register(GradeTarget)
+class GradeTargetAdmin(admin.ModelAdmin):
+    list_display = ("subject_code", "profile", "target_percent", "coursework_score", "test_score", "updated_at")
+    list_filter = ("profile",)
+    search_fields = ("subject_code", "profile__name")
+    date_hierarchy = "updated_at"
+
+
+@admin.register(Flashcard)
+class FlashcardAdmin(admin.ModelAdmin):
+    list_display = ("front", "subject_code", "profile", "card_type", "status", "due_at", "times_seen", "times_correct")
+    list_filter = ("profile", "card_type", "status")
+    search_fields = ("front", "back", "subject_code")
+    date_hierarchy = "due_at"
+
+
 @admin.register(LearningActivity)
 class LearningActivityAdmin(admin.ModelAdmin):
     list_display = ("happened_at", "profile", "activity_type", "subject_code", "title")
@@ -478,12 +550,33 @@ class ReviewItemAdmin(admin.ModelAdmin):
     date_hierarchy = "due_at"
 
 
-@admin.register(SortingInboxItem)
-class SortingInboxItemAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "profile", "filename", "suggested_subject", "confidence", "status")
-    list_filter = ("profile", "status")
-    search_fields = ("filename", "source_path", "suggested_subject")
+@admin.register(StudyFocusSession)
+class StudyFocusSessionAdmin(admin.ModelAdmin):
+    list_display = ("started_at", "profile", "subject_code", "title", "target_minutes", "status")
+    list_filter = ("profile", "status", "subject_code")
+    search_fields = ("title", "subject_code", "notes")
+    date_hierarchy = "started_at"
+
+
+@admin.register(SortDecision)
+class SortDecisionAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "profile", "filename", "decision_type", "confidence", "status")
+    list_filter = ("profile", "status", "decision_type")
+    search_fields = ("filename", "source_path", "matched_rule", "explanation")
     date_hierarchy = "created_at"
+
+
+@admin.register(GlobalSortCategory)
+class GlobalSortCategoryAdmin(admin.ModelAdmin):
+    list_display = ("label", "key", "enabled", "mode", "destination_path")
+    list_filter = ("enabled", "mode")
+
+
+@admin.register(OrganizationMemoryRule)
+class OrganizationMemoryRuleAdmin(admin.ModelAdmin):
+    list_display = ("name", "profile", "match_type", "match_value", "times_approved", "times_rejected", "enabled")
+    list_filter = ("profile", "match_type", "enabled")
+    search_fields = ("name", "match_value", "destination_path")
 
 
 @admin.register(LearningDigest)
@@ -548,8 +641,52 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(SupportMessage)
 class SupportMessageAdmin(admin.ModelAdmin):
-    list_display = ("sender_name", "sender_email", "created_at", "emailed_at", "email_error")
-    search_fields = ("sender_name", "sender_email", "message")
+    list_display = ("subject", "sender_name", "sender_email", "created_at", "emailed_at", "email_error")
+    search_fields = ("subject", "sender_name", "sender_email", "message")
+    date_hierarchy = "created_at"
+
+
+@admin.register(CareerProfile)
+class CareerProfileAdmin(admin.ModelAdmin):
+    list_display = ("profile", "career_track", "weekly_goal", "updated_at")
+    list_filter = ("career_track",)
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ("title", "profile", "status", "github_url", "updated_at")
+    list_filter = ("profile", "status")
+    search_fields = ("title", "problem_statement", "github_url")
+    date_hierarchy = "updated_at"
+
+
+@admin.register(ProjectUpdate)
+class ProjectUpdateAdmin(admin.ModelAdmin):
+    list_display = ("project", "created_at")
+    search_fields = ("content", "project__title")
+    date_hierarchy = "created_at"
+
+
+@admin.register(CareerDigest)
+class CareerDigestAdmin(admin.ModelAdmin):
+    list_display = ("profile", "period_start", "period_end", "created_at")
+    list_filter = ("profile",)
+    date_hierarchy = "period_end"
+
+
+@admin.register(ContentDraft)
+class ContentDraftAdmin(admin.ModelAdmin):
+    list_display = ("topic", "profile", "post_type", "status", "created_at")
+    list_filter = ("profile", "post_type", "status")
+    search_fields = ("topic", "raw_text")
+    date_hierarchy = "created_at"
+
+
+@admin.register(PublishedPost)
+class PublishedPostAdmin(admin.ModelAdmin):
+    list_display = ("content_draft", "channel", "variant", "status", "created_at")
+    list_filter = ("status", "variant", "channel")
+    search_fields = ("content_draft__topic", "error_message")
     date_hierarchy = "created_at"
 
 
@@ -558,3 +695,7 @@ admin.site.site_title = "Orch Admin"
 admin.site.index_title = "Live Operations"
 admin.site.index_template = "admin/orch_index.html"
 admin.site.index = MethodType(_orch_index, admin.site)
+# Without this, clicking the Admin nav link and changing your mind means
+# either logging in or closing the window -- there's no link back to the
+# dashboard on the stock Django login page.
+admin.site.login_template = "admin/orch_login.html"

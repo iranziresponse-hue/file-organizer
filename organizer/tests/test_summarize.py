@@ -162,6 +162,11 @@ class FindRelatedFilesTests(SimpleTestCase):
 
 
 class GenerateSummaryTests(SimpleTestCase):
+    # generate_summary() now times itself via organizer.core.perf.measure(),
+    # which writes a PerformanceMetric row -- needs real DB access, unlike
+    # the rest of this file's SimpleTestCase classes.
+    databases = {"default"}
+
     def setUp(self):
         super().setUp()
         self._tmp = tempfile.TemporaryDirectory()
@@ -201,7 +206,7 @@ class GenerateSummaryTests(SimpleTestCase):
         content, error = summarize.generate_summary(target)
 
         self.assertIsNone(content)
-        self.assertIn("AI isn't configured", error)
+        self.assertIn("Smart Orch isn't turned on", error)
 
     def test_too_little_extracted_text_is_rejected(self):
         self._write_ai_config()

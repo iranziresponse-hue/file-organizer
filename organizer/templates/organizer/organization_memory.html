@@ -1,0 +1,85 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Organization Memory - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Organization memory</h2>
+            <p>Rules Orch learned from your own approvals, never a black box. Edit the destination, disable a rule, or reset its learning at any time.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+    </section>
+
+    <section class="stat-row">
+        <div class="stat stat-primary"><div class="value">{{ stats.total }}</div><div class="label">Learned rules</div></div>
+        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.enabled }}</div><div class="label">Enabled</div></div>
+        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.approved_patterns }}</div><div class="label">With approvals</div></div>
+        <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.rejected_patterns }}</div><div class="label">With rejections</div></div>
+    </section>
+
+    {% if rules %}
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Learned rules</h2><p class="card-subtitle">Created automatically the first time you clicked "Always do this" in the Decision Inbox</p></div></div>
+        <div class="profile-list">
+            {% for rule in rules %}
+            <article class="profile-row" style="grid-template-columns: minmax(200px,1.4fr) minmax(140px,0.8fr) minmax(90px,0.5fr) auto;">
+                <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" style="display:contents;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update">
+                    <div class="profile-main">
+                        <input type="text" name="name" value="{{ rule.name }}" style="background:transparent; border:none; font-weight:600; font-size:1rem; color:inherit; padding:0; width:100%;">
+                        <span class="path-text">{{ rule.get_match_type_display }}: {{ rule.match_value }}</span>
+                        <input type="text" name="destination_path" value="{{ rule.destination_path }}" class="path-text" style="background:transparent; border:none; padding:0; width:100%; font-size:0.78rem;">
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Approved / Rejected</span>
+                        <strong>{{ rule.times_approved }} / {{ rule.times_rejected }}</strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span class="path-text">Boost</span>
+                        <strong>+{{ rule.confidence_boost }}</strong>
+                    </div>
+                    <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Save</button>
+                    </div>
+                </form>
+                <div class="profile-actions" style="grid-column:1/-1; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle">
+                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;">{% if rule.enabled %}Disable{% else %}Enable{% endif %}</button>
+                    </form>
+                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reset">
+                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;">Reset learning</button>
+                    </form>
+                    <form method="post" action="{% url 'organization_memory_rule_delete' rule.pk %}" style="display:inline;" onsubmit="return confirm('Delete this learned rule?');">
+                        {% csrf_token %}
+                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;color:var(--red);">Delete</button>
+                    </form>
+                    <span class="path-text" style="margin-left:auto; align-self:center;">{% if rule.enabled %}Active{% else %}Disabled{% endif %}</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>Nothing learned yet</h3>
+                <p>Approve a suggestion in the Decision Inbox with "Always do this" and it'll show up here, fully visible and editable.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

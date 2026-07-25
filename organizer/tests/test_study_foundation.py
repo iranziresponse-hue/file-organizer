@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils import timezone
 
 from organizer.core import study
 from organizer.models import (
@@ -8,7 +9,9 @@ from organizer.models import (
     IntegrationConnection,
     LearningDigest,
     MoveEvent,
+    ResourceRecommendation,
     ReviewItem,
+    StudyFocusSession,
     SubjectMemory,
     SubjectTheme,
 )
@@ -73,6 +76,22 @@ class StudyFoundationTests(SandboxedPathsTestCase):
         self.assertEqual(connection.base_url, study.MUELE_BASE_URL)
         self.assertEqual(connection.status, "planned")
 
+    def test_subject_memory_title_includes_the_real_course_name_when_known(self):
+        profile = self.make_profile()
+        CourseConfig.objects.create(
+            profile=profile,
+            primary_value="Year 2",
+            secondary_value="Semester 1",
+            groups=["CSC2100", "made-up-code"],
+        )
+
+        study.ensure_learning_foundation(profile)
+
+        known = SubjectMemory.objects.get(profile=profile, code="CSC2100")
+        self.assertEqual(known.title, "CSC2100 - Data Structures and Algorithms")
+        unknown = SubjectMemory.objects.get(profile=profile, code="made-up-code")
+        self.assertEqual(unknown.title, "made-up-code")
+
     def test_manual_profile_does_not_get_muele_connection(self):
         profile = self.make_profile(setup_path="manual")
 
@@ -91,6 +110,31 @@ class StudyFoundationTests(SandboxedPathsTestCase):
         self.assertEqual(plan.status, "scanned")
         self.assertIn("BIO101", plan.proposed_subjects)
         self.assertTrue(FolderImportPlan.objects.filter(pk=plan.pk).exists())
+
+    def test_rescanning_an_unchanged_folder_reports_files_as_already_indexed(self):
+        root = self.profile_root / "Messy"
+        (root / "BIO101").mkdir(parents=True)
+        (root / "BIO101" / "cells.pdf").write_text("notes", encoding="utf-8")
+        profile = self.make_profile()
+
+        first = study.create_import_plan(root, profile=profile)
+        self.assertEqual(first.notes, "")
+
+        second = study.create_import_plan(root, profile=profile)
+
+        self.assertIn("1 unchanged since a previous scan", second.notes)
+
+    def test_rescanning_after_adding_a_file_reports_it_as_new(self):
+        root = self.profile_root / "Messy"
+        (root / "BIO101").mkdir(parents=True)
+        (root / "BIO101" / "cells.pdf").write_text("notes", encoding="utf-8")
+        profile = self.make_profile()
+
+        study.create_import_plan(root, profile=profile)
+        (root / "BIO101" / "genetics.pdf").write_text("more notes", encoding="utf-8")
+        second = study.create_import_plan(root, profile=profile)
+
+        self.assertIn("1 new or changed file(s), 1 unchanged", second.notes)
 
     def test_rule_builder_foundation_records_visual_rule(self):
         profile = self.make_profile()
@@ -126,7 +170,84 @@ class StudyViewsTests(SandboxedPathsTestCase):
         self.assertContains(response, "Subject memory")
         self.assertContains(response, "Folder rules")
         self.assertContains(response, "Folder imports")
-        self.assertContains(response, "CSC2100")
+        self.assertContains(response, "CSC2100 - Data Structures and Algorithms")
+
+    def test_study_page_renders_live_cockpit_surfaces(self):
+        profile = self.make_profile()
+        CourseConfig.objects.create(
+            profile=profile,
+            primary_value="Year 2",
+            secondary_value="Semester 1",
+            groups=["CSC2100"],
+        )
+        SubjectMemory.objects.create(profile=profile, code="CSC2100", weak_areas=["recursion"])
+        ReviewItem.objects.create(profile=profile, subject_code="CSC2100", title="Review recursion", due_at=timezone.now())
+        ResourceRecommendation.objects.create(
+            profile=profile,
+            subject_code="CSC2100",
+            theme="recursion",
+            source_type="youtube",
+            title="Find strong video lessons for CSC2100: recursion",
+            query="CSC2100 recursion lecture tutorial",
+            url="https://www.youtube.com/results?search_query=CSC2100+recursion",
+            reason="Based on weak area: recursion",
+        )
+
+        response = self.client.get(reverse("study_home"))
+
+        self.assertContains(response, "Watching Downloads")
+        self.assertContains(response, "Today")
+        self.assertContains(response, "Next best action")
+        self.assertContains(response, "Live activity feed")
+        self.assertContains(response, "App status")
+        self.assertContains(response, "File watcher")
+        self.assertContains(response, "Focus Mode")
+        self.assertContains(response, "Why:")
+        self.assertContains(response, "Command palette")
+
+    def test_focus_mode_post_creates_real_session(self):
+        profile = self.make_profile()
+        CourseConfig.objects.create(
+            profile=profile,
+            primary_value="Year 2",
+            secondary_value="Semester 1",
+            groups=["CSC2100"],
+        )
+        review = ReviewItem.objects.create(
+            profile=profile,
+            subject_code="CSC2100",
+            title="Review arrays",
+            due_at=timezone.now(),
+        )
+        resource = ResourceRecommendation.objects.create(
+            profile=profile,
+            subject_code="CSC2100",
+            theme="arrays",
+            source_type="book",
+            title="Find books and study guides for CSC2100: arrays",
+            query="CSC2100 arrays textbook study guide",
+            url="https://openlibrary.org/search?q=CSC2100+arrays",
+            reason="Based on recent files: arrays",
+        )
+
+        response = self.client.post(reverse("study_home"), {
+            "action": "start_focus",
+            "focus_subject": "CSC2100",
+            "focus_minutes": "30",
+            "focus_review_items": [str(review.pk)],
+            "focus_resources": [str(resource.pk)],
+            "focus_weak_areas": ["CSC2100: arrays"],
+            "focus_notes": "Work through examples.",
+        })
+
+        self.assertRedirects(response, reverse("study_home"))
+        session = StudyFocusSession.objects.get(profile=profile)
+        self.assertEqual(session.subject_code, "CSC2100")
+        self.assertEqual(session.target_minutes, 30)
+        self.assertEqual(session.review_item_ids, [review.pk])
+        self.assertEqual(session.resource_ids, [resource.pk])
+        self.assertEqual(session.weak_areas, ["CSC2100: arrays"])
+        self.assertTrue(session.notes)
 
     def test_create_digest_from_study_page(self):
         profile = self.make_profile()
