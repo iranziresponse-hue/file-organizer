@@ -1,6 +1,6 @@
 services:
   - type: web
-  runtime: static
+    runtime: static
     name: orch-landing
     rootDir: site
     buildCommand: echo "No build needed, plain static HTML/CSS"
