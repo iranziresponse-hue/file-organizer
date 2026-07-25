@@ -8,7 +8,7 @@ scheduling, deadlines, and course guides on top.
 
 ## Download and run (GitHub Releases)
 
-Grab the latest `Orch.exe` from this repo's
+Grab the latest Orch from this repo's
 [Releases](../../releases) page and run it directly — no install, no
 Python required. On first launch it opens the setup checklist so you can
 create your first profile. There's also a landing page in
