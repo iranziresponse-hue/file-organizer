@@ -285,9 +285,13 @@ temporary extraction folder.
 
 ## Landing page
 
-`site/` is a self-contained static marketing page (no build step, no
-framework) that pitches Orch to prospective users and links straight to
-the latest `Orch.exe`. Preview it locally with:
+`site/` is a self-contained, multi-page static marketing site (no build
+step, no framework) at [orch.spriteteam.com](https://orch.spriteteam.com),
+pitching Orch to prospective users and linking straight to the latest
+`Orch.exe`. It is six plain HTML pages (`index.html`, `why.html`,
+`how-it-works.html`, `features.html`, `screenshots.html`,
+`makerere.html`) sharing `assets/css/style.css` and `assets/js/site.js`.
+Preview it locally with:
 
 ```
 cd site
@@ -296,10 +300,11 @@ python -m http.server 8099
 
 then open `http://127.0.0.1:8099/`. `render.yaml` at the repo root is a
 Render Blueprint that deploys `site/` as a free static site straight from
-this repo — free static sites on Render never sleep (that's only a
-free-tier *web service* limitation), so no keep-alive cron job is needed.
-To deploy: connect this repo in the Render dashboard and pick "New
-Blueprint" — it reads `render.yaml` automatically.
+this repo, bound to the `orch.spriteteam.com` custom domain. Free static
+sites on Render never sleep (that limitation only applies to free-tier
+*web services*), so no keep-alive cron job is needed. To deploy: connect
+this repo in the Render dashboard and pick "New Blueprint", it reads
+`render.yaml` automatically.
 
 The page's screenshots (`site/assets/img/screenshots/`) are real captures
 of the running app with representative sample data, not mockups.

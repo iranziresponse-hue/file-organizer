@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orch: organize your coursework, build your career</title>
-<meta name="description" content="Orch is a Windows desktop app that files every course document exactly where it belongs, then turns a semester of coursework into a study cockpit and a career record. Built for Makerere University students.">
-<link rel="canonical" href="https://orch.spriteteam.com/index.html">
+<title>Orch for Makerere University students</title>
+<meta name="description" content="Orch's Makerere setup wizard covers all 10 colleges with verified course units, and connects to MUELE to sync course files, deadlines, and calendar events.">
+<link rel="canonical" href="https://orch.spriteteam.com/makerere.html">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Orch: organize your coursework, build your career">
-<meta property="og:description" content="Orch is a Windows desktop app that files every course document exactly where it belongs, then turns a semester of coursework into a study cockpit and a career record. Built for Makerere University students.">
-<meta property="og:url" content="https://orch.spriteteam.com/index.html">
+<meta property="og:title" content="Orch for Makerere University students">
+<meta property="og:description" content="Orch's Makerere setup wizard covers all 10 colleges with verified course units, and connects to MUELE to sync course files, deadlines, and calendar events.">
+<meta property="og:url" content="https://orch.spriteteam.com/makerere.html">
 <meta property="og:image" content="https://orch.spriteteam.com/assets/img/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Orch: organize your coursework, build your career">
-<meta name="twitter:description" content="Orch is a Windows desktop app that files every course document exactly where it belongs, then turns a semester of coursework into a study cockpit and a career record. Built for Makerere University students.">
+<meta name="twitter:title" content="Orch for Makerere University students">
+<meta name="twitter:description" content="Orch's Makerere setup wizard covers all 10 colleges with verified course units, and connects to MUELE to sync course files, deadlines, and calendar events.">
 <meta name="twitter:image" content="https://orch.spriteteam.com/assets/img/og-image.jpg">
 
 <link rel="icon" type="image/svg+xml" href="assets/img/orch-mark.svg">
@@ -59,11 +59,12 @@
             </span>
         </a>
         <nav class="main-nav">
+            <a href="index.html">Home</a>
             <a href="why.html">Why Orch</a>
             <a href="how-it-works.html">How it works</a>
             <a href="features.html">Features</a>
             <a href="screenshots.html">Screenshots</a>
-            <a href="makerere.html">Makerere</a>
+            <a href="makerere.html" aria-current="page">Makerere</a>
         </nav>
         <div class="header-actions">
             <a class="btn btn-ghost btn-sm" href="about.html">About</a>
@@ -74,46 +75,39 @@
 
 <main id="top">
 
-<section class="hero">
-    <div class="wrap hero-grid">
-        <div>
-            <span class="eyebrow">Free for Windows</span>
-            <h1 data-reveal>Your coursework, organized on arrival. <span class="accent">Your career, already underway.</span></h1>
-            <p class="hero-sub" data-reveal>
-                Orch watches your Downloads folder and files every course document exactly where it
-                belongs the moment it arrives. What it sorts becomes the foundation of a full study
-                cockpit and a career record built from your real, finished work.
-            </p>
-            <div class="hero-actions" data-reveal>
-                <a class="btn btn-primary" href="https://github.com/iranziresponse-hue/file-organizer/releases/latest/download/Orch.exe">
-                    <svg class="icon" aria-hidden="true"><use href="#icon-download"/></svg>
-                    Download Orch.exe
-                </a>
-                <a class="btn btn-ghost" href="https://github.com/iranziresponse-hue/file-organizer">View source on GitHub</a>
+<section class="page-hero">
+    <div class="wrap">
+        <span class="eyebrow" style="color: var(--mak-gold);">Built with Makerere in mind</span>
+        <h1 data-reveal>Verified structure, not a guess</h1>
+        <p data-reveal>The first time you set up a profile, Orch asks whether you are a Makerere student. If you are, everything from there is grounded in the university's real, current structure, not a generic template.</p>
+    </div>
+</section>
+
+<section>
+    <div class="wrap makerere-grid">
+        <div data-reveal>
+            <div class="mak-badges">
+                <span class="mak-badge green">10 colleges covered</span>
+                <span class="mak-badge gold">Real course units</span>
+                <span class="mak-badge red">MUELE integration</span>
             </div>
-            <div class="hero-meta" data-reveal>
-                <span><span class="pulse-dot"></span> No install, no Python needed</span>
-                <span><span class="pulse-dot"></span> About 120 MB, one file</span>
-                <span><span class="pulse-dot"></span> Runs fully on your machine</span>
-            </div>
-            <div class="trust-bar" data-reveal>
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-shield"/></svg> Checksum-verified auto-updates</span>
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-code"/></svg> Open source on GitHub</span>
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg> No account, no telemetry</span>
-            </div>
+            <ul class="mak-list">
+                <li><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg> Typeahead search across every college and school, sourced from each college's own official site.</li>
+                <li><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg> Per-programme, per-semester course units, with a Guide button that writes a general overview of what a unit typically covers.</li>
+                <li><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg> Connects to MUELE to sync course files, assignment deadlines, and calendar events automatically.</li>
+                <li><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg> Anything Orch does not have verified data for yet still works. You type it once, and it can help future students too.</li>
+            </ul>
         </div>
-        <div class="hero-figure" data-reveal>
-            <div class="laptop-tilt">
-                <div class="laptop">
-                    <div class="laptop-lid">
-                        <span class="laptop-camera"></span>
-                        <div class="laptop-screen">
-                            <img src="assets/img/screenshots/dashboard.webp" alt="Orch dashboard showing recent sorted files, subject distribution, and connected services">
-                        </div>
+        <div data-reveal>
+            <div class="laptop">
+                <div class="laptop-lid">
+                    <span class="laptop-camera"></span>
+                    <div class="laptop-screen">
+                        <img src="assets/img/screenshots/connections.webp" alt="Connections page showing MUELE, GitHub, and Google Drive integrations">
                     </div>
-                    <div class="laptop-base"></div>
-                    <div class="laptop-shadow"></div>
                 </div>
+                <div class="laptop-base"></div>
+                <div class="laptop-shadow"></div>
             </div>
         </div>
     </div>
@@ -143,38 +137,6 @@
         <span><svg class="icon" aria-hidden="true"><use href="#icon-cap-small"/></svg>Makerere University School of Law</span>
     </div>
 </div>
-
-<section>
-    <div class="wrap">
-        <div class="section-head" data-reveal>
-            <span class="eyebrow">Beyond sorting</span>
-            <h2>More than a file organizer</h2>
-            <p>Automatic sorting is where Orch starts. Five things worth a closer look show where it goes from there.</p>
-        </div>
-        <div class="hub-grid">
-            <a class="hub-card" href="why.html" data-reveal>
-                <h3>Why Orch <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></h3>
-                <p>The four ways a semester quietly turns into file chaos, and why Orch exists to stop it.</p>
-            </a>
-            <a class="hub-card" href="how-it-works.html" data-reveal>
-                <h3>How it works <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></h3>
-                <p>From download to a fully organized, self-updating study cockpit in four steps.</p>
-            </a>
-            <a class="hub-card" href="features.html" data-reveal>
-                <h3>Features <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></h3>
-                <p>Routing, the study cockpit, and the Career Command Center: everything already in the app.</p>
-            </a>
-            <a class="hub-card" href="screenshots.html" data-reveal>
-                <h3>Screenshots <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></h3>
-                <p>Real, running screens: the setup wizard, the study cockpit, and Project Studio.</p>
-            </a>
-            <a class="hub-card" href="makerere.html" data-reveal>
-                <h3>Makerere <svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></h3>
-                <p>Verified college, school, and course-unit structure, plus MUELE sync.</p>
-            </a>
-        </div>
-    </div>
-</section>
 
 <section class="cta-download">
     <div class="wrap">

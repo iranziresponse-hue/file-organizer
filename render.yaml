@@ -5,6 +5,8 @@ services:
     rootDir: site
     buildCommand: echo "No build needed, plain static HTML/CSS"
     staticPublishPath: .
+    domains:
+      - orch.spriteteam.com
     previews:
       generation: off
     headers:
