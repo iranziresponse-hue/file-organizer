@@ -493,12 +493,10 @@ a { color: inherit; }
     margin: 0 auto;
 }
 
-.author-avatar {
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border);
+.author-card-no-photo {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
 }
 
 .author-name {

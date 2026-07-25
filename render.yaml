@@ -10,6 +10,13 @@ services:
     previews:
       generation: off
     headers:
-      - path: /assets/*
+      # Images only: screenshots/og-image/the mark are only ever replaced by
+      # publishing a new filename, never edited in place, so a long cache is
+      # safe. CSS/JS are still under active development and are edited in
+      # place under the same filename, and an immutable cache on those would
+      # mean a visitor's browser keeps an old, broken copy forever, exactly
+      # as happened here, so they intentionally get no special header and
+      # fall back to Render's normal (short, revalidated) default.
+      - path: /assets/img/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
