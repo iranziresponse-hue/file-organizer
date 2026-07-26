@@ -14,6 +14,58 @@
             document.documentElement.dataset.theme = saved || 'dark';
         })();
     </script>
+    <script>
+        // Delete/Clear/etc. are plain POST forms that redirect back to the
+        // same page (Django's post/redirect/get pattern), and a fresh
+        // navigation always starts scrolled to the top, which reads as the
+        // page "jumping" out from under whoever just clicked something
+        // near the bottom of a long list. This remembers where they were
+        // right before the form leaves the page, and restores it the
+        // instant the reloaded page lands, keyed by path so it only ever
+        // fires when the redirect actually comes back to the same view.
+        //
+        // Inside the desktop shell, base.css's native-desktop pass makes
+        // .app-shell (not the window/body) the scrolling element, since
+        // body itself gets overflow: hidden there, so this checks for that
+        // container instead of assuming window.scrollY always applies.
+        (function () {
+            var KEY_PREFIX = "orch-scroll:";
+
+            function scrollTarget() {
+                if (document.body.classList.contains("has-desktop-titlebar")) {
+                    return document.querySelector(".app-shell");
+                }
+                return null; // null means "use window" (regular browser tab)
+            }
+
+            document.addEventListener("submit", function (event) {
+                if (!(event.target instanceof HTMLFormElement)) return;
+                try {
+                    var el = scrollTarget();
+                    var y = el ? el.scrollTop : window.scrollY;
+                    sessionStorage.setItem(KEY_PREFIX + location.pathname, String(y));
+                } catch (err) {
+                    // Storage can be unavailable (private mode, quota);
+                    // losing scroll restoration isn't worth breaking submits over.
+                }
+            }, true);
+
+            document.addEventListener("DOMContentLoaded", function () {
+                var key = KEY_PREFIX + location.pathname;
+                var saved = sessionStorage.getItem(key);
+                if (saved === null) return;
+                sessionStorage.removeItem(key);
+                var y = parseInt(saved, 10);
+                if (isNaN(y)) return;
+                var el = scrollTarget();
+                if (el) {
+                    el.scrollTop = y;
+                } else {
+                    window.scrollTo(0, y);
+                }
+            });
+        })();
+    </script>
     <link rel="stylesheet" href="{% static 'organizer/css/base.css' %}">
     <script src="{% static 'organizer/js/nav-dropdowns.js' %}"></script>
 </head>
@@ -21,7 +73,7 @@
 {% csrf_token %}
 {% if is_desktop_shell %}
 <div class="desktop-titlebar">
-    <div class="desktop-titlebar-drag pywebview-drag-region">
+    <div class="desktop-titlebar-drag">
         <img src="{% static 'organizer/img/orch-mark.svg' %}" alt="" class="desktop-titlebar-mark">
         <span>Orch</span>
     </div>
@@ -32,7 +84,7 @@
         <button type="button" class="desktop-titlebar-btn" id="desktop-minimize-btn" aria-label="Minimize" title="Minimize (Ctrl+M)">
             <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2" y="5.4" width="8" height="1.2" fill="currentColor"/></svg>
         </button>
-        <button type="button" class="desktop-titlebar-btn" id="desktop-maximize-btn" aria-label="Maximize" title="Maximize">
+        <button type="button" class="desktop-titlebar-btn" id="desktop-maximize-btn" aria-label="Maximize" title="Maximize (Ctrl+Shift+M)">
             <svg class="icon-maximize" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
             <svg class="icon-restore" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="3.5" y="1.5" width="6.5" height="6.5" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M1.5 4v6.5H8" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>
         </button>
@@ -44,63 +96,133 @@
 <script>
 (function () {
     function applyMaximizedIcon(maximizeBtn, isMaximized) {
-        maximizeBtn.querySelector('.icon-maximize').style.display = isMaximized ? 'none' : '';
-        maximizeBtn.querySelector('.icon-restore').style.display = isMaximized ? '' : 'none';
+        // base.css hides .icon-restore by default (display: none) so only
+        // one icon shows on first load, before either has ever been
+        // toggled. Clearing that back to '' just falls through to the
+        // stylesheet's own display: none again, so an explicit 'block' is
+        // required to actually override it, which is why clicking Maximize
+        // used to make BOTH icons vanish instead of swapping one for the
+        // other.
+        maximizeBtn.querySelector('.icon-maximize').style.display = isMaximized ? 'none' : 'block';
+        maximizeBtn.querySelector('.icon-restore').style.display = isMaximized ? 'block' : 'none';
         maximizeBtn.title = isMaximized ? 'Restore' : 'Maximize';
     }
 
     function wire() {
-        var dragRegion = document.querySelector('.desktop-titlebar-drag');
         var fullscreenBtn = document.getElementById('desktop-fullscreen-btn');
         var minimizeBtn = document.getElementById('desktop-minimize-btn');
         var maximizeBtn = document.getElementById('desktop-maximize-btn');
         var closeBtn = document.getElementById('desktop-close-btn');
 
-        if (minimizeBtn) minimizeBtn.addEventListener('click', function () { window.pywebview.api.minimize(); });
-        if (closeBtn) closeBtn.addEventListener('click', function () { window.pywebview.api.close_to_tray(); });
-        if (fullscreenBtn) {
-            fullscreenBtn.addEventListener('click', function () {
-                window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
-                    document.body.classList.toggle('is-fullscreen', isFullscreen);
-                });
-            });
-        }
-        if (maximizeBtn) {
-            maximizeBtn.addEventListener('click', function () {
-                window.pywebview.api.toggle_maximize().then(function (isMaximized) {
-                    applyMaximizedIcon(maximizeBtn, isMaximized);
-                });
-            });
-        }
-        // Double-clicking the empty titlebar area is the standard modern-app
-        // shortcut for toggling maximize (Discord, VS Code, most of Windows).
-        if (dragRegion && maximizeBtn) {
-            dragRegion.addEventListener('dblclick', function () {
-                window.pywebview.api.toggle_maximize().then(function (isMaximized) {
-                    applyMaximizedIcon(maximizeBtn, isMaximized);
-                });
-            });
+        // Each window action is a real IPC round-trip to Python (pywebview
+        // wraps every js_api call in a Promise), not an instant local state
+        // flip, so clicking again before the first call resolves fires a
+        // second native window-state change while the first is still
+        // in flight, which is exactly what was behind minimize/maximize/
+        // fullscreen occasionally "doing nothing": not a broken click, but
+        // two overlapping native calls landing in an order this page never
+        // finds out about. Tracking one in-flight call per action and
+        // ignoring clicks until it resolves removes that race entirely,
+        // and it's a false economy to "fix" by making the calls faster:
+        // a user's second click after "nothing happened" is exactly the
+        // rapid double-click this guards against.
+        var pending = {};
+
+        function desktopApi(name) {
+            if (pending[name]) return null;
+            if (!window.pywebview || !window.pywebview.api || !window.pywebview.api[name]) return null;
+            var result = window.pywebview.api[name]();
+            if (result && result.then) {
+                pending[name] = true;
+                result = result.finally ? result.finally(function () { pending[name] = false; })
+                    : result.then(function (v) { pending[name] = false; return v; }, function (e) { pending[name] = false; throw e; });
+            }
+            return result;
         }
 
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'F11') {
-                event.preventDefault();
-                window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
+        function toggleFullscreen() {
+            var action = desktopApi('toggle_fullscreen');
+            if (action && action.then) {
+                action.then(function (isFullscreen) {
                     document.body.classList.toggle('is-fullscreen', isFullscreen);
                 });
-            } else if (event.key === 'Escape') {
+            }
+        }
+
+        function toggleMaximize() {
+            var action = desktopApi('toggle_maximize');
+            if (action && action.then && maximizeBtn) {
+                action.then(function (isMaximized) {
+                    applyMaximizedIcon(maximizeBtn, isMaximized);
+                });
+            }
+        }
+
+        function openSearch() {
+            var paletteToggle = document.getElementById('palette-toggle');
+            if (paletteToggle) paletteToggle.click();
+        }
+
+        if (minimizeBtn) minimizeBtn.addEventListener('click', function () { desktopApi('minimize'); });
+        if (closeBtn) closeBtn.addEventListener('click', function () { desktopApi('close_to_tray'); });
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+        }
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', toggleMaximize);
+        }
+        // Double-clicking the empty titlebar area to toggle maximize is
+        // already handled natively: resize_border.py reports the drag
+        // region as HTCAPTION to Windows, and Windows toggles maximize on
+        // a caption double-click on its own, the same as any normal
+        // titlebar. Also wiring dragRegion's dblclick to toggleMaximize()
+        // here used to fire a SECOND toggle on top of that native one for
+        // the same physical double-click: two competing state changes
+        // racing each other, which is exactly the kind of thing that left
+        // the window in a stuck maximized/minimized-looking state.
+
+        window.addEventListener('keydown', function (event) {
+            var key = event.key.toLowerCase();
+            var hasCommand = event.ctrlKey || event.metaKey;
+
+            if (event.key === 'F11') {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleFullscreen();
+                return;
+            }
+
+            if (event.key === 'Escape') {
                 // Only exit fullscreen, never swallow Escape otherwise, since
                 // the app's own dialogs/dropdowns already use it to close.
                 if (document.body.classList.contains('is-fullscreen')) {
-                    window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
-                        document.body.classList.toggle('is-fullscreen', isFullscreen);
-                    });
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleFullscreen();
                 }
-            } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
-                event.preventDefault();
-                window.pywebview.api.minimize();
+                return;
             }
-        });
+
+            if (!hasCommand || event.altKey) return;
+
+            if (!event.shiftKey && (key === 'k' || key === 'f')) {
+                event.preventDefault();
+                event.stopPropagation();
+                openSearch();
+            } else if (!event.shiftKey && key === 'm') {
+                event.preventDefault();
+                event.stopPropagation();
+                desktopApi('minimize');
+            } else if (event.shiftKey && key === 'm') {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleMaximize();
+            } else if (!event.shiftKey && key === 'w') {
+                event.preventDefault();
+                event.stopPropagation();
+                desktopApi('close_to_tray');
+            }
+        }, true);
     }
 
     if (window.pywebview) {
@@ -210,7 +332,7 @@
                 </svg>
             </a>
             {% if owner_console_visible %}
-            <a href="{% url 'owner_console' %}" class="tip-down{% if current == 'owner_console' %} is-active{% endif %}" data-tip="Admin" aria-label="Admin" {% if current == 'owner_console' %}aria-current="page"{% endif %}>
+            <a href="{% url 'owner_console' %}" class="tip-down{% if current == 'owner_console' %} is-active{% endif %}" data-tip="Owner tools" aria-label="Owner tools" {% if current == 'owner_console' %}aria-current="page"{% endif %}>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 3l7 3v6c0 4.8-3 8.4-7 9-4-.6-7-4.2-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
                 </svg>
@@ -275,7 +397,7 @@
                 </svg>
             </button>
             <h3>How Orch works</h3>
-            <p class="guide-intro">Orch does two things: it keeps your files sorted automatically, and it turns everything it sorted into tools that help you study, track your career, and build a portfolio.</p>
+            <p class="guide-intro">Orch keeps your files in order, then gives you simple places to review files, follow up on work, keep projects together, and draft updates when you need them.</p>
 
             <h4>1. Sorting your files</h4>
             <ul>
@@ -291,10 +413,10 @@
                     </ul>
                 </li>
                 <li>Everything else, like PDFs, Word docs, Excel sheets, and slides, is sorted by whichever <strong>profile</strong> is currently active. A profile is just one folder plus two labels you pick, usually something like Year and Semester.</li>
-                <li>Orch tries a few ways to figure out where a file belongs: first a subject code in the filename, then keywords that match a subject's topics, and if Smart Orch (the AI helper) is turned on, one last smart guess. If nothing matches, the file goes into that profile's own <code>_Unsorted</code> folder, sitting right next to the real subject folders so it's easy to find and move later.</li>
+                <li>Orch tries a few ways to figure out where a file belongs: first a subject code in the filename, then keywords that match a subject's topics, and, if extra suggestions are turned on, one last guess. If nothing matches, the file goes into that profile's own <code>_Unsorted</code> folder, sitting right next to the real subject folders so it's easy to find and move later.</li>
                 <li>No profile active yet, or a file type Orch doesn't recognize? It goes to <code>Documents\Personal\_NeedsSorting</code> so it's never lost.</li>
                 <li>Orch put something in the wrong place? Every row in the dashboard's <strong>Recent Moves</strong> table has a <strong>Move</strong> button so you can send it somewhere else yourself.</li>
-                <li>Want to double-check before a file moves? <strong>Decision Inbox</strong> holds anything Orch wasn't fully sure about, so you can approve it, send it somewhere else, or ignore it. <strong>Folder Rules</strong> let you build your own sorting rules without writing anything technical. <strong>Undo</strong> reverses any move, and <strong>Recent Moves</strong> now has a <strong>Clear history</strong> button if the list gets too long (this also removes the option to undo those particular moves).</li>
+                <li>Want to double-check before a file moves? <strong>Files to check</strong> holds anything Orch wasn't fully sure about, so you can approve it, send it somewhere else, or ignore it. <strong>Folder Rules</strong> let you build your own sorting rules without writing anything technical. <strong>Undo</strong> reverses any move, and <strong>Recent Moves</strong> has a <strong>Clear history</strong> button if the list gets too long.</li>
                 <li>Already have a messy folder from before you started using Orch? <strong>Folder Imports</strong> looks through it and suggests subjects and rules, then only touches anything once you say yes.</li>
             </ul>
 
@@ -302,7 +424,7 @@
             <ul>
                 <li><strong>Learning</strong> builds a memory from your sorted files: topics it has noticed, things you may want to revisit, and a <strong>review queue</strong> for follow-ups you do not want to lose.</li>
                 <li><strong>Resource Radar</strong> finds real videos, books, and GitHub repositories related to saved topics, never a made-up link. <strong>Learning Routes</strong> turn one topic into a simple sequence: find a resource, read a short summary, review it, then check how confident you feel.</li>
-                <li>Any document can get an AI-written summary if Smart Orch is turned on. <strong>Digests</strong> give you a recap of the week. <strong>Knowledge Packs</strong> export a subject, project, or your whole profile as one portable bundle you can keep or share.</li>
+                <li>Any document can get a summary if writing help is turned on. <strong>Weekly summaries</strong> give you a recap of the week. <strong>Knowledge Packs</strong> export a subject, project, or your whole profile as one portable bundle you can keep or share.</li>
             </ul>
 
             <h4>3. Projects and proof</h4>
@@ -310,12 +432,12 @@
                 <li>The <strong>Career</strong> tab keeps your direction, projects, weekly goal, and next action in one place.</li>
                 <li><strong>Projects</strong> is where you track things you're building, from idea to finished, and turn them into proof you can reuse later.</li>
                 <li>Resource Radar also recommends real GitHub repositories related to saved topics, so you have something concrete to build on or learn from.</li>
-                <li>Write a post about your work as a <strong>draft</strong>, polish it with Smart Orch if you want, then publish it straight to GitHub (as a real commit) or a custom website you control, or export it as Markdown or HTML to post anywhere else yourself. <strong>Career Digests</strong> recap your career activity the same way study Digests do.</li>
+                <li>Write a post about your work as a <strong>draft</strong>, polish it with writing help if you want, then publish it straight to GitHub or a custom website you control, or export it as Markdown or HTML to post anywhere else yourself. <strong>Weekly work summaries</strong> recap what moved and what you worked on.</li>
             </ul>
 
             <h4>4. Staying connected</h4>
             <ul>
-                <li><strong>Connections</strong> is one page listing every outside service Orch can use: what's already connected, what you can add, and why each one is worth setting up.</li>
+                <li><strong>Connections</strong> shows what Orch can use, what is already connected, and what is worth adding for this profile.</li>
                 <li>Makerere profiles get real, sourced course units during setup, and can connect <strong>MUELE</strong> (to pull in course files and deadlines), a <strong>timetable</strong>, cloud backups, GitHub, and publishing channels, all from this one page.</li>
                 <li>Orch never stores a password for any of these. It only ever uses the service's own official sign-in (OAuth or an API key you provide), and you can disconnect at any time.</li>
             </ul>
@@ -328,7 +450,7 @@
 
             <h4>6. Managing it all</h4>
             <ul>
-                <li>Create, switch, or edit a profile from <strong>Profiles</strong>. Change which folders get watched, where ebooks land, or turn Smart Orch on or off, from <strong>Settings</strong>.</li>
+                <li>Create, switch, or edit a profile from <strong>Profiles</strong>. Change watched folders, ebook folders, backups, and writing help from <strong>Settings</strong>.</li>
             </ul>
         </div>
     </div>
@@ -458,6 +580,16 @@
         </div>
     </div>
 
+    <div class="guide-overlay" id="confirm-overlay" hidden>
+        <div class="guide-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirm-message">
+            <p id="confirm-message"></p>
+            <div class="form-actions">
+                <button type="button" class="button" id="confirm-ok">OK</button>
+                <button type="button" class="button-ghost" id="confirm-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="{% static 'organizer/js/folder-browser.js' %}"></script>
     <script src="{% static 'organizer/js/summary.js' %}"></script>
     <script src="{% static 'organizer/js/course-guide.js' %}"></script>
@@ -465,6 +597,8 @@
     <script src="{% static 'organizer/js/support-widget.js' %}"></script>
     <script src="{% static 'organizer/js/task-poll.js' %}"></script>
     <script src="{% static 'organizer/js/command-palette.js' %}"></script>
+    <script src="{% static 'organizer/js/confirm-dialog.js' %}"></script>
+    <script src="{% static 'organizer/js/toast.js' %}"></script>
 
     <main>
         {% if messages %}

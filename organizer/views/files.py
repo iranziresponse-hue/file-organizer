@@ -232,6 +232,23 @@ def move_clear_history(request):
     return redirect("dashboard")
 
 
+def move_clear_one(request, pk):
+    """Remove one Recent Moves row without touching the file itself."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+
+    event = get_object_or_404(MoveEvent, profile=profile, pk=pk)
+    filename = event.filename
+    event.delete()
+    messages.success(request, f"Cleared from Recent Moves: {filename}")
+    return redirect("dashboard")
+
+
 def move_summarize(request, pk):
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
@@ -365,9 +382,28 @@ def inbox_ignore(request, pk):
         never_again = request.POST.get("never_again") == "1"
         sorting.reject_inbox_item(item, never_again=never_again)
         if never_again:
-            messages.info(request, f"Rejected and won't suggest again: {item.filename}")
+            messages.info(request, f"Cleared and won't suggest again: {item.filename}")
         else:
-            messages.info(request, f"Rejected: {item.filename}")
+            messages.info(request, f"Cleared: {item.filename}")
+    return redirect("sorting_inbox")
+
+
+def inbox_clear_all(request):
+    """Clear every pending inbox item by marking it rejected in one step.
+    Files stay exactly where they are."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+
+    updated = SortDecision.objects.filter(profile=profile, status="pending").update(
+        status="rejected",
+        resolved_at=timezone.now(),
+    )
+    messages.info(request, f"Cleared {updated} pending item(s). Files stayed where they are.")
     return redirect("sorting_inbox")
 
 
@@ -498,9 +534,9 @@ def organization_memory_rule_delete(request, pk):
 
 def organization_dna(request):
     """Organization DNA: a read-only report built entirely from local
-    database aggregation -- no paid AI needed. Most active folders, common
+    database aggregation. Most active folders, common
     file types, subjects with the most movement, files waiting for review,
-    and automation accuracy."""
+    and sorting accuracy."""
     from ..core.contexts import get_context_for_profile
 
     profile = Profile.get_active()
@@ -857,5 +893,3 @@ def preview_scan(request):
         "unmatched": unmatched_count,
         "files": files_found[:100],  # Limit to 100 for preview
     })
-
-

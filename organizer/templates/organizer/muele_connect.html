@@ -10,7 +10,7 @@
             <h2>Connect to MUELE</h2>
             <p>Link your MUELE account to automatically download course materials, track assignments, and stay on top of deadlines.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     {% if connection.status == "connected" %}
@@ -152,7 +152,7 @@
                 <input type="checkbox" name="sync_targets" value="calendar" checked>
                 <span class="toggle-track" aria-hidden="true"></span>
                 <span class="setting-switch-copy">
-                    <strong>Calendar signals</strong>
+                    <strong>Calendar items</strong>
                     <span>Use schedule events for planning and reminders</span>
                 </span>
             </label>

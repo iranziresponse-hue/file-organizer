@@ -123,7 +123,7 @@
                                 {{ rule.enabled|yesno:"Pause,Activate" }}
                             </button>
                         </form>
-                        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this rule?');">
+                        <form method="post" style="display:inline;" data-confirm="Delete this rule?">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="rule_pk" value="{{ rule.pk }}">

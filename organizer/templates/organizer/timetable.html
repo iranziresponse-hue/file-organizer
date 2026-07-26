@@ -18,7 +18,7 @@
             {% endif %}
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+            <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
             {% if connection %}
             <button type="button" class="button-ghost" id="sync-now-btn">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -195,7 +195,7 @@
                     <td>{{ entry.course_code }} {{ entry.course_name }}</td>
                     <td class="path-text">{{ entry.room }}</td>
                     <td>
-                        <form method="post" action="{% url 'timetable_entry_delete' entry.pk %}" onsubmit="return confirm('Remove this entry?');">
+                        <form method="post" action="{% url 'timetable_entry_delete' entry.pk %}" data-confirm="Remove this entry?">
                             {% csrf_token %}
                             <button type="submit" class="button-ghost button-danger-soft" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Remove</button>
                         </form>
@@ -249,7 +249,7 @@
                     <span class="path-text">Uploaded</span>
                     <strong>{{ document.uploaded_at|date:"M j, Y" }}</strong>
                 </div>
-                <form method="post" action="{% url 'timetable_document_delete' document.pk %}" onsubmit="return confirm('Delete this file?');">
+                <form method="post" action="{% url 'timetable_document_delete' document.pk %}" data-confirm="Delete this file?">
                     {% csrf_token %}
                     <button type="submit" class="button-ghost button-danger-soft">Delete</button>
                 </form>
@@ -283,7 +283,7 @@ document.getElementById('sync-now-btn').addEventListener('click', function () {
             if (!data.ok) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
-                alert(data.error || 'Sync failed.');
+                window.showToast(data.error || 'Sync failed.', 'error');
                 return;
             }
             orchPollTask(data.task_id, {
@@ -292,14 +292,14 @@ document.getElementById('sync-now-btn').addEventListener('click', function () {
                 onFailed: function (result) {
                     btn.disabled = false;
                     btn.innerHTML = originalHtml;
-                    alert(result.result_message || 'Sync failed.');
+                    window.showToast(result.result_message || 'Sync failed.', 'error');
                 },
             });
         })
         .catch(function () {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
-            alert('Sync failed.');
+            window.showToast('Sync failed.', 'error');
         });
 });
 </script>

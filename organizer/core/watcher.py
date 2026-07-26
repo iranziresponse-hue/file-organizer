@@ -171,6 +171,21 @@ def run_installer_cleanup():
                 write_log(f"FAILED to delete stale installer '{item.name}': {exc}")
 
 
+def _move_one_safely(file_path: Path):
+    """move_downloaded_file()'s own pipeline (AI classification, DB writes,
+    integration syncs) can raise things well beyond OSError -- a locked
+    DB, a malformed AppSettings value, a network error from a sync call
+    that isn't itself caught. Before this existed, any single one of those
+    on any single file would propagate straight out of the poll loop below
+    and kill the watcher thread for good: files would silently just stop
+    being sorted, with nothing in the UI to say why, until the app was
+    restarted. One bad file must never take down the whole watcher."""
+    try:
+        move_downloaded_file(file_path)
+    except Exception as exc:
+        write_log(f"FAILED to process '{file_path.name}', skipping it this cycle: {exc!r}")
+
+
 def run_watcher(stop_event=None, poll_seconds=3):
     """Blocking polling loop. stop_event: threading.Event, checked each cycle
     so a GUI can stop this cleanly from another thread. Pass a fresh Event
@@ -203,8 +218,11 @@ def run_watcher(stop_event=None, poll_seconds=3):
     # version this was ported from.
     for item in downloads.iterdir():
         if item.is_file():
-            move_downloaded_file(item)
-    run_installer_cleanup()
+            _move_one_safely(item)
+    try:
+        run_installer_cleanup()
+    except Exception as exc:
+        write_log(f"Initial installer cleanup failed, will retry next hour: {exc!r}")
 
     watcher_start_time = datetime.now()
     secondary_note = f" and {downloads2}" if downloads2 else ""
@@ -220,7 +238,7 @@ def run_watcher(stop_event=None, poll_seconds=3):
         try:
             for item in downloads.iterdir():
                 if item.is_file():
-                    move_downloaded_file(item)
+                    _move_one_safely(item)
         except OSError:
             pass
 
@@ -233,12 +251,15 @@ def run_watcher(stop_event=None, poll_seconds=3):
                     created = datetime.fromtimestamp(stat.st_ctime)
                     modified = datetime.fromtimestamp(stat.st_mtime)
                     if created > watcher_start_time or modified > watcher_start_time:
-                        move_downloaded_file(item)
+                        _move_one_safely(item)
         except OSError:
             pass
 
         if datetime.now() - last_installer_cleanup >= timedelta(hours=1):
-            run_installer_cleanup()
+            try:
+                run_installer_cleanup()
+            except Exception as exc:
+                write_log(f"Installer cleanup cycle failed, will retry next hour: {exc!r}")
             last_installer_cleanup = datetime.now()
 
         if stop_event is not None:

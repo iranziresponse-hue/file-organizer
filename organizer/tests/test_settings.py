@@ -274,7 +274,7 @@ class AutomationControlSettingsTests(SandboxedPathsTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(GlobalSortCategory.objects.count(), 6)
-        self.assertContains(response, "Automation control")
+        self.assertContains(response, "Sorting control")
         self.assertContains(response, "Sensitive files")
 
     def test_enabling_a_category_and_setting_its_mode_saves(self):

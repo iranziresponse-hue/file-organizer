@@ -13,7 +13,7 @@
             <p>Recommendations are built from your subject memory, themes, weak areas, and recent files. Orch links to real discovery sources without inventing rankings.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
         <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
             {% csrf_token %}
             <input type="hidden" name="action" value="generate">
@@ -38,8 +38,8 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h2>Signal</h2>
-                    <p class="card-subtitle">What Orch uses before suggesting anything.</p>
+                    <h2>Why this appears</h2>
+                    <p class="card-subtitle">What Orch checks before suggesting anything.</p>
                 </div>
             </div>
             <div class="profile-list">

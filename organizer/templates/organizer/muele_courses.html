@@ -139,7 +139,7 @@
                 <input type="checkbox" name="sync_targets" value="calendar" {% if "calendar" in connection.config.sync_targets %}checked{% endif %}>
                 <span class="toggle-track" aria-hidden="true"></span>
                 <span class="setting-switch-copy">
-                    <strong>Calendar signals</strong>
+                    <strong>Calendar items</strong>
                     <span>Use schedule events for planning and reminders</span>
                 </span>
             </label>
@@ -188,7 +188,7 @@
                     if (!data.ok) {
                         syncBtn.disabled = false;
                         syncBtn.innerHTML = originalHtml;
-                        alert(data.error || 'Sync failed.');
+                        window.showToast(data.error || 'Sync failed.', 'error');
                         return;
                     }
                     orchPollTask(data.task_id, {
@@ -198,20 +198,23 @@
                         // this alert is the closest equivalent now that the
                         // sync itself finishes off the request/response cycle.
                         onDone: function (result) {
-                            if (result.result_message) alert(result.result_message);
-                            window.location.reload();
+                            if (result.result_message) window.showToast(result.result_message, 'success');
+                            // A brief pause so the toast is actually seen
+                            // before the reload replaces the page under it;
+                            // an instant reload would cut it off mid-fade-in.
+                            setTimeout(function () { window.location.reload(); }, 900);
                         },
                         onFailed: function (result) {
                             syncBtn.disabled = false;
                             syncBtn.innerHTML = originalHtml;
-                            alert(result.result_message || 'Sync failed.');
+                            window.showToast(result.result_message || 'Sync failed.', 'error');
                         },
                     });
                 })
                 .catch(function () {
                     syncBtn.disabled = false;
                     syncBtn.innerHTML = originalHtml;
-                    alert('Could not reach Orch. Try again.');
+                    window.showToast('Could not reach Orch. Try again.', 'error');
                 });
         });
     }

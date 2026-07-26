@@ -7,18 +7,18 @@
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
-            <span class="eyebrow">Study cockpit</span>
-            <h2>Keep learning moving.</h2>
-            <p>Contexts, timeline, subject memory, reviews, rules, inbox, digest, imports, integrations, and knowledge packs are now in one place.</p>
+            <span class="eyebrow">Learning</span>
+            <h2>Keep learning moving</h2>
+            <p>See your files, reviews, topics, summaries, rules, imports, and follow-ups in one place.</p>
         </div>
         {% if profile %}
         <div class="inline-actions-start">
-            <span class="state-chip state-live">Context active</span>
+            <span class="path-text">Active profile</span>
             <button type="button" class="button button-live" id="command-toggle">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M10.5 18a7.5 7.5 0 1 1 5.3-2.2L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
-                Command
+                Search
             </button>
             <a class="button button-ghost" href="{% url 'export_bundles' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -131,7 +131,7 @@
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                 </svg>
-                War Room
+                Focus plan
             </a>
             <a class="button button-ghost" href="{% url 'study_timetable' %}">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -176,7 +176,7 @@
             </span>
             <div>
                 <h3>No active profile.</h3>
-                <p>Create or activate a profile before the study cockpit can build memory and review items.</p>
+                <p>Create or activate a profile before Orch can build memory and review items.</p>
             </div>
             <a class="button" href="{% url 'start' %}">Set up profile</a>
         </div>
@@ -194,10 +194,10 @@
     <section class="card compact-card card-accent-info">
         <div class="card-header">
             <div>
-                <h2>Semester war room</h2>
-                <p class="card-subtitle">What should you do now to pass highly? Today's classes, exams, deadlines, weak topics, grade targets, and the single next best action, all on one screen.</p>
+                <h2>Focus plan</h2>
+                <p class="card-subtitle">Classes, exams, deadlines, weak topics, grade targets, and the next useful action in one place.</p>
             </div>
-            <a class="button button-live" href="{% url 'war_room' %}">Open war room</a>
+            <a class="button button-live" href="{% url 'war_room' %}">Open plan</a>
         </div>
     </section>
 
@@ -247,7 +247,7 @@
                 <p class="card-subtitle">Pick a subject, timer, review files, notes, weak areas, and resources for one clean study block.</p>
             </div>
             {% if active_focus_session %}
-            <span class="state-chip state-live">{{ active_focus_session.target_minutes }} min active</span>
+            <span class="path-text">{{ active_focus_session.target_minutes }} min active</span>
             {% endif %}
         </div>
         <form method="post">
@@ -340,7 +340,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -393,7 +393,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -454,12 +454,12 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
                     <h2>Subject themes</h2>
-                    <p class="card-subtitle">Detected focus areas for the semantic subject dashboard.</p>
+                    <p class="card-subtitle">Focus areas found from this profile's files and summaries.</p>
                 </div>
             </div>
             <div class="profile-list">
@@ -507,7 +507,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -544,7 +544,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -605,7 +605,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -621,7 +621,7 @@
             <div class="card-header">
                 <div>
                     <h2>Organization DNA</h2>
-                    <p class="card-subtitle">Most active folders, common file types, and automation accuracy.</p>
+                    <p class="card-subtitle">Most active folders, common file types, and sorting accuracy.</p>
                 </div>
                 <a class="button button-ghost" href="{% url 'organization_dna' %}">Open DNA report</a>
             </div>
@@ -629,7 +629,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -653,7 +653,7 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid study-secondary">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
@@ -677,7 +677,7 @@
         </div>
     </section>
 
-    <section class="card compact-card">
+    <section class="card compact-card study-secondary">
         <div class="card-header">
             <div>
                 <h2>Active recall</h2>
@@ -688,7 +688,7 @@
         <p class="help-text">No invented answers; a past-paper question stays blank until you fill it in yourself.</p>
     </section>
 
-    <section class="card compact-card">
+    <section class="card compact-card study-secondary">
         <div class="card-header">
             <div>
                 <h2>Smart study timetable</h2>
@@ -699,7 +699,7 @@
         <p class="help-text">Regenerated fresh from your assignments, exams, classes, and weak areas every time you load it.</p>
     </section>
 
-    <section class="card compact-card">
+    <section class="card compact-card study-secondary">
         <div class="card-header">
             <div>
                 <h2>Knowledge packs</h2>
@@ -726,7 +726,7 @@
         {% endif %}
     </section>
 
-    <section class="card compact-card">
+    <section class="card compact-card study-secondary">
         <div class="card-header">
             <div>
                 <h2>Resource Radar</h2>
@@ -757,7 +757,7 @@
         {% endif %}
     </section>
 
-    <section class="card compact-card">
+    <section class="card compact-card study-secondary">
         <div class="card-header">
             <div>
                 <h2>Learning routes</h2>
@@ -786,14 +786,14 @@
     </section>
 
     <div class="guide-overlay" id="command-overlay" hidden>
-        <div class="guide-panel command-panel" role="dialog" aria-modal="true" aria-label="Command palette">
+        <div class="guide-panel command-panel" role="dialog" aria-modal="true" aria-label="Search actions">
             <button type="button" class="guide-close" id="command-close" aria-label="Close">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
             </button>
-            <h3>Command palette</h3>
-            <input class="command-search" id="command-search" type="search" placeholder="Search commands, subjects, actions" autocomplete="off">
+            <h3>Search</h3>
+            <input class="command-search" id="command-search" type="search" placeholder="Search pages, subjects, actions" autocomplete="off">
             <div class="command-list" id="command-list">
                 {% for item in command_items %}
                 <button type="button" class="command-item" data-label="{{ item.label }} {{ item.detail }}" {% if item.url %}data-href="{{ item.url }}"{% endif %} {% if item.post_action %}data-post-action="{{ item.post_action }}"{% endif %} {% if item.anchor %}data-anchor="{{ item.anchor }}"{% endif %}>

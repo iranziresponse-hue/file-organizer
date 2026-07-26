@@ -57,7 +57,7 @@
                 btn.disabled = false;
                 if (data.error) {
                     btn.innerHTML = originalHtml;
-                    window.alert(data.error);
+                    window.showToast(data.error, 'error');
                     return;
                 }
                 setButtonContent(btn, viewSummaryIcon(), 'View summary');
@@ -67,7 +67,7 @@
             .catch(function () {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
-                window.alert('Something went wrong generating this summary. Try again.');
+                window.showToast('Something went wrong generating this summary. Try again.', 'error');
             });
     }
 

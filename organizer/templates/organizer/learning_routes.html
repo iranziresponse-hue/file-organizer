@@ -13,7 +13,7 @@
             <p>Each route links a focused resource, summary task, review checkpoint, and progress check.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
         <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
             {% csrf_token %}
             <input type="hidden" name="action" value="generate">

@@ -19,7 +19,7 @@
             <div class="card-header">
                 <div>
                     <h3>{{ channel.display_name }}</h3>
-                    <p class="card-subtitle">{{ channel.get_provider_display }} &middot; <span class="workspace-status {% if channel.status == 'connected' %}is-live{% elif channel.status == 'needs_key' %}is-warning{% endif %}">{{ channel.get_status_display }}</span></p>
+                    <p class="card-subtitle">{{ channel.get_provider_display }} &middot; <span class="workspace-status {% if channel.status == 'connected' or channel.status == 'configured' %}is-live{% elif channel.status == 'needs_key' %}is-warning{% endif %}">{% if channel.status == 'configured' %}Saved{% elif channel.status == 'needs_key' %}Needs token{% else %}{{ channel.get_status_display }}{% endif %}</span></p>
                 </div>
             </div>
             {% if channel.base_url %}
@@ -28,7 +28,7 @@
             <p class="help-text">{{ channel.config.owner }}/{{ channel.config.repo }} &middot; {{ channel.config.posts_path|default:"posts" }}/</p>
             {% endif %}
             {% if channel.provider != "linkedin" %}
-            <form method="post" action="{% url 'publishing_channel_delete' channel.pk %}" onsubmit="return confirm('Disconnect this channel? Its stored key or token will be removed too.');">
+            <form method="post" action="{% url 'publishing_channel_delete' channel.pk %}" data-confirm="Disconnect this channel? Its stored key or token will be removed too.">
                 {% csrf_token %}
                 <button type="submit" class="button-ghost button-danger-soft">Disconnect</button>
             </form>

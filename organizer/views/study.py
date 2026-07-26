@@ -872,14 +872,14 @@ def first_run_checklist(request):
         "info": "Enabled by default in system tray",
     })
 
-    # 5. Smart Orch configured (optional)
+    # 5. Writing help configured (optional)
     from ..core import ai_classify
     active_ai_config = ai_classify.load_ai_config() or {}
     ai_configured = bool(active_ai_config.get("enabled") and active_ai_config.get("api_key"))
     checklist.append({
         "id": "ai",
-        "label": "Smart Orch",
-        "detail": "Powers summaries, course guides, and smart routing" if ai_configured else "Optional. Turn on from Settings for summaries and smart routing",
+        "label": "Writing help",
+        "detail": "Helps with summaries, course guides, and folder suggestions" if ai_configured else "Optional. Turn it on from Settings for summaries and folder suggestions",
         "done": ai_configured,
         "url": reverse("settings_edit"),
         "optional": True,
@@ -888,11 +888,12 @@ def first_run_checklist(request):
     # 6. MUELE connected (if Makerere profile)
     if profile and profile.setup_path == "makerere":
         muele = IntegrationConnection.objects.filter(profile=profile, provider="muele").first()
+        muele_ready = bool(muele and (muele.status == "connected" or muele.username or muele.last_sync_at))
         checklist.append({
             "id": "muele",
             "label": "MUELE connected",
-            "detail": "Sync course materials and assignments" if muele and muele.status == "connected" else "Connect MUELE for auto-sync",
-            "done": bool(muele and muele.status == "connected"),
+            "detail": "MUELE details saved" if muele_ready else "Connect MUELE for auto-sync",
+            "done": muele_ready,
             "url": reverse("muele_connect"),
         })
 
@@ -953,6 +954,22 @@ def notifications_view(request):
         "notifications": items,
         "unread_count": unread_count,
     })
+
+
+def notification_clear(request, pk):
+    """Remove one notification from the list."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+
+    item = get_object_or_404(Notification, pk=pk, profile=profile)
+    item.delete()
+    messages.success(request, "Notification cleared.")
+    return redirect("notifications")
 
 
 def support_message(request):
@@ -1033,12 +1050,12 @@ def learning_route(request):
     return learning_routes(request)
 
 
-# Course Unit Brain: the same five get_content_category() folder labels
+# Course notes: the same five get_content_category() folder labels
 # every document already lands in, relabeled for a student-facing bucket
 # heading. "Other" catches anything routed outside the default document
 # pipeline (a custom FolderRule destination, media, etc.) so no resource
 # silently disappears from the count.
-_COURSE_BRAIN_BUCKET_LABELS = {
+_COURSE_NOTES_BUCKET_LABELS = {
     "01 Lecture Notes and Slides": "Lecture Notes",
     "02 Assignments and Coursework": "Assignments & Coursework",
     "03 Past Papers and Tests": "Past Papers & Tests",
@@ -1050,11 +1067,11 @@ _COURSE_BRAIN_BUCKET_LABELS = {
 def _bucket_resources_by_category(resources):
     from ..core import rules as routing_rules
 
-    buckets = {label: [] for label in _COURSE_BRAIN_BUCKET_LABELS.values()}
+    buckets = {label: [] for label in _COURSE_NOTES_BUCKET_LABELS.values()}
     buckets["Other"] = []
     for event in resources:
         category = routing_rules.category_from_path(event.destination_path)
-        label = _COURSE_BRAIN_BUCKET_LABELS.get(category, "Other")
+        label = _COURSE_NOTES_BUCKET_LABELS.get(category, "Other")
         buckets[label].append(event)
     return buckets
 
@@ -1109,7 +1126,7 @@ def subject_memory_detail(request, code):
 
 
 def past_paper_analysis(request, code):
-    """Past Paper Intelligence: local, free topic-frequency analysis over
+    """Past paper review: local, free topic-frequency analysis over
     a subject's own past papers -- no upload flow, just the files the
     sorter already routed into that subject's "03 Past Papers and Tests"
     folder."""
@@ -1155,8 +1172,8 @@ def past_paper_analysis(request, code):
 
 
 def weakness_radar(request):
-    """Weakness Radar: a read-only, cross-subject view built entirely from
-    signals other features already produce (SubjectMemory.weak_areas,
+    """Weak areas: a read-only, cross-subject view built entirely from
+    patterns other features already produce (SubjectMemory.weak_areas,
     last_touched_at, and the review queue) -- no new producer here."""
     from ..core import weakness_radar as weakness_radar_core
     from ..core.contexts import get_context_for_profile
@@ -1364,8 +1381,8 @@ def flashcard_delete(request, pk):
 
 
 def war_room(request):
-    """The Semester War Room: a single screen synthesizing every study
-    signal Orch already tracks -- pure aggregation, no new data."""
+    """The focus plan: a single screen synthesizing every study
+    pattern Orch already tracks -- pure aggregation, no new data."""
     from ..core import war_room as war_room_core
     from ..core.contexts import get_context_for_profile
 
@@ -1434,5 +1451,3 @@ def course_guide_pdf(request, profile_pk, code):
 # ---------------------------------------------------------------------------
 # MUELE Integration Views
 # ---------------------------------------------------------------------------
-
-

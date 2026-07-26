@@ -2,8 +2,9 @@
 system tray icon when events happen (new files sorted, deadlines
 approaching, MUELE sync complete, etc.).
 
-Uses PyQt6's QSystemTrayIcon.showMessage() for desktop notifications.
-All notification functions are safe to call from any thread.
+Uses pystray's Icon.notify() for desktop notifications (see gui/tray.py's
+notification-polling thread). All notification functions are safe to call
+from any thread.
 """
 
 import logging
@@ -14,7 +15,11 @@ from django.utils import timezone
 
 logger = logging.getLogger("organizer.notifications")
 
-# Queue of pending notifications (thread-safe via QTimer)
+# Queue of pending notifications. Producers only ever append(), and
+# pop_pending() clears it by rebinding the name to a new empty list rather
+# than mutating in place, so a concurrent append can't be lost mid-clear --
+# relies on CPython's GIL making both operations atomic, not an explicit
+# lock. Polled from a background thread in gui/tray.py.
 _pending_notifications: list[dict] = []
 
 

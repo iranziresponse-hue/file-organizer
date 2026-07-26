@@ -1,17 +1,17 @@
 {% extends "organizer/base.html" %}
 {% load orch_extras %}
 
-{% block title %}Weakness Radar - Orch{% endblock %}
+{% block title %}Weak Areas - Orch{% endblock %}
 
 {% block content %}
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Weakness radar</h2>
+            <h2>Weak areas</h2>
             <p>Built entirely from your own local data: weak areas already flagged per subject, subjects going quiet, and resources with no review scheduled yet.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     {% if headline %}
@@ -20,7 +20,7 @@
         <p class="help-text" style="font-size:1rem; color:var(--text);">
             <strong>{{ headline.subject_code|course_label }}</strong>: {{ headline.topic }}
         </p>
-        <a class="button button-ghost" href="{% url 'subject_memory_detail' headline.subject_code %}" style="margin-top:8px;">Open course brain</a>
+        <a class="button button-ghost" href="{% url 'subject_memory_detail' headline.subject_code %}" style="margin-top:8px;">Open course notes</a>
     </section>
     {% endif %}
 
@@ -36,7 +36,7 @@
         <div class="card-header">
             <div>
                 <h2>Topics repeatedly missed</h2>
-                <p class="card-subtitle">Flagged as weak in more than one subject; the strongest signal on this page</p>
+                <p class="card-subtitle">Flagged as weak in more than one subject; the clearest pattern on this page</p>
             </div>
         </div>
         <div class="meta-list" style="margin-top:8px;">
@@ -79,7 +79,7 @@
             </span>
             <div>
                 <h3>Nothing flagged yet</h3>
-                <p>Run Past Paper Intelligence for a subject to generate an evidence-backed weak-areas signal, or check back once a subject has some of its own themes recorded.</p>
+                <p>Run a past paper review for a subject, or check back once a subject has some of its own themes recorded.</p>
             </div>
         </div>
     </section>

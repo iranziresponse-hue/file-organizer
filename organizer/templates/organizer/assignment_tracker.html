@@ -11,7 +11,7 @@
             <h2>Assignment tracker</h2>
             <p>Every deadline in one place, with a checklist and evidence per assignment. Students fail quietly when deadlines scatter; this makes them impossible to ignore.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="stat-row">
@@ -101,7 +101,7 @@
                         </form>
                         {% endif %}
                         <button type="button" class="button-ghost button-compact edit-assignment-btn" data-pk="{{ item.pk }}">Edit</button>
-                        <form method="post" action="{% url 'assignment_tracker_item_delete' item.pk %}" class="inline-form" onsubmit="return confirm('Delete this assignment?');">
+                        <form method="post" action="{% url 'assignment_tracker_item_delete' item.pk %}" class="inline-form" data-confirm="Delete this assignment?">
                             {% csrf_token %}
                             <button type="submit" class="button-ghost button-compact button-danger-soft">Delete</button>
                         </form>

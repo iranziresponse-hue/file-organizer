@@ -11,7 +11,7 @@
             <h2>Active recall</h2>
             <p>Flashcards generated locally from your own past papers and notes; no invented answers.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="stat-row">
@@ -59,7 +59,7 @@
         <div class="card-header">
             <div>
                 <h2>Generate cards</h2>
-                <p class="card-subtitle">From past-paper questions or from headings/definitions in your AI summaries</p>
+                <p class="card-subtitle">From past-paper questions or from headings and definitions in your summaries</p>
             </div>
         </div>
         {% if generation_sources %}
@@ -89,7 +89,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="help-text">No past-paper analyses or AI summaries yet; run Past Paper Intelligence or summarize a file first.</p>
+        <p class="help-text">No past-paper analyses or summaries yet; analyze a past paper or summarize a file first.</p>
         {% endif %}
     </section>
 
@@ -134,7 +134,7 @@
                         <strong>{{ card.times_seen }} / {{ card.times_correct }}</strong>
                     </div>
                     <div class="profile-actions">
-                        <form method="post" action="{% url 'flashcard_delete' card.pk %}" onsubmit="return confirm('Delete this card?');">
+                        <form method="post" action="{% url 'flashcard_delete' card.pk %}" data-confirm="Delete this card?">
                             {% csrf_token %}
                             <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
                         </form>

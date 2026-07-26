@@ -293,6 +293,47 @@ class RunWatcherAndInstallerCleanupTests(SandboxedPathsTestCase):
         expected = expected_dir / "photo.png"
         self.assertTrue(expected.exists())
 
+    def test_a_file_that_raises_does_not_stop_the_others_or_the_watcher(self):
+        # Regression test: move_downloaded_file()'s own pipeline (AI calls,
+        # DB writes, integration syncs) can raise things well beyond
+        # OSError. Before _move_one_safely existed, one such exception on
+        # any single file would propagate out of run_watcher entirely,
+        # silently killing the watcher thread for good -- files would just
+        # stop being sorted with nothing in the UI explaining why.
+        self.make_settings(secondary_downloads_path="")
+        expected_dir = self.personal_root / "Media" / "Images"
+        self.make_category("media", destination_path=str(expected_dir), mode="auto")
+        self.downloads.mkdir(parents=True, exist_ok=True)
+        bad = self.downloads / "bad.pdf"
+        good = self.downloads / "good.png"
+        bad.write_bytes(b"x")
+        good.write_bytes(b"y")
+        _age(bad, 10)
+        _age(good, 10)
+
+        real_move = watcher.move_downloaded_file
+
+        def flaky_move(file_path, ai_enabled=None):
+            if file_path.name == "bad.pdf":
+                raise ValueError("simulated failure processing this one file")
+            return real_move(file_path, ai_enabled=ai_enabled)
+
+        stop_event = threading.Event()
+        stop_event.set()
+        with mock.patch.object(watcher, "move_downloaded_file", side_effect=flaky_move):
+            with mock.patch.object(watcher, "write_log") as mock_log:
+                # Must not raise -- that's the entire point of this test.
+                watcher.run_watcher(stop_event=stop_event, poll_seconds=0)
+
+        # The failing file is left exactly where it was (never partially
+        # moved), while the other file in the SAME sweep still got sorted
+        # normally -- one bad file doesn't take the rest down with it.
+        self.assertTrue(bad.exists())
+        self.assertTrue((expected_dir / "good.png").exists())
+        logged = " ".join(str(call) for call in mock_log.call_args_list)
+        self.assertIn("bad.pdf", logged)
+        self.assertIn("FAILED", logged)
+
     def test_installer_cleanup_uses_configured_thresholds(self):
         # 2 days old clears the stale threshold (moves to _ToReview) but not
         # the delete threshold (stays there, not deleted), so this exercises

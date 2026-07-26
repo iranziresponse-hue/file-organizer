@@ -386,9 +386,9 @@
             <div class="inline-actions-start">
                 <span class="meta-token" id="recent-moves-total">{{ page_obj.paginator.count }} total</span>
                 {% if page_obj.paginator.count %}
-                <form method="post" action="{% url 'move_clear_history' %}" class="inline-form" onsubmit="return confirm('Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.');">
+                <form method="post" action="{% url 'move_clear_history' %}" class="inline-form" data-confirm="Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.">
                     {% csrf_token %}
-                    <button type="submit" class="button-ghost button-danger-soft">Clear history</button>
+                    <button type="submit" class="button-ghost button-danger-soft">Clear all</button>
                 </form>
                 {% endif %}
             </div>
@@ -433,7 +433,6 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if event.success and event.destination_path %}
                             <div class="row-actions">
                                 <button type="button" class="button-ghost row-actions-trigger" data-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="move-actions-{{ event.pk }}">
                                     Actions
@@ -442,6 +441,7 @@
                                     </svg>
                                 </button>
                                 <div class="row-actions-menu" id="move-actions-{{ event.pk }}" role="menu" hidden>
+                                    {% if event.success and event.destination_path %}
                                     <button type="button" class="row-actions-item move-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Move to...</button>
                                     {% if event.is_summarizable %}
                                         {% if event.summary %}
@@ -451,11 +451,13 @@
                                         {% endif %}
                                     {% endif %}
                                     <button type="button" class="row-actions-item undo-btn is-destructive" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Undo this move</button>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'move_clear_one' event.pk %}" class="row-actions-form" data-confirm="Clear this row from Recent Moves? The file stays where it is, but undo for this move will no longer be available.">
+                                        {% csrf_token %}
+                                        <button type="submit" class="row-actions-item is-destructive" role="menuitem" tabindex="-1">Clear from history</button>
+                                    </form>
                                 </div>
                             </div>
-                            {% else %}
-                            <span class="path-text">Not available</span>
-                            {% endif %}
                         </td>
                     </tr>
                     {% if event.explanation or event.sort_decision.matched_rule %}
@@ -601,26 +603,29 @@
         document.querySelectorAll('.undo-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 closeAllMenus();
-                if (!window.confirm('Undo this move? "' + this.dataset.filename + '" will go back to where it was found.')) return;
+                var filename = this.dataset.filename;
                 var pk = this.dataset.moveId;
-                fetch('/moves/' + pk + '/undo/', {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    },
-                })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (data.ok) {
-                            window.location.reload();
-                        } else {
-                            window.alert(data.error || 'Could not undo that move.');
-                        }
+                window.orchConfirm('Undo this move? "' + filename + '" will go back to where it was found.').then(function (ok) {
+                    if (!ok) return;
+                    fetch('/moves/' + pk + '/undo/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        },
                     })
-                    .catch(function () {
-                        window.alert('Could not reach Orch. Try again.');
-                    });
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.ok) {
+                                window.location.reload();
+                            } else {
+                                window.showToast(data.error || 'Could not undo that move.', 'error');
+                            }
+                        })
+                        .catch(function () {
+                            window.showToast('Could not reach Orch. Try again.', 'error');
+                        });
+                });
             });
         });
     }

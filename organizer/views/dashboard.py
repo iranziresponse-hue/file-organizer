@@ -479,7 +479,7 @@ def _next_best_action(profile, now, start, end):
             "state": "live",
         }
 
-    # A summary Smart Orch just wrote is worth reading while it's fresh --
+    # A fresh summary is worth reading while it is still useful --
     # a 48h window (vs. the weekly digest check below) because summaries
     # land per-file, far more often than once a week, and nudging days
     # later would just be noise once the reader's already moved on.
@@ -489,7 +489,7 @@ def _next_best_action(profile, now, start, end):
     if fresh_summary:
         return {
             "title": f"Read: {fresh_summary.move_event.filename}",
-            "detail": "Smart Orch just wrote a summary for this file.",
+            "detail": "A new summary is ready for this file.",
             # Opens the same #summary-overlay modal as every "View summary"
             # row action (see summary.js) instead of linking straight to
             # move_summary_view, which is a JSON endpoint the modal fetches
@@ -589,9 +589,9 @@ def _live_activity_feed(profile, events, limit=10):
 
     for digest in LearningDigest.objects.filter(profile=profile).order_by("-created_at")[:limit]:
         feed.append({
-            "title": "Digest created",
+            "title": "Summary created",
             "detail": digest.title,
-            "meta": "Study digest",
+            "meta": "Weekly summary",
             "when": digest.created_at,
             "state": "live",
         })
@@ -647,7 +647,7 @@ def _command_items(profile, next_action):
         {"label": "Open inbox", "detail": "Sort uncertain files", "url": reverse("sorting_inbox")},
         {"label": "Add folder rule", "detail": "Create a routing rule", "url": reverse("folder_rules")},
         {"label": "Make summary", "detail": "Create a weekly file summary", "post_action": "create_digest"},
-        {"label": "Open Focus Mode", "detail": "Start a timed focus block", "anchor": "focus-mode"},
+        {"label": "Start focus block", "detail": "Use a timer for focused work", "anchor": "focus-mode"},
         {"label": "Open Resource Radar", "detail": "Find videos and books for a topic", "url": reverse("resource_radar")},
         {"label": "Open system setup", "detail": "Review app readiness", "url": reverse("first_run")},
     ]
@@ -672,11 +672,13 @@ def _command_items(profile, next_action):
 def _service_item(name, state, detail, insight, url=None, action_label="Open"):
     status_labels = {
         "live": "Ready",
+        "saved": "Saved",
         "warning": "Needs setup",
         "muted": "Optional",
     }
     status_classes = {
         "live": "",
+        "saved": "is-muted",
         "warning": "is-warning",
         "muted": "is-muted",
     }
@@ -704,15 +706,17 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
         if profile else None
     )
     timetable_entries = TimetableEntry.objects.filter(profile=profile).count() if profile else 0
-    muele_connected = bool(muele_connection and muele_connection.status == "connected")
-    timetable_connected = bool(timetable_connection and timetable_entries)
+    muele_connected = bool(muele_connection and (muele_connection.status == "connected" or muele_connection.username or muele_connection.last_sync_at))
+    timetable_connected = bool(timetable_connection and (timetable_entries or (timetable_connection.config or {}).get("group")))
 
     ai_config = ai_classify.load_ai_config() or {}
     youtube_config = youtube_api.load_youtube_config() or {}
     drive_config = drive_api.load_drive_config() or {}
     smart_orch_ready = bool(ai_config.get("enabled") and ai_config.get("api_key"))
+    smart_orch_saved = bool(ai_config.get("api_key"))
     youtube_ready = bool(youtube_config.get("enabled") and youtube_config.get("api_key"))
-    drive_configured = bool(drive_config.get("enabled") and drive_config.get("client_id"))
+    youtube_saved = bool(youtube_config.get("api_key"))
+    drive_configured = bool(drive_config.get("enabled") and drive_config.get("client_id") and drive_config.get("client_secret"))
     drive_connected = bool(drive_configured and drive_api.is_connected())
     learning_profile = _profile_uses_learning_tools(profile)
 
@@ -773,7 +777,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                 _service_item(
                     "Makerere MUELE",
                     "live" if muele_connected else "warning" if learning_profile else "muted",
-                    "Course files and assignment dates" if muele_connected else "Connect to bring in course files and assignment dates" if learning_profile else "Optional Makerere course file sync",
+                    "Course files and assignment dates" if muele_connection and muele_connection.status == "connected" else "MUELE details saved" if muele_connected else "Connect to bring in course files and assignment dates" if learning_profile else "Optional Makerere course file sync",
                     f"Last sync {_short_timesince(muele_connection.last_sync_at)}" if muele_connection and muele_connection.last_sync_at else "Optional Makerere support for course files",
                     reverse("muele_courses") if muele_connected else reverse("muele_connect"),
                     "Manage" if muele_connected else "Connect",
@@ -781,15 +785,15 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                 _service_item(
                     "Makerere Timetable",
                     "live" if timetable_connected else "warning" if learning_profile else "muted",
-                    f"{timetable_entries} timetable entries added" if timetable_connected else "Add your timetable" if learning_profile else "Optional timetable reminders",
+                    f"{timetable_entries} timetable entries added" if timetable_entries else f"Saved for {(timetable_connection.config or {}).get('group')}" if timetable_connected else "Add your timetable" if learning_profile else "Optional timetable reminders",
                     "Useful for class, session, or training reminders",
                     reverse("timetable_view") if timetable_connected else reverse("timetable_connect"),
                     "View" if timetable_connected else "Connect",
                 ),
                 _service_item(
                     "Resource Radar",
-                    "live" if youtube_ready else "muted",
-                    "YouTube search is connected" if youtube_ready else "Works with search links; a YouTube key improves video picks",
+                    "live" if youtube_ready else "saved" if youtube_saved else "muted",
+                    "YouTube search is connected" if youtube_ready else "YouTube key saved" if youtube_saved else "Works with search links; a YouTube key improves video picks",
                     "Finds videos and books for saved topics",
                     reverse("resource_radar"),
                     "Open",
@@ -798,7 +802,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
         },
         {
             "title": "Projects and backup",
-            "detail": "Work evidence, drafts, summaries, AI help, and Drive backup.",
+            "detail": "Projects, drafts, summaries, writing help, and Drive backup.",
             "items": [
                 _service_item(
                     "Career page",
@@ -817,7 +821,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                     "Open",
                 ),
                 _service_item(
-                    "Post Composer",
+                    "Drafts",
                     "live" if draft_count else "muted",
                     f"{draft_count} draft{'s' if draft_count != 1 else ''} saved" if draft_count else "Write a short update from your work",
                     "Helps turn real project work into a post you can edit yourself",
@@ -825,24 +829,24 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                     "Draft",
                 ),
                 _service_item(
-                    "Weekly Career Digest",
+                    "Weekly work summary",
                     "live" if latest_digest else "muted",
                     f"Latest summary {_short_timesince(latest_digest.created_at)}" if latest_digest else "No weekly project summary yet",
                     "Summarizes what you worked on, built, and may want to share",
                     reverse("career_digest"),
-                    "Generate",
+                    "Make",
                 ),
                 _service_item(
-                    "AI summaries",
-                    "live" if smart_orch_ready else "muted",
-                    "Summaries are turned on" if smart_orch_ready else "Optional API not configured",
+                    "Summaries and writing help",
+                    "live" if smart_orch_ready else "saved" if smart_orch_saved else "muted",
+                    "Writing help is turned on" if smart_orch_ready else "Access key saved" if smart_orch_saved else "Optional writing help is not set up",
                     "Orch can still sort files without this",
                     reverse("settings_edit"),
                     "Settings",
                 ),
                 _service_item(
                     "Google Drive Backup",
-                    "live" if drive_connected else "warning" if drive_configured else "muted",
+                    "live" if drive_connected else "saved" if drive_configured else "muted",
                     "Connected" if drive_connected else "Configured but not connected" if drive_configured else "Optional backup",
                     "Can copy sorted files to Drive if you connect it",
                     reverse("settings_edit"),
@@ -853,7 +857,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
     ]
 
     all_items = [item for lane in lanes for item in lane["items"]]
-    connected_count = sum(1 for item in all_items if item["state"] == "live")
+    connected_count = sum(1 for item in all_items if item["state"] in {"live", "saved"})
     total_count = len(all_items)
     missing_count = total_count - connected_count
     readiness = round((connected_count / total_count) * 100) if total_count else 0

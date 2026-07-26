@@ -1,14 +1,14 @@
 {% extends "organizer/base.html" %}
 {% load orch_extras %}
 
-{% block title %}Past Paper Intelligence - {{ code }} - Orch{% endblock %}
+{% block title %}Past Paper Review - {{ code }} - Orch{% endblock %}
 
 {% block content %}
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Past paper intelligence: {{ code|course_label }}</h2>
+            <h2>Past paper review: {{ code|course_label }}</h2>
             <p>Local, free topic-frequency analysis over your own past papers. Detects recurring topics across papers, not literal repeated questions; different years rarely phrase things identically.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -16,7 +16,7 @@
                 {% csrf_token %}
                 <button type="submit">{% if analysis %}Refresh analysis{% else %}Analyze past papers{% endif %}</button>
             </form>
-            <a class="button button-ghost" href="{% url 'subject_memory_detail' code %}">Back to course brain</a>
+            <a class="button button-ghost" href="{% url 'subject_memory_detail' code %}">Back to course notes</a>
         </div>
     </section>
 

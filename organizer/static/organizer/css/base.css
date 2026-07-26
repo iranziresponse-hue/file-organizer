@@ -481,8 +481,6 @@
             color: var(--text);
             background: rgba(255, 255, 255, 0.1);
             border-color: rgba(242, 201, 76, 0.34);
-            box-shadow: 0 0 20px rgba(31, 122, 63, 0.15);
-            transform: translateY(-1px) scale(1.04);
         }
 
         .nav a.is-active,
@@ -1303,9 +1301,7 @@
         }
 
         .card:hover {
-            transform: translateY(-2px);
             border-color: rgba(242, 201, 76, 0.28);
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4), 0 0 30px rgba(31, 122, 63, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.13);
             background:
                 linear-gradient(180deg, rgba(255, 255, 255, 0.125), rgba(255, 255, 255, 0.055)),
                 rgba(8, 11, 20, 0.66);
@@ -1343,11 +1339,43 @@
             text-shadow: none;
         }
 
+        /* A sub-heading inside an already h2-headed card (e.g. "Upcoming
+           deadlines" inside the MUELE panel) had no size of its own here,
+           only inside the desktop-shell override further down -- meaning
+           in a regular browser tab it fell back to the browser's own
+           default h3 styling: a different, unrelated font weight and a
+           color the dark theme never set, breaking the heading hierarchy
+           the rest of the app is careful about. */
+        .card h3 {
+            font-size: 1.05rem;
+            line-height: 1.2;
+            font-weight: 750;
+            color: var(--text);
+            text-shadow: none;
+        }
+
         .card-subtitle {
             color: var(--muted);
             margin-top: 6px;
             font-size: 0.92rem;
             font-weight: 500;
+        }
+
+        /* study.html stacks 20+ cards on one page -- Focus plan, Today, and
+           Focus Mode are the daily-use ones at the top; everything below
+           that (Subject memory, Organization DNA, Grade planner, Learning
+           routes, and a dozen more) is reference/setup-once material a
+           student opens far less often. All of it used to share the exact
+           same h2 size and weight, so the page read as one undifferentiated
+           wall of equally-loud headings with no cue for where to actually
+           look first. This keeps every heading legible and in the same
+           family, just visually a step quieter than the primary sections
+           above them -- proportional to how often they're actually used,
+           not evidence they matter less. */
+        .study-secondary .card h2,
+        .card.study-secondary h2 {
+            font-size: 1.14rem;
+            font-weight: 750;
         }
 
         .button,
@@ -1364,33 +1392,36 @@
             color: var(--text);
             border: 1px solid rgba(242, 201, 76, 0.36);
             border-radius: 14px;
-            box-shadow: 0 0 20px rgba(31, 122, 63, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
             padding: 10px 24px;
             font: 600 0.9rem/1 "Inter", sans-serif;
             cursor: pointer;
             letter-spacing: 0;
             white-space: nowrap;
-            transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
-            /* See .topbar's comment above: every button on every page
-               gets hovered constantly, so this is the highest-traffic spot
-               for the backdrop-filter + transform layer-promotion flash. */
-            will-change: transform;
+            /* A glowing box-shadow bloom + a translateY lift on every hover
+               reads fine on a marketing page you visit once, but on chrome
+               a user hovers dozens of times a session it reads as a flash/
+               flicker, not feedback -- so hover here is background+border
+               only: no shadow bloom, no movement, no backdrop-filter (that
+               was also the highest-traffic spot for the layer-promotion
+               repaint flash noted below .topbar's own comment). Fast and
+               quiet is what makes this feel like app chrome, not a webpage. */
+            transition: background-color 120ms ease-out, border-color 120ms ease-out;
         }
 
         .button:hover,
         button:hover {
             color: var(--text);
-            border-color: rgba(242, 201, 76, 0.58);
-            box-shadow: 0 0 30px rgba(31, 122, 63, 0.24), 0 0 18px rgba(242, 201, 76, 0.12);
-            transform: translateY(-2px);
+            background:
+                linear-gradient(180deg, rgba(31, 122, 63, 0.3), rgba(143, 189, 248, 0.1)),
+                rgba(255, 255, 255, 0.1);
+            border-color: rgba(242, 201, 76, 0.55);
         }
 
         .button:active,
         button:active {
-            transform: translateY(0);
-            transition-duration: 90ms;
+            background: rgba(255, 255, 255, 0.05);
+            transition-duration: 60ms;
         }
 
         .button:focus-visible,
@@ -1433,18 +1464,17 @@
 
         .button-live:hover {
             border-color: var(--gold);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 18px 38px var(--success-ring), 0 0 16px rgba(242, 201, 76, 0.14);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 14px 30px var(--success-ring);
         }
 
         .button-danger {
             background: rgba(239, 51, 64, 0.1);
             border-color: rgba(239, 51, 64, 0.42);
-            box-shadow: 0 0 18px rgba(239, 51, 64, 0.14);
         }
 
         .button-danger:hover {
             border-color: rgba(239, 51, 64, 0.66);
-            box-shadow: 0 0 26px rgba(239, 51, 64, 0.24);
+            background: rgba(239, 51, 64, 0.16);
         }
 
         table {
@@ -1472,7 +1502,6 @@
         td {
             color: var(--text);
             font-weight: 500;
-            word-break: break-word;
         }
 
         tr:last-child td {
@@ -1840,8 +1869,7 @@
         .guide-btn:hover,
         .theme-toggle:hover {
             border-color: rgba(242, 201, 76, 0.44);
-            box-shadow: 0 0 20px rgba(31, 122, 63, 0.18);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .visually-hidden {
@@ -2843,7 +2871,7 @@
             min-height: 30px;
             padding: 4px 10px;
             font-size: 0.78rem;
-            border-radius: 10px;
+            border-radius: 8px;
         }
 
         .row-actions-trigger svg {
@@ -2853,22 +2881,23 @@
 
         .row-actions-menu {
             position: fixed;
-            z-index: 30;
-            min-width: 180px;
+            z-index: 320;
+            min-width: 188px;
             max-width: calc(100vw - 16px);
             max-height: min(340px, calc(100vh - 16px));
             overflow: auto;
-            background: rgba(20, 24, 33, 0.98);
-            border: 1px solid var(--stroke);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: var(--glass-strong);
+            border: 1px solid var(--stroke-soft);
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             padding: 6px;
             display: grid;
             gap: 2px;
             transform-origin: top right;
-            animation: menuIn var(--ease) both;
+            animation: menuIn 120ms ease-out both;
+            overscroll-behavior: contain;
         }
 
         .row-actions-menu[hidden] {
@@ -2894,6 +2923,70 @@
             margin: 0;
         }
 
+        details.settings-detail,
+        details.plain-status,
+        .card details {
+            border: 1px solid var(--stroke-soft);
+            border-radius: 8px;
+            background: var(--glass);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        details.settings-detail summary,
+        details.plain-status summary,
+        .card details summary {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 650;
+            list-style: none;
+        }
+
+        details.settings-detail summary::-webkit-details-marker,
+        details.plain-status summary::-webkit-details-marker,
+        .card details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.settings-detail summary::after,
+        details.plain-status summary::after,
+        .card details summary::after {
+            content: "";
+            width: 7px;
+            height: 7px;
+            margin-left: auto;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+            opacity: 0.62;
+            transition: transform var(--ease);
+        }
+
+        details.settings-detail[open] summary,
+        details.plain-status[open] summary,
+        .card details[open] summary {
+            border-bottom: 1px solid var(--stroke-soft);
+            margin-bottom: 0;
+        }
+
+        details.settings-detail[open] summary::after,
+        details.plain-status[open] summary::after,
+        .card details[open] summary::after {
+            transform: rotate(225deg);
+        }
+
+        details.settings-detail > :not(summary),
+        details.plain-status > :not(summary),
+        .card details > :not(summary) {
+            margin: 10px 12px 12px;
+        }
+
         .row-actions-menu.is-positioning {
             visibility: hidden;
         }
@@ -2902,13 +2995,18 @@
             transform-origin: bottom right;
         }
 
+        .row-actions-form {
+            margin: 0;
+        }
+
         .row-actions-item {
             all: unset;
             display: block;
             width: 100%;
             box-sizing: border-box;
+            min-height: 34px;
             padding: 8px 10px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 0.85rem;
             color: var(--text);
             cursor: pointer;
@@ -2929,10 +3027,36 @@
             color: var(--danger-text);
         }
 
+        .why-toggle-btn {
+            height: 30px;
+            min-height: 30px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+        }
+
         /* Command palette (Ctrl/Cmd+K): jump to any nav destination, file,
            or summary without clicking through Study's own 20-button grid
            first. Reuses .guide-overlay/.guide-panel for the backdrop and
            dialog chrome so it matches every other modal in the app. */
+        .confirm-panel {
+            width: auto;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .confirm-panel #confirm-message {
+            margin: 0 0 20px;
+            color: var(--text);
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+
+        .confirm-panel .form-actions {
+            justify-content: center;
+            gap: 10px;
+        }
+
         .palette-panel {
             max-width: 560px;
             padding: 0;
@@ -3098,33 +3222,105 @@
             color: var(--faint);
         }
 
+        /* Toasts: fixed, centered near the top, one under another if more
+           than one message is queued. Positioned above .app-shell's own
+           scroll context (same fixed-layer trick as the titlebar/topbar)
+           so they stay put and visible regardless of scroll position --
+           the point of a toast is that it's the one thing that runs and
+           fades on its own, not part of the page flow. */
         .messages {
             list-style: none;
             padding: 0;
-            margin: 0 0 20px;
+            margin: 0;
             display: grid;
             gap: 10px;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(420px, calc(100vw - 32px));
+            z-index: 400;
+            pointer-events: none;
         }
 
         .messages li {
-            padding: 12px 14px;
-            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            padding: 12px 16px;
+            border-radius: 12px;
             font-size: 0.92rem;
             border: 1px solid var(--stroke);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: var(--glass-strong);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+            pointer-events: auto;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(-10px);
+            /* Entrance/exit are both plain transitions, not a CSS animation
+               -- an animation with forwards keeps applying its final
+               keyframe at a higher cascade priority than any later class's
+               declared values, which is exactly why toggling .is-leaving
+               here used to do nothing: the opacity/transform it set were
+               silently outranked by the still-active toast-in animation,
+               so the toast never visibly faded, only vanished (if at all)
+               when JS finally removed the element outright. */
+            transition: opacity 200ms ease-out, transform 200ms ease-out;
+        }
+
+        .messages li.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .messages li.is-leaving {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .toast-progress {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2px;
+            background: currentColor;
+            opacity: 0.45;
+            transform-origin: left;
+            animation: toast-shrink linear forwards;
+            animation-duration: var(--toast-duration, 3200ms);
+        }
+
+        @keyframes toast-shrink {
+            from { transform: scaleX(1); }
+            to { transform: scaleX(0); }
         }
 
         .messages .success {
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(47, 180, 111, 0.32);
+            background: rgba(34, 197, 94, 0.16);
+            border-color: rgba(47, 180, 111, 0.4);
             color: #BBF7D0;
         }
 
         .messages .error {
-            background: rgba(244, 63, 94, 0.12);
-            border-color: rgba(251, 113, 133, 0.34);
+            background: rgba(244, 63, 94, 0.16);
+            border-color: rgba(251, 113, 133, 0.4);
             color: #FFE4E6;
+        }
+
+        .messages .info {
+            background: var(--glass-strong);
+            border-color: var(--stroke);
+            color: var(--text);
+        }
+
+        .messages .warning {
+            background: rgba(242, 201, 76, 0.16);
+            border-color: rgba(242, 201, 76, 0.4);
+            color: #FDE9B4;
+        }
+
+        body.has-desktop-titlebar .messages {
+            top: 118px;
         }
 
         .meta-token,
@@ -3674,9 +3870,7 @@
         }
 
         .priority-card:hover {
-            transform: translateY(-2px);
             border-color: rgba(242, 201, 76, 0.34);
-            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28), 0 0 22px rgba(31, 122, 63, 0.12);
         }
 
         .priority-card:hover::before {
@@ -3930,9 +4124,7 @@
         }
 
         .service-node:hover {
-            transform: translateY(-1px);
             border-color: rgba(242, 201, 76, 0.28);
-            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
         }
 
         .service-node.is-live {
@@ -4438,6 +4630,14 @@
             color: var(--muted);
             font-size: 0.82rem;
             font-weight: 600;
+            /* The one column with genuinely long, space-less content (full
+               file paths) -- this is where a mid-word break is actually the
+               least-bad option. It used to sit on every table cell, which
+               is why short single-word labels like "Installer" or "Sorted"
+               were breaking into "Installe/r" the moment their column got
+               narrow, instead of just wrapping normally or letting the
+               table's own overflow-x: auto take over. */
+            word-break: break-word;
         }
 
         .theme-icon {
@@ -4641,7 +4841,6 @@
         html[data-theme="light"] .guide-btn:hover,
         html[data-theme="light"] .theme-toggle:hover {
             border-color: rgba(19, 122, 69, 0.28);
-            box-shadow: 0 10px 22px rgba(19, 122, 69, 0.1);
         }
 
         html[data-theme="light"] .topbar.app-roof {
@@ -5212,4 +5411,959 @@ body.has-desktop-titlebar .topbar.has-power-rail {
    overlay's own box 32px lower keeps its centered content clear of it. */
 body.has-desktop-titlebar .guide-overlay {
     top: 32px;
+}
+
+/* ---------------------------------------------------------------------
+   Native desktop pass
+
+   The app runs inside a desktop window, so the base chrome should feel
+   like an installed workspace: flat surfaces, quiet borders, restrained
+   green accents, and no webpage-style blobs, glass, glow, or hero drama.
+--------------------------------------------------------------------- */
+
+:root {
+    --bg-deep: #0B141A;
+    --bg-mid: #0B141A;
+    --bg-ink: #0B141A;
+    --text: #E9EDEF;
+    --muted: #AEBAC1;
+    --faint: #8696A0;
+    --glass: #111B21;
+    --glass-strong: #1F2C33;
+    --stroke: #2A3942;
+    --stroke-soft: #202C33;
+    --blue: #7BA7C7;
+    --cyan: #6DB8C8;
+    --purple: #9B8FC6;
+    --green: #00A884;
+    --green-soft: rgba(0, 168, 132, 0.12);
+    --green-border: rgba(0, 168, 132, 0.34);
+    --green-glow: rgba(0, 168, 132, 0.14);
+    --amber: #D6A84F;
+    --amber-soft: rgba(214, 168, 79, 0.12);
+    --amber-border: rgba(214, 168, 79, 0.34);
+    --accent-label: #00A884;
+    --action-primary: #00A884;
+    --action-primary-text: #06120B;
+    --success-solid: #00A884;
+    --success-solid-hover: #06B890;
+    --success-solid-text: #06120B;
+    --success-bg: rgba(0, 168, 132, 0.12);
+    --success-text: #7DE4C3;
+    --success-border: rgba(0, 168, 132, 0.32);
+    --success-ring: rgba(0, 168, 132, 0.16);
+    --warning-bg: rgba(214, 168, 79, 0.12);
+    --warning-text: #E9C978;
+    --warning-border: rgba(214, 168, 79, 0.34);
+    --danger-bg: rgba(239, 51, 64, 0.12);
+    --danger-text: #FFB4BB;
+    --danger-border: rgba(239, 51, 64, 0.34);
+    --field-bg: #0B141A;
+    --field-bg-strong: #111B21;
+    --field-option: #111B21;
+    --field-option-hover: #1F2C33;
+    --shadow: none;
+    --shadow-soft: none;
+}
+
+html[data-theme="light"] {
+    --bg-deep: #F0F2F5;
+    --bg-mid: #F0F2F5;
+    --bg-ink: #F0F2F5;
+    --text: #111B21;
+    --muted: #54656F;
+    --faint: #667781;
+    --glass: #FFFFFF;
+    --glass-strong: #FFFFFF;
+    --stroke: #D1D7DB;
+    --stroke-soft: #E9EDEF;
+    --blue: #2E6F95;
+    --cyan: #167D91;
+    --purple: #6F629F;
+    --green: #008069;
+    --green-soft: rgba(0, 128, 105, 0.1);
+    --green-border: rgba(0, 128, 105, 0.26);
+    --green-glow: rgba(0, 128, 105, 0.1);
+    --amber: #9B6B1F;
+    --amber-soft: rgba(155, 107, 31, 0.1);
+    --amber-border: rgba(155, 107, 31, 0.24);
+    --accent-label: #008069;
+    --action-primary: #008069;
+    --action-primary-text: #FFFFFF;
+    --success-solid: #008069;
+    --success-solid-hover: #087D68;
+    --success-solid-text: #FFFFFF;
+    --success-bg: #E7F6F1;
+    --success-text: #02735E;
+    --success-border: rgba(0, 128, 105, 0.24);
+    --success-ring: rgba(0, 128, 105, 0.1);
+    --field-bg: #FFFFFF;
+    --field-bg-strong: #FFFFFF;
+    --field-option: #FFFFFF;
+    --field-option-hover: #F0F2F5;
+}
+
+body {
+    background: var(--bg-deep);
+}
+
+body::before,
+body::after,
+.liquid-field,
+.card::before,
+.card::after,
+.page-heading::before,
+.page-banner::before,
+.priority-card::before,
+.service-signal,
+.service-orbit,
+.service-meter,
+.topbar-power-score,
+.topbar-power-meter {
+    display: none;
+}
+
+.app-shell {
+    padding: 20px 24px 28px;
+    background: var(--bg-deep);
+}
+
+.app-shell.has-app-roof {
+    padding-top: 82px;
+}
+
+main {
+    width: min(1220px, 100%);
+}
+
+.topbar,
+.topbar.app-roof,
+html.power-rail-active .topbar.has-power-rail,
+html[data-theme="light"] .topbar.app-roof,
+html[data-theme="light"].power-rail-active .topbar.has-power-rail {
+    min-height: 58px;
+    padding: 8px max(14px, calc((100vw - 1220px) / 2 + 14px));
+    gap: 12px;
+    background: var(--glass);
+    border-color: var(--stroke-soft);
+    box-shadow: none;
+}
+
+.brand {
+    min-width: 176px;
+    padding: 4px 8px 4px 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.brand-mark,
+html.power-rail-active .topbar.has-power-rail .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: var(--stroke-soft);
+    box-shadow: none;
+}
+
+.brand-logo-svg,
+html.power-rail-active .topbar.has-power-rail .brand-logo-svg {
+    width: 34px;
+    height: 34px;
+    filter: none;
+}
+
+.brand-copy h1,
+html.power-rail-active .topbar.has-power-rail .brand-copy h1 {
+    font-size: 1rem;
+    font-weight: 750;
+}
+
+.brand-copy span {
+    color: var(--faint);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.nav,
+html[data-theme="light"] .nav {
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.nav a,
+html.power-rail-active .topbar.has-power-rail .nav a {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    color: var(--muted);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.nav a:hover,
+html[data-theme="light"] .nav a:hover {
+    color: var(--text);
+    background: var(--stroke-soft);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.nav a.is-active,
+.nav a[aria-current="page"],
+html[data-theme="light"] .nav a.is-active,
+html[data-theme="light"] .nav a[aria-current="page"] {
+    color: var(--green);
+    background: var(--green-soft);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.topbar-actions {
+    gap: 4px;
+}
+
+.guide-btn,
+.theme-toggle,
+html[data-theme="light"] .guide-btn,
+html[data-theme="light"] .theme-toggle {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    border-radius: 8px;
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.guide-btn:hover,
+.theme-toggle:hover,
+html[data-theme="light"] .guide-btn:hover,
+html[data-theme="light"] .theme-toggle:hover {
+    color: var(--text);
+    background: var(--stroke-soft);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.topbar-power,
+html.power-rail-active .topbar-power,
+html[data-theme="light"] .topbar-power,
+html[data-theme="light"].power-rail-active .topbar-power {
+    min-width: min(240px, 30vw);
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-color: var(--stroke-soft);
+    background: transparent;
+}
+
+html.power-rail-active .topbar-power-copy .now-label,
+html[data-theme="light"].power-rail-active .topbar-power-copy .now-label {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 650;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.card,
+.compact-card,
+.page-banner,
+.auth-card,
+.guide-panel,
+.connection-card,
+.connection-stat,
+.profile-row,
+.stat,
+.mini-tile,
+.now-item,
+.timeline-item,
+.service-board,
+.service-lane,
+.service-node,
+.service-priority,
+.mission-control,
+.mission-signal,
+.priority-card,
+.setting-switch,
+html[data-theme="light"] .card,
+html[data-theme="light"] .connection-stat,
+html[data-theme="light"] .connection-card,
+html[data-theme="light"] .profile-row,
+html[data-theme="light"] .stat,
+html[data-theme="light"] .mini-tile,
+html[data-theme="light"] .mission-signal,
+html[data-theme="light"] .priority-card,
+html[data-theme="light"] .service-board,
+html[data-theme="light"] .service-lane,
+html[data-theme="light"] .service-node,
+html[data-theme="light"] .service-priority,
+html[data-theme="light"] .now-item,
+html[data-theme="light"] .setting-switch {
+    background: var(--glass);
+    border-color: var(--stroke-soft);
+    border-radius: 8px;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    animation: none;
+}
+
+.card:hover,
+.profile-row:hover,
+.mini-tile:hover,
+.timeline-item:hover,
+.service-node:hover,
+.priority-card:hover,
+html[data-theme="light"] .card:hover,
+html[data-theme="light"] .profile-row:hover,
+html[data-theme="light"] .mini-tile:hover,
+html[data-theme="light"] .timeline-item:hover {
+    transform: none;
+    background: var(--glass-strong);
+    border-color: var(--stroke);
+    box-shadow: none;
+}
+
+.compact-card,
+.card {
+    padding: var(--card-pad, 20px);
+}
+
+.page-heading {
+    padding: 4px 0 2px;
+    align-items: flex-start;
+}
+
+.page-heading h2,
+.mission-main h2 {
+    font-size: clamp(1.65rem, 2.2vw, 2.2rem);
+    line-height: 1.12;
+    font-weight: 750;
+}
+
+.page-heading p,
+.card-subtitle,
+.help-text,
+.connection-reason,
+.service-node p,
+.service-insight {
+    color: var(--muted);
+}
+
+.eyebrow,
+.connection-area,
+.mini-label,
+.now-label {
+    color: var(--faint);
+    font-weight: 650;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.button,
+button,
+html[data-theme="light"] .button,
+html[data-theme="light"] button:not(.suggestion-token):not(.row-actions-item):not(.command-item):not(.guide-close):not(.guide-btn):not(.theme-toggle):not(.support-topbar-btn):not(.browser-item):not(.support-fab):not(.button-live):not(.button-ghost):not(.button-danger):not(.ghost-button):not(.search-clear):not(.premium-select-trigger) {
+    height: 38px;
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--stroke-soft);
+    color: var(--text);
+    border-color: var(--stroke);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.button:hover,
+button:hover,
+html[data-theme="light"] .button:hover,
+html[data-theme="light"] button:not(.suggestion-token):not(.row-actions-item):not(.command-item):not(.guide-close):not(.guide-btn):not(.theme-toggle):not(.support-topbar-btn):not(.browser-item):not(.support-fab):not(.button-live):not(.button-ghost):not(.button-danger):not(.ghost-button):not(.search-clear):not(.premium-select-trigger):hover {
+    transform: none;
+    background: var(--stroke);
+    border-color: var(--stroke);
+    box-shadow: none;
+}
+
+.button-live,
+html[data-theme="light"] .button-live {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--success-solid-text);
+    box-shadow: none;
+}
+
+.button-live:hover,
+html[data-theme="light"] .button-live:hover {
+    background: var(--success-solid-hover);
+    border-color: var(--success-solid-hover);
+    box-shadow: none;
+}
+
+.button-ghost,
+.ghost-button,
+html[data-theme="light"] .button-ghost,
+html[data-theme="light"] .ghost-button {
+    background: transparent;
+    border-color: var(--stroke);
+    box-shadow: none;
+}
+
+.status-dot,
+.state-chip,
+.meta-token,
+.suggestion-token {
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--muted);
+    padding-inline: 0;
+}
+
+.status-dot.is-live,
+.state-live,
+.text-success,
+.value-success {
+    color: var(--success-text);
+}
+
+.status-dot.is-warning,
+.state-warning {
+    color: var(--warning-text);
+}
+
+input,
+select,
+textarea,
+.tag-input,
+.search-control,
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+    background: var(--field-bg);
+    border-color: var(--stroke);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 1px var(--green);
+}
+
+.table-shell {
+    border-radius: 8px;
+    border-color: var(--stroke-soft);
+    background: var(--glass);
+    box-shadow: none;
+}
+
+table th {
+    color: var(--faint);
+    background: var(--stroke-soft);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.guide-panel {
+    width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 72px);
+}
+
+.support-fab {
+    background: var(--green);
+    border-color: var(--green);
+    box-shadow: none;
+}
+
+.desktop-titlebar {
+    background: #111B21;
+    border-bottom-color: #202C33;
+}
+
+html[data-theme="light"] .desktop-titlebar {
+    background: #FFFFFF;
+    border-bottom-color: #E9EDEF;
+}
+
+.app-shell .card,
+.app-shell .compact-card,
+.app-shell .profile-row,
+.app-shell .stat,
+.app-shell .mini-tile,
+.app-shell .now-item,
+.app-shell .guide-panel,
+.app-shell .connection-card,
+.app-shell .connection-stat,
+.app-shell .mission-control,
+.app-shell .mission-signal,
+.app-shell .priority-card,
+.app-shell .service-board,
+.app-shell .service-lane,
+.app-shell .service-node,
+.app-shell .service-priority {
+    border-color: var(--stroke-soft) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+.app-shell .button,
+.app-shell button {
+    min-height: 38px !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+.app-shell .button-compact,
+.app-shell .service-action,
+.app-shell .row-actions-item {
+    min-height: 30px !important;
+}
+
+.app-shell .button-live {
+    background: var(--green) !important;
+    border-color: var(--green) !important;
+}
+
+.app-shell .stat .value,
+.app-shell .mini-number {
+    color: var(--text) !important;
+}
+
+.settings-title-row,
+.settings-inline-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.settings-title-row h3 {
+    margin: 0;
+}
+
+.settings-detail {
+    margin-top: 8px;
+    color: var(--muted);
+}
+
+.settings-detail summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.settings-detail ol {
+    margin-top: 8px;
+    padding-left: 20px;
+    font-size: 0.85rem;
+    line-height: 1.7;
+}
+
+.settings-detail p,
+.settings-note {
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.settings-gap {
+    margin-top: 12px;
+}
+
+.settings-section-divider {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--stroke-soft);
+}
+
+.category-test {
+    align-items: end;
+}
+
+.category-test-result {
+    display: block;
+    margin-top: 6px;
+}
+
+/* Desktop exe polish: keep the app calm and native inside the frameless window. */
+body.has-desktop-titlebar .desktop-titlebar {
+    height: 30px;
+}
+
+body.has-desktop-titlebar {
+    padding-top: 30px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+body.has-desktop-titlebar .desktop-titlebar-drag {
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+body.has-desktop-titlebar .desktop-titlebar-mark {
+    width: 14px;
+    height: 14px;
+}
+
+body.has-desktop-titlebar .desktop-titlebar-btn {
+    width: 42px;
+    height: 30px;
+}
+
+body.has-desktop-titlebar .topbar.app-roof,
+body.has-desktop-titlebar .topbar.has-power-rail {
+    top: 30px !important;
+}
+
+body.has-desktop-titlebar .guide-overlay {
+    top: 30px;
+}
+
+body.has-desktop-titlebar .app-shell {
+    height: calc(100vh - 30px);
+    min-height: 0;
+    /* .topbar is fixed (30px titlebar + its own ~65px, measured -- its two-
+       line brand copy makes it taller than its 54px min-height), so this
+       padding is what actually clears it for the real content below; 64px
+       left content starting 1px inside the topbar's own bottom edge, with
+       zero breathing room -- exactly the "starts right at the boundary"
+       look native apps avoid. */
+    padding: 88px 16px 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+body.has-desktop-titlebar .topbar,
+body.has-desktop-titlebar .topbar.app-roof,
+html.power-rail-active body.has-desktop-titlebar .topbar.has-power-rail {
+    min-height: 54px;
+    padding: 7px 14px;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+}
+
+body.has-desktop-titlebar .brand {
+    min-width: 150px;
+    padding-right: 6px;
+}
+
+body.has-desktop-titlebar .brand-mark,
+body.has-desktop-titlebar .brand-logo-svg {
+    width: 30px;
+    height: 30px;
+}
+
+body.has-desktop-titlebar .brand-copy h1 {
+    font-size: 0.96rem;
+}
+
+body.has-desktop-titlebar .brand-copy span {
+    font-size: 0.7rem;
+}
+
+body.has-desktop-titlebar .nav {
+    gap: 1px;
+}
+
+body.has-desktop-titlebar .nav a,
+body.has-desktop-titlebar .guide-btn,
+body.has-desktop-titlebar .theme-toggle {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+}
+
+body.has-desktop-titlebar .nav-icon,
+body.has-desktop-titlebar .guide-btn svg,
+body.has-desktop-titlebar .theme-toggle svg,
+body.has-desktop-titlebar .button svg,
+body.has-desktop-titlebar button svg {
+    width: 16px;
+    height: 16px;
+}
+
+body.has-desktop-titlebar .topbar-power {
+    display: none;
+}
+
+body.has-desktop-titlebar main {
+    width: min(1180px, 100%);
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.has-desktop-titlebar .page-stack {
+    gap: 14px;
+    min-width: 0;
+}
+
+body.has-desktop-titlebar .page-center,
+body.has-desktop-titlebar .page-wide,
+body.has-desktop-titlebar .page-full,
+body.has-desktop-titlebar .workspace-page {
+    width: 100%;
+    max-width: 1180px;
+}
+
+body.has-desktop-titlebar .page-heading,
+body.has-desktop-titlebar .page-banner {
+    padding: 10px 0 4px;
+    border: 0;
+    background: transparent;
+}
+
+body.has-desktop-titlebar .page-heading h2,
+body.has-desktop-titlebar .page-banner h2,
+body.has-desktop-titlebar .mission-main h2 {
+    max-width: none;
+    font-size: 1.45rem;
+    line-height: 1.22;
+    font-weight: 720;
+}
+
+body.has-desktop-titlebar .page-heading p,
+body.has-desktop-titlebar .page-banner p {
+    max-width: 720px;
+    margin-top: 5px;
+    font-size: 0.92rem;
+}
+
+body.has-desktop-titlebar .eyebrow {
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    font-weight: 650;
+    color: var(--faint);
+}
+
+body.has-desktop-titlebar .page-heading .inline-actions-start {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+}
+
+body.has-desktop-titlebar .page-heading .inline-actions-start .button,
+body.has-desktop-titlebar .page-heading .inline-actions-start button,
+body.has-desktop-titlebar .page-heading .inline-actions-start .path-text {
+    flex: 0 0 auto;
+}
+
+body.has-desktop-titlebar .card,
+body.has-desktop-titlebar .compact-card,
+body.has-desktop-titlebar .page-banner,
+body.has-desktop-titlebar .connection-card,
+body.has-desktop-titlebar .connection-stat,
+body.has-desktop-titlebar .profile-row,
+body.has-desktop-titlebar .stat,
+body.has-desktop-titlebar .mini-tile,
+body.has-desktop-titlebar .now-item,
+body.has-desktop-titlebar .timeline-item,
+body.has-desktop-titlebar .setting-switch {
+    border-radius: 8px !important;
+}
+
+body.has-desktop-titlebar .card,
+body.has-desktop-titlebar .compact-card {
+    padding: 16px;
+    min-width: 0;
+}
+
+body.has-desktop-titlebar .card-header {
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+body.has-desktop-titlebar .card h2 {
+    font-size: 1.08rem;
+    font-weight: 700;
+}
+
+body.has-desktop-titlebar .card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+body.has-desktop-titlebar .card-subtitle,
+body.has-desktop-titlebar .help-text,
+body.has-desktop-titlebar .connection-reason,
+body.has-desktop-titlebar .service-node p {
+    font-size: 0.88rem;
+}
+
+body.has-desktop-titlebar .button,
+body.has-desktop-titlebar button {
+    height: 34px;
+    min-height: 34px !important;
+    padding: 7px 12px;
+    font-size: 0.84rem;
+}
+
+body.has-desktop-titlebar .connection-summary-grid,
+body.has-desktop-titlebar .connection-grid,
+body.has-desktop-titlebar .today-grid,
+body.has-desktop-titlebar .health-grid {
+    gap: 10px;
+}
+
+body.has-desktop-titlebar .grid-2,
+body.has-desktop-titlebar .overview-grid,
+body.has-desktop-titlebar .workspace-grid,
+body.has-desktop-titlebar .cockpit-grid,
+body.has-desktop-titlebar .focus-shell,
+body.has-desktop-titlebar .service-board-hero,
+body.has-desktop-titlebar .service-board-header {
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+}
+
+body.has-desktop-titlebar .mission-control {
+    grid-template-columns: minmax(0, 1fr) minmax(min(260px, 100%), 0.72fr);
+    min-height: 0;
+    padding: 16px;
+}
+
+body.has-desktop-titlebar .mission-main {
+    gap: 14px;
+}
+
+body.has-desktop-titlebar .mission-status,
+body.has-desktop-titlebar .priority-deck {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
+
+body.has-desktop-titlebar .mission-signal,
+body.has-desktop-titlebar .priority-card,
+body.has-desktop-titlebar .service-priority {
+    min-height: 132px;
+}
+
+body.has-desktop-titlebar .connection-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: stretch;
+}
+
+body.has-desktop-titlebar .connection-card {
+    min-height: 188px;
+    display: flex;
+    flex-direction: column;
+}
+
+body.has-desktop-titlebar .connection-footer {
+    margin-top: auto;
+}
+
+body.has-desktop-titlebar .connection-status,
+body.has-desktop-titlebar .status-dot,
+body.has-desktop-titlebar .state-chip,
+body.has-desktop-titlebar .meta-token,
+body.has-desktop-titlebar .suggestion-token {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--faint);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+body.has-desktop-titlebar .hero-icon-row {
+    gap: 6px;
+}
+
+body.has-desktop-titlebar .hero-icon-tip {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+body.has-desktop-titlebar .hero-icon-tip svg {
+    width: 16px;
+    height: 16px;
+}
+
+body.has-desktop-titlebar .mini-tile {
+    min-height: 78px;
+}
+
+body.has-desktop-titlebar .mini-number {
+    font-size: 1.28rem;
+}
+
+body.has-desktop-titlebar .now-strip {
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
+
+@media (max-width: 980px) {
+    body.has-desktop-titlebar .app-shell {
+        padding: 86px 12px 16px;
+    }
+
+    body.has-desktop-titlebar .brand-copy span {
+        display: none;
+    }
+
+    body.has-desktop-titlebar .brand {
+        min-width: auto;
+    }
+
+    body.has-desktop-titlebar .nav {
+        flex: 1 1 auto;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    body.has-desktop-titlebar .nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.has-desktop-titlebar .mission-control,
+    body.has-desktop-titlebar .grid-2,
+    body.has-desktop-titlebar .overview-grid,
+    body.has-desktop-titlebar .workspace-grid,
+    body.has-desktop-titlebar .cockpit-grid,
+    body.has-desktop-titlebar .focus-shell,
+    body.has-desktop-titlebar .service-board-hero,
+    body.has-desktop-titlebar .service-board-header {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-height: 720px) {
+    body.has-desktop-titlebar .app-shell {
+        padding-top: 80px;
+    }
+
+    body.has-desktop-titlebar .page-heading,
+    body.has-desktop-titlebar .page-banner {
+        padding-top: 4px;
+    }
+
+    body.has-desktop-titlebar .card,
+    body.has-desktop-titlebar .compact-card {
+        padding: 14px;
+    }
+
+    body.has-desktop-titlebar .mission-signal,
+    body.has-desktop-titlebar .priority-card,
+    body.has-desktop-titlebar .service-priority,
+    body.has-desktop-titlebar .connection-card {
+        min-height: 0;
+    }
 }

@@ -24,7 +24,7 @@ class CareerHomeTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("career_home"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Log your first project", response.context["next_action"])
+        self.assertIn("Add your first project", response.context["next_action"])
 
     def test_stale_project_is_flagged_as_next_action(self):
         Project.objects.create(profile=self.profile, title="Orch", status="building")
@@ -221,7 +221,7 @@ class ContentDraftDetailTests(SandboxedPathsTestCase):
             reverse("content_draft_polish", args=[self.draft.pk]), {"style": "polished"}, follow=True,
         )
 
-        self.assertContains(response, "Smart Orch isn")
+        self.assertContains(response, "Writing help isn")
         self.draft.refresh_from_db()
         self.assertEqual(self.draft.polished_text, "")
 

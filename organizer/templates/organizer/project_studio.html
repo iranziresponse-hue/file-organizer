@@ -81,7 +81,7 @@
                     {% endif %}
                 </div>
                 <div class="profile-actions">
-                    <form method="post" action="{% url 'project_delete' project.pk %}" onsubmit="return confirm('Delete this project?');">
+                    <form method="post" action="{% url 'project_delete' project.pk %}" data-confirm="Delete this project?">
                         {% csrf_token %}
                         <button type="submit" class="button-ghost button-compact button-danger-soft">Delete</button>
                     </form>

@@ -101,7 +101,7 @@
                         <input type="text" id="groups_entry" placeholder="Type a code, press Enter" autocomplete="off">
                     </div>
                     <input type="hidden" name="groups" id="groups_hidden" value="{{ config.groups|join:', ' }}">
-                    <div class="meta-list" id="groups-suggestions" style="margin-top:8px;"></div>
+                    <div class="meta-list meta-list-spaced" id="groups-suggestions"></div>
                     <p class="help-text">Press Enter to add, or click a suggestion below if the folder already exists.</p>
                 </div>
 
@@ -109,18 +109,18 @@
                     <input type="checkbox" name="ai_fallback_enabled" {% if profile.ai_fallback_enabled %}checked{% endif %}>
                     <span class="toggle-track" aria-hidden="true"></span>
                     <span class="setting-switch-copy">
-                        <strong>Smart fallback routing</strong>
-                        <span>Let Smart Orch suggest a folder when no subject or topic matches</span>
+                        <strong>Extra folder suggestion</strong>
+                        <span>Let Orch suggest a folder when no subject or topic matches</span>
                     </span>
                 </label>
-                <details style="margin-top:8px; color:var(--muted);">
-                    <summary style="cursor:pointer; font-size:0.85rem;">Needs a free API key first. How do I get one?</summary>
-                    <ol style="font-size:0.85rem; line-height:1.7; margin-top:8px; padding-left:20px;">
-                        <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> and sign up (free)</li>
-                        <li>Click <strong>Create API Key</strong>, name it "Orch", and copy it</li>
-                        <li>Copy <code>ai_config.example.json</code> to <code>ai_config.json</code> next to Orch, and paste the key into <code>api_key</code></li>
+                <details class="settings-detail">
+                    <summary>Needs writing help set up first</summary>
+                    <ol>
+                        <li>Open Settings</li>
+                        <li>Go to Summaries and writing help</li>
+                        <li>Paste your access key there and save</li>
                     </ol>
-                    <p style="font-size:0.85rem; margin-top:8px;">Without a key, this toggle does nothing: files that match no subject or topic still go to this profile's Unsorted folder.</p>
+                    <p>Without that setup, files that match no subject or topic still go to this profile's Unsorted folder.</p>
                 </details>
             </div>
 
@@ -144,7 +144,7 @@
                 <p class="card-subtitle">Saving this profile already does this automatically. Use this if you added subjects elsewhere and want to check now, without changing anything else.</p>
             </div>
         </div>
-        <form method="post" style="display:inline;">
+        <form method="post" class="inline-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="sync_folders">
             <button type="submit" class="button-ghost">Check for missing subject folders</button>

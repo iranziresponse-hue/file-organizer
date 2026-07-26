@@ -9,7 +9,7 @@
         <div>
             <span class="eyebrow">Subject dashboard</span>
             <h2>Topic & Theme Explorer</h2>
-            <p>Intelligent topic extraction across all subjects. NLP-powered keywords from filenames and summaries, enhanced with Smart Orch topic refinement when available.</p>
+            <p>Topics found from filenames and summaries across your subjects, with extra cleanup when writing help is available.</p>
         </div>
         {% if profile %}
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -132,7 +132,7 @@
                     <span class="theme-name">{{ theme.name }}</span>
                     <span class="theme-meta">
                         {% if theme.source == "summary" %}
-                        <span class="source-badge source-ai">Smart Orch</span>
+                        <span class="source-badge source-ai">Writing help</span>
                         {% else %}
                         <span class="source-badge source-nlp">NLP</span>
                         {% endif %}

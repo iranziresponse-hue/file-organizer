@@ -18,7 +18,7 @@
                         <path d="M6 10.5V16c0 1 2.5 3 6 3s6-2 6-3v-5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M22 8v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
                     </svg>
-                    {% elif group.title == "Smart help" %}
+                    {% elif group.title == "Extra help" %}
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 3c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 7.8 11.4 6.2 12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                         <path d="M19 14.5c.3 1.3.9 1.9 2.2 2.2-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-.9 2.2-2.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
@@ -46,7 +46,7 @@
     <section class="connection-summary-grid" aria-label="Connection summary">
         <div class="connection-stat">
             <strong>{{ connected_count }}/{{ total_count }}</strong>
-            <span>Connected</span>
+            <span>Ready</span>
         </div>
         <div class="connection-stat">
             <strong>{{ actionable_count }}</strong>
@@ -136,7 +136,7 @@
                 if (!data.ok) {
                     btn.disabled = false;
                     btn.textContent = 'Retry now';
-                    alert(data.error || 'Could not start the retry.');
+                    window.showToast(data.error || 'Could not start the retry.', 'error');
                     return;
                 }
                 orchPollTask(data.task_id, {
@@ -157,7 +157,7 @@
             .catch(function () {
                 btn.disabled = false;
                 btn.textContent = 'Retry now';
-                alert('Could not reach Orch. Try again.');
+                window.showToast('Could not reach Orch. Try again.', 'error');
             });
     });
 })();

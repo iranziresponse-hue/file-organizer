@@ -11,7 +11,7 @@
             <h2>Organization memory</h2>
             <p>Rules Orch learned from your own approvals, never a black box. Edit the destination, disable a rule, or reset its learning at any time.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="stat-row">
@@ -58,7 +58,7 @@
                         <input type="hidden" name="action" value="reset">
                         <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;">Reset learning</button>
                     </form>
-                    <form method="post" action="{% url 'organization_memory_rule_delete' rule.pk %}" style="display:inline;" onsubmit="return confirm('Delete this learned rule?');">
+                    <form method="post" action="{% url 'organization_memory_rule_delete' rule.pk %}" style="display:inline;" data-confirm="Delete this learned rule?">
                         {% csrf_token %}
                         <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;color:var(--red);">Delete</button>
                     </form>

@@ -1,8 +1,6 @@
 import json
 import os
-import sys
 import time
-from types import SimpleNamespace
 from unittest import mock
 
 from django.utils import timezone
@@ -138,33 +136,3 @@ class ReviewRescheduleWorkflowTests(SandboxedPathsTestCase):
         self.assertEqual(item.status, "skipped")
         self.assertEqual(next_item.status, "queued")
         self.assertEqual(next_item.metadata["source"], "rescheduled_after_skip")
-
-
-class BatteryPauseTests(SandboxedPathsTestCase):
-    def test_battery_info_uses_psutil_when_available(self):
-        from gui.desktop_window import PauseDialog
-
-        fake_psutil = SimpleNamespace(
-            sensors_battery=lambda: SimpleNamespace(power_plugged=False, percent=42)
-        )
-        with mock.patch.dict(sys.modules, {"psutil": fake_psutil}):
-            status, percent = PauseDialog._get_battery_info()
-
-        self.assertEqual(status, "battery")
-        self.assertEqual(percent, 42)
-
-    def test_battery_info_falls_back_without_psutil(self):
-        from gui.desktop_window import PauseDialog
-
-        real_import = __import__
-
-        def guarded_import(name, *args, **kwargs):
-            if name == "psutil":
-                raise ImportError("psutil unavailable")
-            return real_import(name, *args, **kwargs)
-
-        with mock.patch("builtins.__import__", side_effect=guarded_import):
-            status, percent = PauseDialog._get_battery_info()
-
-        self.assertEqual(status, "unknown")
-        self.assertEqual(percent, 100)

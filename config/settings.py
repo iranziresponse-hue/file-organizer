@@ -68,6 +68,46 @@ DEBUG = _secret_config.get("debug", os.environ.get("DJANGO_DEBUG", "False").lowe
 # needs to answer to any other Host header.
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
+# Without this, Django's own default logging config sends request-handling
+# errors (an unhandled exception in any view) to a mail_admins handler that
+# does nothing without configured ADMINS/an email backend, plus a console
+# handler that's only active when DEBUG=True. DEBUG=False is the shipped
+# default (see secret_config.json above) -- meaning, without this, a real
+# exception in the field leaves literally no trace anywhere: no log file, no
+# console output, nothing to diagnose from a bug report beyond "it broke."
+# A rotating file handler here means there's always somewhere to look.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "file": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(BASE_DIR / "orch-error.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["file"],
+        "level": "ERROR",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
+
 
 # Application definition
 
@@ -104,6 +144,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'organizer.context_processors.owner_console',
+                'organizer.context_processors.desktop_shell',
             ],
         },
     },
@@ -119,6 +160,22 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # Orch has no single "the server" thread touching this database:
+            # the watcher, background jobs, the dashboard's own requests,
+            # and the performance-metric writer all hit it from separate
+            # threads, often within the same moment (e.g. a sort landing
+            # while the dashboard is mid-render). SQLite's own default
+            # journal mode lets writers block readers and vice versa, and
+            # Python's sqlite3 default busy timeout is only 5s -- both of
+            # those are exactly what several call sites elsewhere were
+            # already defensively catching as "db down" instead of fixing
+            # at the root. WAL lets readers and one writer proceed without
+            # blocking each other; a longer timeout gives real contention
+            # more room before it actually surfaces as an error.
+            'timeout': 20,
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
+        },
     }
 }
 

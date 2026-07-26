@@ -1,44 +1,45 @@
 # Orch
 
-Orch keeps your downloads, files, projects, and drafts organized.
+Orch is a Windows app that keeps your files from getting lost in Downloads.
 
-Tell Orch what kind of work you are doing, choose the folder where that work
-should live, and let it watch your downloads. When new files arrive, Orch helps
-put them in the right place, keeps a record of what happened, and gives you
-simple pages for checking files, projects, notes, and publishing drafts.
+You tell Orch what you are working on, choose where those files should live,
+and keep using your laptop normally. When new files arrive, Orch helps put
+notes, assignments, past papers, reports, project files, and drafts in the
+right place.
 
-It is made for real day-to-day use: school work, online courses, work training,
-research, certificates, personal projects, and any folder system you already
-have.
+It is made for students, online learners, people doing work training,
+researchers, and anyone who wants a cleaner folder system without doing the
+same filing work every week.
 
 ## Get Orch
 
-Download the latest `Orch.exe` from the
-[Releases](../../releases) page.
+[Download Orch](../../releases/latest/download/Orch.exe) — clicking that link
+starts the download straight away, no extra steps. There is nothing to
+install: once it's done downloading, just open `Orch.exe` like any other
+Windows app.
 
-Put the file in a normal folder you can write to, then open it. Orch will guide
-you through the first setup.
+Orch will ask a few questions the first time you open it. After that, it can
+watch your Downloads folder and help keep new files in order.
 
-## What Orch Helps With
+## What Orch Does
 
-### Sort downloads
+### Keeps Downloads clean
 
-Orch watches the folder where your browser saves downloads. When a file lands
-there, Orch looks at the active profile and suggests or moves the file where it
-belongs.
+Orch watches for new files and moves the ones it understands into better
+folders.
 
-Examples:
+For example:
 
-- class notes into the right course folder
-- work documents into the right project folder
-- PDFs, slides, reports, books, media, and archives into clearer places
-- files Orch is unsure about into a review page instead of guessing
+- lecture notes can go into the right course folder
+- assignments can stay separate from past papers
+- reports, slides, PDFs, books, and media can stop mixing together
+- files Orch is unsure about can wait for your review
 
-### Keep different parts of life separate
+### Keeps different work separate
 
-A profile is one area of your life or work.
+You can make a profile for each part of your life.
 
-You can make profiles for:
+For example:
 
 - school
 - online courses
@@ -46,105 +47,88 @@ You can make profiles for:
 - research
 - certificates
 - personal projects
-- any custom setup
+- client work
 
-Each profile has its own folder, labels, subjects or topics, and dashboard.
-Switch profiles when your focus changes.
+Each profile has its own folders, labels, and history.
 
-### See what happened
+### Shows what happened
 
-Orch keeps a clear history of sorted files. You can search recent moves, see
-where a file went, and check why Orch placed it there.
+Orch keeps a clear list of recent file moves. You can search the list, see
+where a file went, and undo a move when something is wrong.
 
-If something went to the wrong place, move it again from inside Orch.
+### Helps with projects
 
-### Keep projects together
+The Projects page is for keeping useful work together.
 
-The Projects page gives you one place to save useful work:
+You can save:
 
 - what the project is
 - what problem it solves
-- the tools or skills used
+- the skills or tools you used
 - the project folder
-- GitHub link, if it has one
-- progress updates
-- notes worth sharing later
+- the project link, if it has one
+- progress notes
+- things worth sharing later
 
-It is not only for students. Use it for career work, side projects, research,
-client work, experiments, or anything you want to keep track of.
+This is useful for coursework, side projects, research, client work, and
+portfolio work.
 
-### Write and manage drafts
+### Helps with drafts
 
 Drafts are for posts, updates, notes, reflections, and website text.
 
-Orch can help you turn project updates or weekly work into a draft, but nothing
-is published automatically. You approve first. Publishing only happens when you
-click.
+Orch can help turn project updates or weekly work into a draft. Nothing is
+published until you choose to publish it.
 
-### Connect useful services
+### Connects only what you choose
 
-The Connections page shows what Orch can work with and what is already set up.
+The Connections page shows what Orch can connect to.
 
-Depending on your profile, Orch can connect with things like:
+Depending on your profile, you can add things like:
 
 - Google Drive backup
-- GitHub publishing
-- a custom website
+- GitHub project links
+- a personal website
 - MUELE for Makerere profiles
-- YouTube resources
-- smart summaries and draft help
+- study resources
+- optional writing help
 
-Connections are optional. Add only what helps you.
+You can ignore any connection you do not need.
 
-## For Makerere Users
+## Makerere Support
 
-If you are at Makerere, Orch can help you create a school profile with your
-college, school, programme, year, semester, and course units.
+If you study at Makerere, Orch can help you choose your college, school,
+programme, year, semester, and course units.
 
 Makerere profiles can also connect to MUELE so course files, deadlines, and
 calendar items are easier to follow from one place.
 
-If you are not a Makerere student, Orch still works normally. You can use it for
-work, research, online learning, certificates, or custom folders.
+If you are not a Makerere student, Orch still works. You can use it for work,
+research, online learning, certificates, or your own folders.
 
-## Smart Orch
-
-Smart Orch is optional.
-
-When turned on, it can help with summaries, course guides, better file matching,
-and draft polishing. When it is off, Orch still sorts files and keeps your pages
-organized.
-
-You control this from Settings.
-
-## What Orch Does Not Do
+## You Stay In Control
 
 Orch does not publish anything without your click.
 
 Orch does not need your GitHub or LinkedIn password.
 
-Orch does not force one folder style. You can point it at folders you already
-use.
+Orch does not force one folder style.
 
-Orch does not hide uncertain files. If it is not sure, it sends them to a place
-where you can review them.
+Orch does not hide uncertain files. If it is not sure, it leaves the file for
+you to check.
 
-## Getting Started
+## Start
 
-1. Download `Orch.exe` from Releases.
-2. Put it in a folder you can write to.
-3. Open Orch.
-4. Create your first profile.
-5. Choose the folder where that profile's files should live.
-6. Point your browser downloads to the folder Orch watches.
-7. Let Orch help keep new files in order.
+1. Click [Download Orch](../../releases/latest/download/Orch.exe).
+2. Open `Orch.exe`.
+3. Create your first profile.
+4. Choose where that profile's files should live.
+5. Let Orch help keep new downloads in order.
 
-## Need Help?
+## Help
 
-Orch has a support button inside the app. Use it to send a message when
-something is confusing, broken, or not behaving the way you expected.
-
-For a fuller walkthrough of every page, see [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+Orch has a support button inside the app. Use it when something is confusing,
+broken, or not behaving the way you expected.
 
 ## License
 

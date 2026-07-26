@@ -56,7 +56,7 @@
                     </svg>
                     Edit
                 </a>
-                <form method="post" action="{% url 'profile_delete' p.pk %}" onsubmit="return confirm('Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.');">
+                <form method="post" action="{% url 'profile_delete' p.pk %}" data-confirm="Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.">
                     {% csrf_token %}
                     <button type="submit" class="button-ghost button-danger">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">

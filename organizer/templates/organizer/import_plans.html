@@ -167,7 +167,7 @@
             .then(function (data) {
                 if (!data.ok) {
                     startBtn.disabled = false;
-                    alert(data.error || 'Could not start the sort.');
+                    window.showToast(data.error || 'Could not start the sort.', 'error');
                     return;
                 }
                 currentTaskId = data.task_id;
@@ -205,7 +205,7 @@
             })
             .catch(function () {
                 startBtn.disabled = false;
-                alert('Could not reach Orch. Try again.');
+                window.showToast('Could not reach Orch. Try again.', 'error');
             });
     });
 

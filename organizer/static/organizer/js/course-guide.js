@@ -53,7 +53,7 @@
                 btn.disabled = false;
                 if (data.error) {
                     btn.textContent = originalText;
-                    window.alert(data.error);
+                    window.showToast(data.error, 'error');
                     return;
                 }
                 btn.textContent = code;
@@ -63,7 +63,7 @@
             .catch(function () {
                 btn.disabled = false;
                 btn.textContent = originalText;
-                window.alert('Something went wrong generating this guide. Try again.');
+                window.showToast('Something went wrong generating this guide. Try again.', 'error');
             });
     }
 

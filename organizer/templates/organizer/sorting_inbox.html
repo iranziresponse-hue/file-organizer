@@ -9,7 +9,7 @@
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
             <h2>Decision inbox</h2>
-            <p>Files Orch held or suggested instead of moving silently. Every row explains why: approve, teach Orch to always do this, move it somewhere else, or reject the suggestion.</p>
+            <p>Files Orch paused before moving. You can approve a suggestion, choose a different folder, or clear the row and leave the file where it is.</p>
         </div>
         <a class="button button-ghost" href="{% url 'study_home' %}">Back</a>
     </section>
@@ -17,13 +17,19 @@
     <section class="stat-row" id="inbox-stats">
         <div class="stat stat-primary"><div class="value" id="stat-pending">{{ stats.pending }}</div><div class="label">Pending</div></div>
         <div class="stat"><div class="value" id="stat-approved" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
-        <div class="stat"><div class="value" id="stat-rejected" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Rejected</div></div>
+        <div class="stat"><div class="value" id="stat-rejected" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Cleared</div></div>
         <div class="stat"><div class="value" id="stat-moved" style="color:var(--cyan);">{{ stats.moved }}</div><div class="label">Auto-moved</div></div>
     </section>
 
     {% if pending_items %}
     <section class="card compact-card">
-        <div class="card-header"><div><h2>Pending items (<span id="pending-count">{{ pending_items|length }}</span>)</h2></div></div>
+        <div class="card-header">
+            <div><h2>Pending items (<span id="pending-count">{{ pending_items|length }}</span>)</h2></div>
+            <form method="post" action="{% url 'inbox_clear_all' %}" class="inline-form" data-confirm="Clear all pending items? Files will stay where they are.">
+                {% csrf_token %}
+                <button type="submit" class="button-ghost button-danger-soft">Clear all</button>
+            </form>
+        </div>
         <div class="profile-list" id="pending-list">
             {% for item in pending_items %}
             <article class="profile-row" data-pk="{{ item.pk }}" style="grid-template-columns: minmax(200px,1.6fr) minmax(90px,0.4fr) auto;">
@@ -56,7 +62,7 @@
                     <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Move somewhere else</button>
                     <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reject</button>
+                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Leave the file where it is and remove this row">Clear</button>
                     </form>
                     <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
                         {% csrf_token %}

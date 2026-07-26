@@ -11,7 +11,7 @@
             <h2>Grade target planner</h2>
             <p>Set your coursework, test, and exam weights per subject, and see exactly what you need in the exam to hit your target.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="card compact-card">
@@ -77,7 +77,7 @@
                     </strong>
                 </div>
                 <div class="profile-actions">
-                    <form method="post" action="{% url 'grade_target_delete' row.target.pk %}" onsubmit="return confirm('Delete this grade target?');">
+                    <form method="post" action="{% url 'grade_target_delete' row.target.pk %}" data-confirm="Delete this grade target?">
                         {% csrf_token %}
                         <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
                     </form>

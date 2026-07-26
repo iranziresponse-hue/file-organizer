@@ -200,10 +200,10 @@ class StudyViewsTests(SandboxedPathsTestCase):
         self.assertContains(response, "Next best action")
         self.assertContains(response, "Live activity feed")
         self.assertContains(response, "App status")
-        self.assertContains(response, "File watcher")
+        self.assertContains(response, "Downloads folder")
         self.assertContains(response, "Focus Mode")
         self.assertContains(response, "Why:")
-        self.assertContains(response, "Command palette")
+        self.assertContains(response, "Search Orch")
 
     def test_focus_mode_post_creates_real_session(self):
         profile = self.make_profile()

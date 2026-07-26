@@ -77,7 +77,7 @@
             {% elif ai_enabled %}
             <p class="help-text">Not generated yet.</p>
             {% else %}
-            <p class="help-text">Not generated yet; needs Smart Orch turned on in Settings.</p>
+            <p class="help-text">Not generated yet; writing help needs to be turned on in Settings.</p>
             {% endif %}
         </div>
         {% endfor %}
@@ -145,7 +145,7 @@
     </section>
 
     <section class="card compact-card">
-        <form method="post" action="{% url 'content_draft_delete' draft.pk %}" onsubmit="return confirm('Delete this draft?');">
+        <form method="post" action="{% url 'content_draft_delete' draft.pk %}" data-confirm="Delete this draft?">
             {% csrf_token %}
             <button type="submit" class="button-ghost button-danger-soft">Delete draft</button>
         </form>

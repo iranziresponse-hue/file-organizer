@@ -11,7 +11,7 @@
             <h2>Portable knowledge packs</h2>
             <p>Export your study materials, summaries, and guides as a standalone ZIP bundle - perfect for offline access, sharing, or archive.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <!-- Create new pack -->
@@ -116,7 +116,7 @@
                         Download ZIP
                     </a>
                     {% endif %}
-                    <form method="post" action="{% url 'export_delete' bundle.pk %}" style="display:inline;" onsubmit="return confirm('Delete this knowledge pack?');">
+                    <form method="post" action="{% url 'export_delete' bundle.pk %}" style="display:inline;" data-confirm="Delete this knowledge pack?">
                         {% csrf_token %}
                         <button type="submit" class="button-ghost" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">Delete</button>
                     </form>

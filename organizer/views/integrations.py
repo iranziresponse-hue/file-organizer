@@ -196,6 +196,19 @@ def _profile_uses_learning_tools(profile):
     return bool(profile and (profile.purpose in {"school", "online"} or profile.setup_path == "makerere"))
 
 
+def _has_saved_timetable(connection):
+    config = connection.config if connection and connection.config else {}
+    return bool(connection and config.get("group"))
+
+
+def _publishing_ready(channels):
+    return channels.filter(status__in=["connected", "configured"]).exists()
+
+
+def _publishing_needs_key(channels):
+    return channels.filter(status="needs_key").exists()
+
+
 @perf.measure_view
 def connections_home(request):
     """Unified service map for everything Orch can connect to.
@@ -222,6 +235,8 @@ def connections_home(request):
     muele = connection("muele")
     timetable = connection("mak_timetable")
     timetable_entries = TimetableEntry.objects.filter(profile=profile).count() if profile else 0
+    muele_saved = bool(muele and (muele.status == "connected" or muele.username or muele.last_sync_at))
+    timetable_saved = _has_saved_timetable(timetable)
     ai_config = ai_classify.load_ai_config() or {}
     youtube_config = youtube_api.load_youtube_config() or {}
     drive_config = drive_api.load_drive_config() or {}
@@ -244,25 +259,26 @@ def connections_home(request):
         _connection_card(
             title="Makerere MUELE",
             area="Learning files",
-            status="connected" if muele and muele.status == "connected" else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
-            status_label="Connected" if muele and muele.status == "connected" else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
+            status="connected" if muele_saved else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
+            status_label="Connected" if muele_saved else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
             detail=(
                 f"Connected as {muele.username}" if muele and muele.username
+                else f"Saved. Last sync {_short_timesince(muele.last_sync_at)}." if muele and muele.last_sync_at
                 else "Bring in course files, assignment dates, and learning activity when this profile needs it."
             ),
             reason="Useful for Makerere profiles. Other profiles can ignore it and still use Orch normally.",
-            action=_connection_action(reverse("muele_courses") if muele and muele.status == "connected" else reverse("muele_connect") if has_profile else profile_setup_url, "Manage" if muele and muele.status == "connected" else "Set up" if has_profile else "Create profile"),
+            action=_connection_action(reverse("muele_courses") if muele_saved else reverse("muele_connect") if has_profile else profile_setup_url, "Manage" if muele_saved else "Set up" if has_profile else "Create profile"),
             meta=f"Last sync {_short_timesince(muele.last_sync_at)}" if muele and muele.last_sync_at else "Makerere",
             scope=profile.name if profile else "No active profile",
         ),
         _connection_card(
             title="Makerere Timetable",
             area="Schedule",
-            status="connected" if timetable and timetable_entries else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
-            status_label="Connected" if timetable and timetable_entries else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
-            detail=f"{timetable_entries} timetable entries synced." if timetable_entries else "Add a timetable for classes, sessions, tests, exams, or training times.",
+            status="connected" if timetable_saved else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
+            status_label="Connected" if timetable_saved else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
+            detail=f"{timetable_entries} timetable entries synced." if timetable_entries else f"Saved for {timetable.config.get('group')}." if timetable_saved else "Add a timetable for classes, sessions, tests, exams, or training times.",
             reason="Useful when this profile has time-based work. It should not be required for ordinary file sorting.",
-            action=_connection_action(reverse("timetable_view") if timetable and timetable_entries else reverse("timetable_connect") if has_profile else profile_setup_url, "View" if timetable and timetable_entries else "Set up" if has_profile else "Create profile"),
+            action=_connection_action(reverse("timetable_view") if timetable_saved else reverse("timetable_connect") if has_profile else profile_setup_url, "View" if timetable_saved else "Set up" if has_profile else "Create profile"),
             meta=timetable.config.get("group", "") if timetable and timetable.config else "Timetable",
             scope=profile.name if profile else "No active profile",
         ),
@@ -290,24 +306,24 @@ def connections_home(request):
         ),
     ]
 
-    intelligence_cards = [
+    helper_cards = [
         _connection_card(
-            title="Smart Orch API",
-            area="Reasoning layer",
-            status="connected" if ai_config.get("enabled") and ai_config.get("api_key") else "setup",
-            status_label="Connected" if ai_config.get("enabled") and ai_config.get("api_key") else "Set up",
-            detail="Summaries and fallback routing are active." if ai_config.get("enabled") and ai_config.get("api_key") else "Optional API key not configured.",
-            reason="Useful for summaries and suggestions, but Orch still sorts locally without it.",
+            title="Summaries and writing help",
+            area="Writing",
+            status="connected" if ai_config.get("enabled") and ai_config.get("api_key") else "saved" if ai_config.get("api_key") else "setup",
+            status_label="Connected" if ai_config.get("enabled") and ai_config.get("api_key") else "Saved" if ai_config.get("api_key") else "Set up",
+            detail="Summaries and extra folder suggestions are ready." if ai_config.get("enabled") and ai_config.get("api_key") else "Access key saved. Turn it on when you want writing help." if ai_config.get("api_key") else "Optional writing help is not set up yet.",
+            reason="Useful for summaries, draft polishing, course guides, and one extra suggestion when normal sorting is unsure.",
             action=_connection_action(reverse("settings_edit"), "Manage" if ai_config.get("api_key") else "Set up"),
             meta="Optional",
             scope="App-wide",
         ),
         _connection_card(
-            title="YouTube Data API",
+            title="YouTube recommendations",
             area="Resource Radar",
-            status="connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "add",
-            status_label="Connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "Add",
-            detail="Real video picks are enabled." if youtube_config.get("enabled") and youtube_config.get("api_key") else "Resource Radar still works with search links.",
+            status="connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "saved" if youtube_config.get("api_key") else "add",
+            status_label="Connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "Saved" if youtube_config.get("api_key") else "Add",
+            detail="Real video picks are enabled." if youtube_config.get("enabled") and youtube_config.get("api_key") else "YouTube key saved. Turn it on when you want direct video picks." if youtube_config.get("api_key") else "Resource Radar still works with search links.",
             reason="Add it when you want Orch to pick specific videos for saved topics instead of giving a search query.",
             action=_connection_action(reverse("settings_edit"), "Manage" if youtube_config.get("api_key") else "Add"),
             meta="Optional",
@@ -330,8 +346,8 @@ def connections_home(request):
         _connection_card(
             title="Google Drive Backup",
             area="Cloud backup",
-            status="connected" if drive_connected else "setup" if drive_ready else "add",
-            status_label="Connected" if drive_connected else "Set up" if drive_ready else "Add",
+            status="connected" if drive_connected else "saved" if drive_ready else "add",
+            status_label="Connected" if drive_connected else "Ready to connect" if drive_ready else "Add",
             detail=(
                 f"Connected{f' as {drive_email}' if drive_email else ''}."
                 if drive_connected else
@@ -345,7 +361,7 @@ def connections_home(request):
         ),
         _connection_card(
             title="Local Folder Watcher",
-            area="Local automation",
+            area="Local sorting",
             status="connected",
             status_label="Connected",
             detail=f"Watching {AppSettings.get_solo().downloads_path}",
@@ -371,8 +387,8 @@ def connections_home(request):
         _connection_card(
             title="Custom Website API",
             area="Publishing",
-            status="connected" if custom_channels.filter(status="connected").exists() else "add",
-            status_label="Connected" if custom_channels.filter(status="connected").exists() else "Add",
+            status="connected" if _publishing_ready(custom_channels) else "saved" if custom_channels.exists() else "add",
+            status_label="Connected" if _publishing_ready(custom_channels) else "Saved" if custom_channels.exists() else "Add",
             detail=f"{custom_channels.count()} website channel{'s' if custom_channels.count() != 1 else ''} configured." if custom_channels.exists() else "Connect your own website or blog endpoint.",
             reason="This is the most flexible route: Orch keeps the draft here, waits for your click, then sends it to your own site.",
             action=_connection_action(publishing_url, "Manage" if custom_channels.exists() else "Add" if has_profile else "Create profile"),
@@ -382,8 +398,8 @@ def connections_home(request):
         _connection_card(
             title="GitHub Publishing",
             area="Publishing",
-            status="connected" if github_channels.filter(status="connected").exists() else "setup" if github_channels.exists() else "add",
-            status_label="Connected" if github_channels.filter(status="connected").exists() else "Set up" if github_channels.exists() else "Add",
+            status="connected" if _publishing_ready(github_channels) else "saved" if github_channels.exists() else "add",
+            status_label="Connected" if _publishing_ready(github_channels) else "Needs token" if _publishing_needs_key(github_channels) else "Saved" if github_channels.exists() else "Add",
             detail=f"{github_channels.count()} repo channel{'s' if github_channels.count() != 1 else ''} configured." if github_channels.exists() else "Publish approved posts as commits to a repo.",
             reason="Useful when you want approved drafts to become dated commits in a repo you own.",
             action=_connection_action(publishing_url, "Manage" if github_channels.exists() else "Add" if has_profile else "Create profile"),
@@ -416,12 +432,12 @@ def connections_home(request):
 
     groups = [
         {"title": "Learning tools", "detail": "Optional course, timetable, review, and resource helpers.", "cards": academic_cards},
-        {"title": "Smart help", "detail": "Optional APIs that make summaries and recommendations sharper.", "cards": intelligence_cards},
+        {"title": "Extra help", "detail": "Optional services for summaries, writing, and better recommendations.", "cards": helper_cards},
         {"title": "Storage and workspace", "detail": "Where Orch watches, backs up, or may export your work.", "cards": storage_cards},
         {"title": "Publishing", "detail": "Where approved drafts can go after your click.", "cards": publishing_cards},
     ]
     all_cards = [card for group in groups for card in group["cards"]]
-    connected_count = sum(1 for card in all_cards if card["status"] == "connected")
+    connected_count = sum(1 for card in all_cards if card["status"] in {"connected", "saved"})
     actionable_count = sum(1 for card in all_cards if card["status"] in {"add", "setup"})
     blocked_count = sum(1 for card in all_cards if card["status"] in {"blocked", "not_connected", "error", "needs_key"})
     next_action = next((card for card in all_cards if card["status"] == "setup"), None) or next(

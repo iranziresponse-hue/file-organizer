@@ -426,7 +426,7 @@ def content_draft_polish(request, pk):
                 draft.save()
                 messages.success(request, f"Generated the {style} version.")
             else:
-                messages.error(request, "Smart Orch isn't turned on, or the request failed. Set it up from Settings.")
+                messages.error(request, "Writing help isn't turned on, or the request failed. Set it up from Settings.")
     return redirect("content_draft_detail", pk=pk)
 
 
@@ -510,7 +510,7 @@ def publishing_channels(request):
                 else:
                     channel.status = "configured"
                     channel.save(update_fields=["status", "updated_at"])
-                    messages.success(request, f"Saved {display_name}. It'll show as connected once you publish something.")
+                    messages.success(request, f"Saved {display_name}. You can manage it from Publishing channels.")
             else:
                 messages.success(request, f"Channel saved, but you'll need to add a token before you can publish to {display_name}.")
             return redirect("publishing_channels")
@@ -539,9 +539,9 @@ def publishing_channels(request):
                 channel.save(update_fields=["status", "updated_at"])
                 messages.error(request, f"Channel saved, but the key couldn't be stored securely: {error_message}")
             else:
-                messages.success(request, f"Saved {display_name}. It'll show as connected once you publish something.")
+                messages.success(request, f"Saved {display_name}. You can manage it from Publishing channels.")
         else:
-            messages.success(request, f"Saved {display_name} (no API key set).")
+            messages.success(request, f"Saved {display_name}. Add a key later if you want one-click publishing.")
         return redirect("publishing_channels")
 
     channels = IntegrationConnection.objects.filter(

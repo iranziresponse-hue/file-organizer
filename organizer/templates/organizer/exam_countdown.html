@@ -11,7 +11,7 @@
             <h2>Exam countdown</h2>
             <p>Days left per paper, revision coverage, and what to study today, built from your synced timetable and review queue.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="card compact-card">
@@ -78,7 +78,7 @@
                 </div>
             </div>
             {% if row.entry.course_code %}
-            <a class="button button-ghost" href="{% url 'subject_memory_detail' row.entry.course_code %}" style="margin-top:12px;">Open course brain</a>
+            <a class="button button-ghost" href="{% url 'subject_memory_detail' row.entry.course_code %}" style="margin-top:12px;">Open course notes</a>
             {% endif %}
         </div>
         {% endfor %}

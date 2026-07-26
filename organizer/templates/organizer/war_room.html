@@ -1,17 +1,17 @@
 {% extends "organizer/base.html" %}
 {% load orch_extras %}
 
-{% block title %}Semester War Room - Orch{% endblock %}
+{% block title %}Focus Plan - Orch{% endblock %}
 
 {% block content %}
 <div class="page-stack page-center page-wide">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Semester war room</h2>
+            <h2>Focus plan</h2>
             <p>What should you do now to pass highly? Everything on this page is built from your own local data.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'study_home' %}">Back to cockpit</a>
+        <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
     <section class="card compact-card" style="border-color:var(--cyan);">
@@ -105,7 +105,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text">Run Past Paper Intelligence for a subject to populate this.</p>
+            <p class="help-text">Run a past paper review for a subject to fill this in.</p>
             {% endif %}
         </div>
 

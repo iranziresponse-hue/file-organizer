@@ -27,10 +27,19 @@
                 var rect = trigger.getBoundingClientRect();
                 var viewportWidth = document.documentElement.clientWidth;
                 var viewportHeight = document.documentElement.clientHeight;
+                var topBound = document.body.classList.contains('has-desktop-titlebar') ? 38 : margin;
+                var bottomBound = viewportHeight - margin;
+
+                if (menu.parentElement !== document.body) {
+                    document.body.appendChild(menu);
+                }
 
                 menu.hidden = false;
                 menu.classList.add('is-positioning');
                 menu.style.width = '';
+                menu.style.maxHeight = '';
+                menu.style.left = '0px';
+                menu.style.top = '0px';
 
                 var menuRect = menu.getBoundingClientRect();
                 var maxWidth = Math.max(180, viewportWidth - margin * 2);
@@ -43,21 +52,20 @@
                     Math.max(margin, rect.right - menuRect.width),
                     viewportWidth - menuRect.width - margin
                 );
-                var below = rect.bottom + gap;
-                var above = rect.top - menuRect.height - gap;
-                var top = below;
-                var placement = 'bottom';
-
-                if (below + menuRect.height > viewportHeight - margin && above >= margin) {
-                    top = above;
-                    placement = 'top';
-                } else {
-                    top = Math.min(below, viewportHeight - menuRect.height - margin);
-                }
+                var availableBelow = bottomBound - rect.bottom - gap;
+                var availableAbove = rect.top - topBound - gap;
+                var opensAbove = availableBelow < Math.min(menuRect.height, 120) && availableAbove > availableBelow;
+                var available = opensAbove ? availableAbove : availableBelow;
+                if (available < 72) available = Math.max(72, bottomBound - topBound);
+                var menuHeight = Math.min(menuRect.height, available);
+                menu.style.maxHeight = Math.round(menuHeight) + 'px';
+                menuRect = menu.getBoundingClientRect();
+                var top = opensAbove ? rect.top - gap - menuRect.height : rect.bottom + gap;
+                top = Math.min(Math.max(topBound, top), bottomBound - menuRect.height);
 
                 menu.style.left = Math.round(left) + 'px';
-                menu.style.top = Math.round(Math.max(margin, top)) + 'px';
-                menu.dataset.placement = placement;
+                menu.style.top = Math.round(top) + 'px';
+                menu.dataset.placement = opensAbove ? 'top' : 'bottom';
                 menu.classList.remove('is-positioning');
             }
 
@@ -131,7 +139,9 @@
             });
 
             window.addEventListener('resize', function () { close(false); });
-            window.addEventListener('scroll', function () { close(false); }, true);
+            window.addEventListener('scroll', function () {
+                close(false);
+            }, true);
 
             window.OrchDropdowns = {
                 close: close,
