@@ -45,6 +45,8 @@ _user32.CallWindowProcW.restype = ctypes.c_ssize_t
 _user32.CallWindowProcW.argtypes = [
     ctypes.c_void_p, wintypes.HWND, ctypes.c_uint, wintypes.WPARAM, wintypes.LPARAM,
 ]
+_user32.DefWindowProcW.restype = ctypes.c_ssize_t
+_user32.DefWindowProcW.argtypes = [wintypes.HWND, ctypes.c_uint, wintypes.WPARAM, wintypes.LPARAM]
 _user32.SetWindowPos.restype = wintypes.BOOL
 _user32.SetWindowPos.argtypes = [
     wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint,
@@ -83,6 +85,15 @@ def _enable_native_window_styles(hwnd):
 class _ResizeHook:
     def __init__(self, hwnd):
         self.hwnd = hwnd
+        # Set before SetWindowLongPtrW below, not after: Windows can (and
+        # does, in practice) call straight into _new_proc synchronously as
+        # part of that same call, before it has returned the previous
+        # window proc for us to store. Without this placeholder, that
+        # reentrant call would hit _wnd_proc with no _old_proc attribute
+        # yet and crash as an unraisable exception in the ctypes callback --
+        # exactly the "AttributeError: '_ResizeHook' object has no
+        # attribute '_old_proc'" crash this was fixed for.
+        self._old_proc = None
         self._new_proc = _WNDPROC(self._wnd_proc)
         self._old_proc = _user32.SetWindowLongPtrW(hwnd, _GWLP_WNDPROC, self._new_proc)
 
@@ -94,6 +105,13 @@ class _ResizeHook:
                 hit = None
             if hit is not None:
                 return hit
+        if self._old_proc is None:
+            # Reentrant call during installation itself (see __init__) --
+            # the real previous window proc isn't known yet, so fall back
+            # to the OS default rather than crash. Only ever hit for the
+            # handful of messages Windows sends synchronously while
+            # SetWindowLongPtrW is still executing.
+            return _user32.DefWindowProcW(hwnd, msg, wparam, lparam)
         return _user32.CallWindowProcW(self._old_proc, hwnd, msg, wparam, lparam)
 
     def _hit_test(self, lparam):

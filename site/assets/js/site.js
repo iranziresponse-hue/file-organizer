@@ -72,13 +72,13 @@
             '    <button type="button" class="support-close" aria-label="Close support form">Close</button>',
             '    <span class="eyebrow">Support</span>',
             '    <h2 id="support-title">Contact Orch Support</h2>',
-            '    <p>Share your question, issue, missing course detail, or feedback. When you send, your email app opens with the message prepared.</p>',
+            '    <p>Share your question, issue, missing course detail, or feedback. This site has no server of its own, so the next step opens your email app with the message already filled in -- you send it from there.</p>',
             '    <form class="support-form">',
             '        <label for="support-subject">Subject</label>',
             '        <input id="support-subject" name="subject" type="text" placeholder="Example: MUELE courses are not showing" required>',
             '        <label for="support-body">Message</label>',
             '        <textarea id="support-body" name="body" rows="7" placeholder="Include the page, the action you tried, what you expected, and what happened." required></textarea>',
-            '        <button type="submit" class="btn btn-primary">Send message</button>',
+            '        <button type="submit" class="btn btn-primary">Open in your email app</button>',
             '    </form>',
             '</div>'
         ].join('');
