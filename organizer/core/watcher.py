@@ -186,7 +186,7 @@ def _move_one_safely(file_path: Path):
         write_log(f"FAILED to process '{file_path.name}', skipping it this cycle: {exc!r}")
 
 
-def run_watcher(stop_event=None, poll_seconds=3):
+def run_watcher(stop_event=None, poll_seconds=3, max_poll_seconds=15):
     """Blocking polling loop. stop_event: threading.Event, checked each cycle
     so a GUI can stop this cleanly from another thread. Pass a fresh Event
     per run so start/stop/start works without leftover state.
@@ -194,6 +194,14 @@ def run_watcher(stop_event=None, poll_seconds=3):
     Both watched folders come from AppSettings, re-read every cycle so
     editing them in the dashboard takes effect on the next poll, no restart
     needed.
+
+    Idle backoff: poll_seconds is the fast interval used right after real
+    activity (a file was found and moved); every empty cycle in a row backs
+    the wait off by poll_seconds more, up to max_poll_seconds, so a watcher
+    that's had nothing to do for a while stops waking the disk/DB up every
+    few seconds. The moment a file shows up, the very next cycle drops back
+    to poll_seconds -- this only trims cost during genuinely idle stretches,
+    never the responsiveness right after a real download.
 
     CRITICAL: the secondary folder must NEVER be swept in full -- only files
     created/modified AFTER this process started. Its historical backlog
@@ -231,13 +239,16 @@ def run_watcher(stop_event=None, poll_seconds=3):
         f"(poll mode, secondary folder new-files-only since {watcher_start_time:%Y-%m-%d %H:%M:%S})"
     )
     last_installer_cleanup = datetime.now()
+    current_interval = poll_seconds
 
     while stop_event is None or not stop_event.is_set():
         downloads, downloads2 = _watched_paths()
+        activity_this_cycle = False
 
         try:
             for item in downloads.iterdir():
                 if item.is_file():
+                    activity_this_cycle = True
                     _move_one_safely(item)
         except OSError:
             pass
@@ -251,6 +262,7 @@ def run_watcher(stop_event=None, poll_seconds=3):
                     created = datetime.fromtimestamp(stat.st_ctime)
                     modified = datetime.fromtimestamp(stat.st_mtime)
                     if created > watcher_start_time or modified > watcher_start_time:
+                        activity_this_cycle = True
                         _move_one_safely(item)
         except OSError:
             pass
@@ -262,7 +274,12 @@ def run_watcher(stop_event=None, poll_seconds=3):
                 write_log(f"Installer cleanup cycle failed, will retry next hour: {exc!r}")
             last_installer_cleanup = datetime.now()
 
-        if stop_event is not None:
-            stop_event.wait(poll_seconds)
+        if activity_this_cycle:
+            current_interval = poll_seconds
         else:
-            time.sleep(poll_seconds)
+            current_interval = min(current_interval + poll_seconds, max_poll_seconds)
+
+        if stop_event is not None:
+            stop_event.wait(current_interval)
+        else:
+            time.sleep(current_interval)

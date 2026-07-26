@@ -61,15 +61,36 @@
         }
     }
 
+    var timerId = null;
+
+    function scheduleNext() {
+        timerId = setTimeout(tick, POLL_MS);
+    }
+
     function tick() {
+        // The window is hidden (minimized to tray) rather than destroyed on
+        // close, see gui/main_window.py's _on_closing -- without this check
+        // this timer would keep hitting the database every 20s for as long
+        // as Orch runs in the background, even while nobody is looking at
+        // it. Skip the actual work, just keep the loop alive so it's ready
+        // to resume the moment the page is visible again.
+        if (document.hidden) {
+            scheduleNext();
+            return;
+        }
         fetch('/api/status-bar/', { credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
             .then(render)
             .catch(function () {})
-            .then(function () {
-                setTimeout(tick, POLL_MS);
-            });
+            .then(scheduleNext);
     }
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            if (timerId) clearTimeout(timerId);
+            tick();
+        }
+    });
 
     tick();
 })();

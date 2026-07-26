@@ -334,6 +334,58 @@ class RunWatcherAndInstallerCleanupTests(SandboxedPathsTestCase):
         self.assertIn("bad.pdf", logged)
         self.assertIn("FAILED", logged)
 
+    def test_idle_cycles_back_off_the_poll_interval_up_to_the_cap(self):
+        # No files ever appear in this test, so every cycle is "idle" --
+        # the wait between cycles should grow by poll_seconds each time,
+        # capped at max_poll_seconds, instead of staying at poll_seconds
+        # forever regardless of whether anything is happening.
+        self.make_settings(secondary_downloads_path="")
+        self.downloads.mkdir(parents=True, exist_ok=True)
+
+        stop_event = threading.Event()
+        call_count = {"n": 0}
+        waits = []
+
+        def fake_wait(seconds):
+            waits.append(seconds)
+            call_count["n"] += 1
+            if call_count["n"] >= 5:
+                stop_event.set()
+
+        with mock.patch.object(stop_event, "wait", side_effect=fake_wait):
+            watcher.run_watcher(stop_event=stop_event, poll_seconds=3, max_poll_seconds=10)
+
+        self.assertEqual(waits, [6, 9, 10, 10, 10])
+
+    def test_activity_resets_the_poll_interval_to_the_base(self):
+        self.make_settings(secondary_downloads_path="")
+        expected_dir = self.personal_root / "Media" / "Images"
+        self.make_category("media", destination_path=str(expected_dir), mode="auto")
+        self.downloads.mkdir(parents=True, exist_ok=True)
+
+        stop_event = threading.Event()
+        waits = []
+        cycle = {"n": 0}
+
+        def fake_wait(seconds):
+            waits.append(seconds)
+            cycle["n"] += 1
+            if cycle["n"] == 2:
+                # A file lands only in time for the 3rd cycle, after two
+                # idle cycles have already backed the interval off.
+                target = self.downloads / "photo.png"
+                target.write_bytes(b"data")
+                _age(target, 10)
+            if cycle["n"] >= 3:
+                stop_event.set()
+
+        with mock.patch.object(stop_event, "wait", side_effect=fake_wait):
+            watcher.run_watcher(stop_event=stop_event, poll_seconds=3, max_poll_seconds=10)
+
+        # Cycle 1 idle (3 -> 6), cycle 2 idle (6 -> 9), cycle 3 finds the
+        # file that appeared during cycle 2's wait and resets back to 3.
+        self.assertEqual(waits, [6, 9, 3])
+
     def test_installer_cleanup_uses_configured_thresholds(self):
         # 2 days old clears the stale threshold (moves to _ToReview) but not
         # the delete threshold (stays there, not deleted), so this exercises

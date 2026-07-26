@@ -87,6 +87,7 @@ class OrchMainWindow:
         )
         self.window.events.closing += self._on_closing
         self.window.events.shown += self._on_shown
+        self.window.events.loaded += self._on_loaded
         self._resize_border_installed = False
 
     def _on_shown(self):
@@ -106,6 +107,24 @@ class OrchMainWindow:
                 resize_border.install(hwnd)
         except Exception:
             pass
+
+    def _on_loaded(self):
+        # The same WebView2 compositor-desync glitch schedule_repaint_nudge()
+        # already works around for minimize/maximize/restore/fullscreen (see
+        # its own docstring) also hits the very first paint: the window is
+        # created hidden, gui/app.py navigates it to desktop-shell/ while
+        # it's still hidden, and only shows it afterward -- so the swap
+        # chain's first real content lands while there's no visible frame
+        # to have already resynced against. Confirmed by direct testing
+        # (CDP-inspecting the live page: the DOM and computed CSS are
+        # already correct -- data-theme, colors, button positions all
+        # match the intended light theme -- so this is a stale composited
+        # frame, not a template/CSS bug). The custom titlebar renders as a
+        # flat, dark, button-less strip until something forces a resize,
+        # and this event -- pywebview's own "the page finished loading"
+        # signal -- is the first reliable point after real content exists
+        # to do that.
+        self.schedule_repaint_nudge()
 
     def show(self):
         self.window.show()
