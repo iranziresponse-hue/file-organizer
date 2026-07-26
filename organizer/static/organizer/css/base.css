@@ -3769,6 +3769,147 @@
             padding: 5px 10px;
             font-size: 0.76rem;
         }
+        /* Dashboard: plain, even cards instead of command-center panels. */
+        .mission-control {
+            min-height: auto;
+            border-radius: 18px;
+            border-color: rgba(255, 255, 255, 0.14);
+            background: rgba(8, 11, 20, 0.54);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .mission-control::before,
+        .priority-arrival::before {
+            display: none;
+        }
+
+        .mission-main h2 {
+            max-width: 18ch;
+            font-size: 3.1rem;
+            line-height: 1.02;
+            font-weight: 800;
+        }
+
+        .mission-main p {
+            color: var(--muted);
+        }
+
+        .mission-status {
+            grid-auto-rows: 1fr;
+        }
+
+        .mission-signal {
+            min-height: 116px;
+            height: 100%;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .mission-signal.is-live,
+        .mission-signal.is-warning {
+            background: rgba(255, 255, 255, 0.055);
+        }
+
+        .priority-deck {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: stretch;
+        }
+
+        .priority-card {
+            min-height: 188px;
+            height: 100%;
+            border-radius: 16px;
+            background: rgba(8, 11, 20, 0.44);
+            box-shadow: var(--shadow-soft);
+            transition: border-color var(--ease), background var(--ease);
+        }
+
+        .priority-card::before,
+        .priority-index {
+            display: none;
+        }
+
+        .priority-card:hover {
+            transform: none;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .priority-card h3 {
+            max-width: none;
+            line-height: 1.18;
+        }
+
+        .priority-card p {
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .service-board {
+            border-color: rgba(255, 255, 255, 0.14);
+            background: rgba(8, 11, 20, 0.5);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .service-board-hero,
+        .service-board-header {
+            grid-template-columns: minmax(0, 1fr) minmax(240px, 0.42fr);
+        }
+
+        .service-orbit,
+        .service-meter {
+            display: none;
+        }
+
+        .service-lanes,
+        .service-list {
+            align-items: stretch;
+        }
+
+        .service-list {
+            grid-auto-rows: 1fr;
+        }
+
+        .service-lane,
+        .service-node,
+        .service-priority {
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .service-node {
+            height: 100%;
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .service-signal {
+            display: none;
+        }
+
+        .service-node:hover {
+            transform: none;
+        }
+
+        html[data-theme="light"] .mission-control,
+        html[data-theme="light"] .mission-signal,
+        html[data-theme="light"] .priority-card,
+        html[data-theme="light"] .service-board,
+        html[data-theme="light"] .service-lane,
+        html[data-theme="light"] .service-node,
+        html[data-theme="light"] .service-priority {
+            background: #FFFFFF;
+            border-color: rgba(24, 34, 53, 0.12);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        html[data-theme="light"] .mission-control {
+            background: #F8FAFC;
+        }
+
+        @media (max-width: 700px) {
+            .mission-main h2 {
+                font-size: 2.2rem;
+            }
+        }
 
         .cockpit-grid {
             display: grid;
@@ -4345,6 +4486,17 @@
             background:
                 radial-gradient(circle at center, rgba(244, 247, 251, 0.96) 0 57%, transparent 58%),
                 conic-gradient(var(--mak-gold) var(--service-score), rgba(24, 34, 53, 0.12) 0);
+        }
+        html[data-theme="light"] .mission-control,
+        html[data-theme="light"] .mission-signal,
+        html[data-theme="light"] .priority-card,
+        html[data-theme="light"] .service-board,
+        html[data-theme="light"] .service-lane,
+        html[data-theme="light"] .service-node,
+        html[data-theme="light"] .service-priority {
+            background: #FFFFFF;
+            border-color: rgba(24, 34, 53, 0.12);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
         }
 
         html[data-theme="light"] .stat-live,

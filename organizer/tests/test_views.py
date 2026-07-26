@@ -100,15 +100,15 @@ class DashboardViewTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("dashboard"))
 
         self.assertContains(response, "Watching Downloads")
-        self.assertContains(response, "Today's command")
+        self.assertContains(response, "Needs attention")
         self.assertContains(response, "Plain status view")
-        self.assertContains(response, "File watcher")
+        self.assertContains(response, "Downloads folder")
 
     def test_dashboard_priority_deck_has_no_duplicate_signals(self):
-        # "Academic priority" duplicated the mission-control hero right
+        # "Academic priority" duplicated the top dashboard panel right
         # above it, and "Safety layer" duplicated the file-watcher tile
         # already shown in the header strip -- both were removed as pure
-        # restatements. "Career signal" and "Decision inbox" are the only
+        # restatements. "Projects" and "Files to check" are the only
         # signals not shown anywhere else on the page, so they stay.
         self.make_profile()
 
@@ -116,8 +116,8 @@ class DashboardViewTests(SandboxedPathsTestCase):
 
         self.assertNotContains(response, "Academic priority")
         self.assertNotContains(response, "Safety layer")
-        self.assertContains(response, "Career signal")
-        self.assertContains(response, "Decision inbox")
+        self.assertContains(response, "Projects")
+        self.assertContains(response, "Files to check")
         self.assertEqual(len(response.context["priority_cards"]), 2)
 
     def test_search_filters_the_table_but_not_the_stat_boxes(self):

@@ -47,7 +47,7 @@
     <section class="mission-control priority-arrival">
         <div class="mission-main">
             <div>
-                <span class="eyebrow">Today's command</span>
+                <span class="eyebrow">Needs attention</span>
                 <h2>{{ next_best_action.title }}</h2>
                 <p>{{ next_best_action.detail }}</p>
             </div>
@@ -63,8 +63,8 @@
                 {% else %}
                 <a class="button button-live" href="{{ next_best_action.url }}">{{ next_best_action.label }}</a>
                 {% endif %}
-                <a class="button button-ghost" href="{% url 'career_home' %}">Career</a>
-                <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Inbox</a>
+                <a class="button button-ghost" href="{% url 'career_home' %}">Projects</a>
+                <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Files to check</a>
             </div>
         </div>
         <div class="mission-status" aria-label="Current dashboard signals">
@@ -111,7 +111,7 @@
                 </div>
             </div>
             <div class="service-brief">
-                <span class="eyebrow">Orch power grid</span>
+                <span class="eyebrow">What Orch can see</span>
                 <h2>{{ service_mesh.headline }}</h2>
                 <p class="card-subtitle">{{ service_mesh.detail }}</p>
                 <div class="service-meter" aria-hidden="true">
@@ -125,7 +125,7 @@
             </div>
             {% if service_mesh.next_activation %}
             <div class="service-priority">
-                <span class="now-label">Next activation</span>
+                <span class="now-label">Set up next</span>
                 <h3>{{ service_mesh.next_activation.name }}</h3>
                 <p>{{ service_mesh.next_activation.insight }}</p>
                 <a class="button button-live service-priority-action" href="{{ service_mesh.next_activation.url }}">{{ service_mesh.next_activation.action_label }}</a>
