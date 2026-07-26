@@ -123,6 +123,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'organizer.middleware.OwnerAdminAccessMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -145,6 +146,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'organizer.context_processors.owner_console',
                 'organizer.context_processors.desktop_shell',
+                'organizer.context_processors.app_version',
             ],
         },
     },

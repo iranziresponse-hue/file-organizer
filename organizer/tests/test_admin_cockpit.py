@@ -36,6 +36,12 @@ class UserNavigationTests(SandboxedPathsTestCase):
 
 
 class AdminCockpitTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.owner_patch = mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True)
+        self.owner_patch.start()
+        self.addCleanup(self.owner_patch.stop)
+
     def test_admin_index_shows_live_operational_data(self):
         user = get_user_model().objects.create_superuser(
             username="admin",
@@ -64,11 +70,11 @@ class AdminCockpitTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Orch system cockpit")
-        self.assertContains(response, "Every number below comes from current database rows")
+        self.assertContains(response, "App overview")
+        self.assertContains(response, "These numbers come from what Orch has actually done")
         self.assertContains(response, "CSC2100 notes.pdf")
         self.assertContains(response, "Review CSC2100 notes")
-        self.assertContains(response, "File decisions")
+        self.assertContains(response, "Files handled")
 
     def test_shows_performance_metrics_when_present(self):
         user = get_user_model().objects.create_superuser(
@@ -80,7 +86,7 @@ class AdminCockpitTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Performance")
+        self.assertContains(response, "Speed and resource use")
         self.assertContains(response, "250ms")
         self.assertContains(response, "slow.pdf")
 
@@ -96,7 +102,7 @@ class AdminCockpitTests(SandboxedPathsTestCase):
             response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Performance")
+        self.assertContains(response, "Speed and resource use")
 
     def test_shows_search_index_health(self):
         from organizer.core import search_index
@@ -110,7 +116,7 @@ class AdminCockpitTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Search index")
+        self.assertContains(response, "Search health")
         self.assertContains(response, "Healthy")
 
     def test_search_index_panel_falls_back_cleanly_if_diagnostics_breaks(self):
@@ -125,7 +131,7 @@ class AdminCockpitTests(SandboxedPathsTestCase):
             response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Search index")
+        self.assertContains(response, "Search health")
         self.assertContains(response, "Needs attention")
 
 
@@ -133,6 +139,32 @@ class OwnerAccessTests(SandboxedPathsTestCase):
     def test_owner_console_is_hidden_when_owner_mode_is_off(self):
         with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=False):
             response = self.client.get(reverse("owner_console"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_admin_route_is_hidden_when_owner_mode_is_off(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="OrchOwnerPass2026!",
+        )
+        self.client.force_login(user)
+
+        with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=False):
+            response = self.client.get(reverse("admin:index"), REMOTE_ADDR="127.0.0.1")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_admin_route_is_hidden_from_packaged_build(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="OrchOwnerPass2026!",
+        )
+        self.client.force_login(user)
+
+        with mock.patch("organizer.core.owner_access.is_packaged_build", return_value=True):
+            response = self.client.get(reverse("admin:index"), REMOTE_ADDR="127.0.0.1")
 
         self.assertEqual(response.status_code, 404)
 
@@ -153,8 +185,8 @@ class OwnerAccessTests(SandboxedPathsTestCase):
             response = self.client.get(reverse("owner_setup"), REMOTE_ADDR="127.0.0.1")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Create owner access")
-        self.assertContains(response, "Local owner mode")
+        self.assertContains(response, "Create owner login")
+        self.assertContains(response, "Owner tools")
 
     def test_owner_setup_creates_real_staff_account(self):
         with mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True):

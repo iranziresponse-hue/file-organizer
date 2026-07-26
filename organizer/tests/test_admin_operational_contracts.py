@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
@@ -9,6 +11,9 @@ from .helpers import SandboxedPathsTestCase
 class AdminOperationalContractTests(SandboxedPathsTestCase):
     def setUp(self):
         super().setUp()
+        self.owner_patch = mock.patch("organizer.core.owner_access.owner_mode_enabled", return_value=True)
+        self.owner_patch.start()
+        self.addCleanup(self.owner_patch.stop)
         self.user = get_user_model().objects.create_superuser(
             username="owner",
             email="owner@example.com",
@@ -32,7 +37,7 @@ class AdminOperationalContractTests(SandboxedPathsTestCase):
 
         self.assertContains(response, "live-file.pdf")
         self.assertContains(response, "Live Profile")
-        self.assertContains(response, "Every number below comes from current database rows")
+        self.assertContains(response, "These numbers come from what Orch has actually done")
 
     def test_admin_cockpit_does_not_show_fake_seed_data(self):
         response = self.client.get(reverse("admin:index"))
@@ -46,9 +51,9 @@ class AdminOperationalContractTests(SandboxedPathsTestCase):
     def test_admin_cockpit_exposes_diagnostics_sections(self):
         response = self.client.get(reverse("admin:index"))
 
-        self.assertContains(response, "Watcher status")
-        self.assertContains(response, "Database health")
-        self.assertContains(response, "Folder permissions")
+        self.assertContains(response, "Folder watcher")
+        self.assertContains(response, "Stored app data")
+        self.assertContains(response, "Folder access")
         self.assertContains(response, "Integration failures")
 
     def test_admin_cockpit_exposes_maintenance_actions(self):
@@ -56,8 +61,8 @@ class AdminOperationalContractTests(SandboxedPathsTestCase):
 
         self.assertContains(response, "Create backup")
         self.assertContains(response, "Restore backup")
-        self.assertContains(response, "Vacuum database")
-        self.assertContains(response, "Reindex database")
+        self.assertContains(response, "Clean up stored app data")
+        self.assertContains(response, "Refresh search data")
 
     def test_admin_only_owner_tools_stay_out_of_user_navigation(self):
         response = self.client.get(reverse("dashboard"))

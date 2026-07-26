@@ -280,7 +280,7 @@ def _operations_context():
                 "url": _admin_changelist(Profile),
             },
             {
-                "label": "File decisions",
+                "label": "Files handled",
                 "value": total_moves,
                 "detail": f"{successful_moves} sorted, {failed_moves} failed",
                 "url": _admin_changelist(MoveEvent),
@@ -292,7 +292,7 @@ def _operations_context():
                 "url": _admin_changelist(MoveEvent),
             },
             {
-                "label": "Review queue",
+                "label": "Study reminders",
                 "value": pending_reviews,
                 "detail": f"{overdue_reviews} overdue",
                 "url": _admin_changelist(ReviewItem),
@@ -304,7 +304,7 @@ def _operations_context():
                 "url": _admin_changelist(StudyFocusSession),
             },
             {
-                "label": "Decision inbox",
+                "label": "Needs review",
                 "value": pending_inbox,
                 "detail": "pending approvals",
                 "url": _admin_changelist(SortDecision),
@@ -318,7 +318,7 @@ def _operations_context():
             {
                 "label": "Enabled rules",
                 "value": enabled_rules,
-                "detail": "folder routing rules",
+                "detail": "sorting rules",
                 "url": _admin_changelist(FolderRule),
             },
             {
@@ -328,7 +328,7 @@ def _operations_context():
                 "url": _admin_changelist(IntegrationConnection),
             },
             {
-                "label": "Curriculum contributions",
+                "label": "Course unit suggestions",
                 "value": SuggestedCourseUnit.objects.count(),
                 "detail": f"{unreviewed_suggestions} awaiting review",
                 "url": _admin_changelist(SuggestedCourseUnit),
@@ -382,21 +382,21 @@ def _orch_index(self, request, extra_context=None):
             else:
                 result = diag.restore_backup(backup_path)
                 if result.get("success"):
-                    messages.success(request, "Database restored. The previous database was backed up first.")
+                    messages.success(request, "Backup restored. Orch saved the current data first.")
                 else:
                     messages.error(request, f"Restore failed: {result.get('error', 'Unknown error')}")
 
         elif action == "vacuum_db":
             result = diag.vacuum_database()
             if result.get("success"):
-                messages.success(request, f"Database vacuumed: {result.get('before_mb', 0)}MB -> {result.get('after_mb', 0)}MB ({result.get('reclaimed_kb', 0)} KB reclaimed)")
+                messages.success(request, f"Stored app data cleaned up: {result.get('before_mb', 0)}MB to {result.get('after_mb', 0)}MB.")
             else:
                 messages.error(request, f"Vacuum failed: {result.get('error', 'Unknown error')}")
 
         elif action == "reindex_db":
             result = diag.reindex_database()
             if result.get("success"):
-                messages.success(request, "Database reindexed successfully.")
+                messages.success(request, "Search data refreshed.")
             else:
                 messages.error(request, f"Reindex failed: {result.get('error', 'Unknown error')}")
 
@@ -690,9 +690,9 @@ class PublishedPostAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
 
-admin.site.site_header = "Orch System Admin"
-admin.site.site_title = "Orch Admin"
-admin.site.index_title = "Live Operations"
+admin.site.site_header = "Orch Owner Tools"
+admin.site.site_title = "Orch Owner Tools"
+admin.site.index_title = "App Overview"
 admin.site.index_template = "admin/orch_index.html"
 admin.site.index = MethodType(_orch_index, admin.site)
 # Without this, clicking the Admin nav link and changing your mind means

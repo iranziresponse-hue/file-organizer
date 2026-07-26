@@ -1,6 +1,6 @@
 {% extends "organizer/base.html" %}
 
-{% block title %}Owner Setup - Orch{% endblock %}
+{% block title %}Owner Tools - Orch{% endblock %}
 
 {% block content %}
 <style>
@@ -70,13 +70,13 @@
                 </svg>
             </span>
             <div>
-                <span class="eyebrow">Local owner mode</span>
-                <h2>Create owner access</h2>
-                <p class="card-subtitle">This creates the first staff account for the local troubleshooting console.</p>
+                <span class="eyebrow">Owner tools</span>
+                <h2>Create owner login</h2>
+                <p class="card-subtitle">Protect the tools used to check app health, backups, and local maintenance.</p>
             </div>
         </div>
 
-        <p style="margin:0 0 20px;"><a href="{% url 'dashboard' %}">&larr; Back to Orch, without setting this up</a></p>
+        <p style="margin:0 0 20px;"><a href="{% url 'dashboard' %}">&larr; Back to Orch</a></p>
 
         {% if errors %}
         <ul class="owner-errors" role="alert">
@@ -89,7 +89,7 @@
         <form method="post" class="form-grid">
             {% csrf_token %}
             <div class="field">
-                <label for="username">Owner username</label>
+                <label for="username">Username</label>
                 <input id="username" name="username" value="{{ values.username }}" autocomplete="username" required>
             </div>
 
@@ -115,12 +115,12 @@
                         <path d="M12 3l7 3v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                         <path d="M9.5 12.2l1.7 1.7 3.6-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    Create owner
+                    Create login
                 </button>
             </div>
         </form>
 
-        <p class="owner-note">Owner mode is active only when {{ owner_config_path }} enables it or ORCH_OWNER_MODE is set for this machine.</p>
+        <p class="owner-note">Only this computer can open these tools while owner access is turned on.</p>
     </section>
 </div>
 {% endblock %}

@@ -5,65 +5,50 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    /* This page is always dark, with no light variant of the cockpit
-       gradient/cards below. Django's own stock chrome (nav-sidebar, the
-       app_list table) is themed entirely through its own --body-bg/
-       --darkened-bg/etc custom properties, not through classes we can
-       target directly, so re-declaring those same properties here is what
-       actually recolors it: overriding individual selectors like
-       ".module table" only reaches the table itself, not the --body-bg /
-       --darkened-bg zebra-striped <tr> backgrounds underneath. Matching
-       Django's own light/dark selectors (not just :root) means this stays
-       dark even if someone clicks the admin's built-in theme toggle, since
-       there's nothing here for it to switch to. */
     :root,
     html[data-theme="light"],
     html[data-theme="dark"] {
-        --orch-bg: #0A0C14;
-        --orch-panel: rgba(255, 255, 255, 0.06);
-        --orch-panel-strong: rgba(255, 255, 255, 0.1);
-        --orch-border: rgba(255, 255, 255, 0.15);
-        --orch-text: #E8ECF2;
-        --orch-muted: #AEB7C5;
-        --orch-blue: #6EA8FF;
-        --orch-purple: #A78BFA;
-        --orch-good: #9BE7B0;
-        --orch-warn: #FFD38A;
-        --orch-bad: #FF9A9A;
+        --orch-bg: #f4f7fa;
+        --orch-panel: #ffffff;
+        --orch-panel-strong: #f8fafc;
+        --orch-border: #d9e0ea;
+        --orch-text: #17202d;
+        --orch-muted: #5f6b7a;
+        --orch-blue: #2f6fb3;
+        --orch-purple: #6f5aa8;
+        --orch-good: #167344;
+        --orch-warn: #9a6500;
+        --orch-bad: #b42318;
 
-        --primary: #1B2436;
-        --primary-fg: #E8ECF2;
-        --body-fg: #E8ECF2;
-        --body-bg: #10131C;
-        --body-quiet-color: #AEB7C5;
-        --body-medium-color: #C7CEDA;
-        --body-loud-color: #FFFFFF;
-        --breadcrumbs-fg: #AEB7C5;
-        --breadcrumbs-link-fg: #E8ECF2;
-        --breadcrumbs-bg: #10131C;
-        --link-fg: #6EA8FF;
-        --link-hover-color: #8FBBFF;
-        --link-selected-fg: #A78BFA;
-        --hairline-color: rgba(255, 255, 255, 0.12);
-        --border-color: rgba(255, 255, 255, 0.18);
-        --error-fg: #FF9A9A;
-        --darkened-bg: #171B28;
-        --selected-bg: rgba(110, 168, 255, 0.14);
-        --selected-row: rgba(255, 211, 138, 0.12);
+        --primary: #10213a;
+        --primary-fg: #ffffff;
+        --body-fg: #17202d;
+        --body-bg: #f4f7fa;
+        --body-quiet-color: #5f6b7a;
+        --body-medium-color: #3e4a59;
+        --body-loud-color: #17202d;
+        --breadcrumbs-fg: #5f6b7a;
+        --breadcrumbs-link-fg: #17202d;
+        --breadcrumbs-bg: #eef3f8;
+        --link-fg: #166534;
+        --link-hover-color: #14532d;
+        --link-selected-fg: #166534;
+        --hairline-color: #d9e0ea;
+        --border-color: #d9e0ea;
+        --error-fg: #b42318;
+        --darkened-bg: #eef3f8;
+        --selected-bg: rgba(22, 101, 52, 0.1);
+        --selected-row: rgba(22, 101, 52, 0.08);
     }
 
     body {
-        background:
-            radial-gradient(1100px 540px at 18% -10%, rgba(110, 168, 255, 0.2), transparent),
-            radial-gradient(900px 460px at 100% 100%, rgba(167, 139, 250, 0.18), transparent),
-            linear-gradient(135deg, #0A0C14, #121725 48%, #0A0C14);
+        background: var(--orch-bg);
         color: var(--orch-text);
     }
 
     #header {
-        background: rgba(255, 255, 255, 0.07);
+        background: #ffffff;
         border-bottom: 1px solid var(--orch-border);
-        backdrop-filter: blur(18px);
     }
 
     #branding h1,
@@ -79,9 +64,9 @@
     }
 
     div.breadcrumbs {
-        background: transparent;
+        background: #eef3f8;
         color: var(--orch-muted);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid var(--orch-border);
     }
 
     #content {
@@ -103,7 +88,7 @@
         align-items: flex-end;
         justify-content: space-between;
         gap: 20px;
-        padding: 8px 0 4px;
+        padding: 8px 0 6px;
     }
 
     .orch-hero h2 {
@@ -136,9 +121,8 @@
     .module {
         background: var(--orch-panel);
         border: 1px solid var(--orch-border);
-        border-radius: 18px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.26);
-        backdrop-filter: blur(18px);
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(23, 32, 45, 0.08);
     }
 
     .orch-card {
@@ -150,7 +134,7 @@
 
     .orch-card:hover {
         transform: translateY(-1px);
-        border-color: rgba(110, 168, 255, 0.42);
+        border-color: rgba(22, 101, 52, 0.34);
     }
 
     .orch-card span,
@@ -206,9 +190,9 @@
         gap: 12px;
         align-items: center;
         padding: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid #e7edf4;
+        border-radius: 10px;
+        background: var(--orch-panel-strong);
     }
 
     .orch-row strong,
@@ -247,14 +231,14 @@
         height: 8px;
         border-radius: 999px;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.08);
+        background: #e7edf4;
         margin-top: 8px;
     }
 
     .orch-meter span {
         display: block;
         height: 100%;
-        background: linear-gradient(90deg, var(--orch-blue), var(--orch-purple));
+        background: linear-gradient(90deg, var(--orch-good), var(--orch-blue));
     }
 
     .orch-links {
@@ -268,11 +252,47 @@
         align-items: center;
         min-height: 36px;
         padding: 8px 13px;
-        border-radius: 12px;
+        border-radius: 10px;
         border: 1px solid var(--orch-border);
-        background: rgba(255, 255, 255, 0.06);
+        background: #ffffff;
         color: var(--orch-text) !important;
         text-decoration: none;
+        transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .orch-link:hover {
+        background: #f7fafc;
+        border-color: rgba(22, 101, 52, 0.34);
+        transform: translateY(-1px);
+    }
+
+    .orch-section-title {
+        margin: 6px 0 -8px;
+        color: var(--orch-muted);
+        font-size: 0.82rem;
+        font-weight: 760;
+        text-transform: uppercase;
+    }
+
+    .orch-advanced summary {
+        cursor: pointer;
+        color: var(--orch-text);
+        font-weight: 760;
+        list-style: none;
+    }
+
+    .orch-advanced summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .orch-advanced summary::after {
+        content: "+";
+        float: right;
+        color: var(--orch-muted);
+    }
+
+    .orch-advanced[open] summary::after {
+        content: "-";
     }
 
     .app-organizer.module table {
@@ -281,9 +301,9 @@
 
     .module caption,
     .module h2 {
-        background: rgba(255, 255, 255, 0.08);
+        background: #f7fafc;
         color: var(--orch-text);
-        border-radius: 18px 18px 0 0;
+        border-radius: 12px 12px 0 0;
     }
 
     .module table {
@@ -292,11 +312,11 @@
 
     .module th,
     .module td {
-        border-color: rgba(255, 255, 255, 0.08);
+        border-color: #e7edf4;
     }
 
     .module a {
-        color: #BBD3FF;
+        color: #166534;
     }
 
     @media (max-width: 940px) {
@@ -317,28 +337,28 @@
 <div class="orch-admin">
     <section class="orch-hero">
         <div>
-            <span class="orch-section-label">Live operations</span>
-            <h2>Orch system cockpit</h2>
-            <p>Every number below comes from current database rows or real filesystem checks.</p>
+            <span class="orch-section-label">Owner tools</span>
+            <h2>App overview</h2>
+            <p>These numbers come from what Orch has actually done on this laptop.</p>
         </div>
         <div class="orch-updated">Updated {{ orch_updated_at|date:"Y-m-d H:i:s" }}</div>
     </section>
 
-    <!-- Deep analytics summary -->
+    <div class="orch-section-title">Recent activity</div>
     <div class="orch-two">
         <div class="orch-panel">
-            <h3>Weekly trend</h3>
+            <h3>This week</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Files sorted</strong><small>Last 7 days</small></div>
                     <span class="orch-state good">{{ orch_analytics.weekly_moves }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Learning activities</strong><small>Last 7 days</small></div>
+                    <div><strong>Study activity</strong><small>Last 7 days</small></div>
                     <span class="orch-state">{{ orch_analytics.weekly_activities }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Digests generated</strong><small>Last 7 days</small></div>
+                    <div><strong>Study notes made</strong><small>Last 7 days</small></div>
                     <span class="orch-state">{{ orch_analytics.weekly_digests }}</span>
                 </div>
                 <div class="orch-row">
@@ -348,18 +368,18 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Activity detail</h3>
+            <h3>Study detail</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Subjects tracked</strong><small>{{ orch_analytics.subjects_with_resources }} with resources</small></div>
                     <span class="orch-state good">{{ orch_analytics.subject_count }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Focus themes</strong><small>Extracted from filenames</small></div>
+                    <div><strong>Topics noticed</strong><small>Found from file names</small></div>
                     <span class="orch-state">{{ orch_analytics.themes_count }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Total activities</strong><small>All learning events</small></div>
+                    <div><strong>Total activity</strong><small>Everything Orch has logged</small></div>
                     <span class="orch-state">{{ orch_analytics.total_activities }}</span>
                 </div>
                 <div class="orch-row">
@@ -370,66 +390,67 @@
         </div>
     </div>
 
-    <!-- MUELE integration status panel -->
+    <div class="orch-section-title">Connections and output</div>
     <div class="orch-two">
         <div class="orch-panel">
-            <h3>MUELE integration status</h3>
+            <h3>MUELE connection</h3>
             <div class="orch-list">
                 <div class="orch-row">
-                    <div><strong>Connected accounts</strong><small>Makerere MUELE</small></div>
+                    <div><strong>Connected accounts</strong><small>Makerere University MUELE</small></div>
                     <span class="orch-state {% if orch_analytics.muele_connected > 0 %}good{% else %}warning{% endif %}">{{ orch_analytics.muele_connected }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>MUELE sync events</strong><small>Total sync activities</small></div>
+                    <div><strong>MUELE checks</strong><small>Times Orch checked for course files</small></div>
                     <span class="orch-state">{{ orch_analytics.muele_syncs }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>MUELE files downloaded</strong><small>Through auto-sync</small></div>
+                    <div><strong>MUELE files downloaded</strong><small>Files Orch brought into the right place</small></div>
                     <span class="orch-state">{{ orch_analytics.muele_files }}</span>
                 </div>
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Digests & packs</h3>
+            <h3>Study outputs</h3>
             <div class="orch-list">
                 <div class="orch-row">
-                    <div><strong>Study digests</strong><small>Daily and weekly reports</small></div>
+                    <div><strong>Study digests</strong><small>Daily and weekly summaries</small></div>
                     <span class="orch-state">{{ orch_analytics.total_digests }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Knowledge packs</strong><small>Ready for download</small></div>
+                    <div><strong>Knowledge packs</strong><small>Ready to save</small></div>
                     <span class="orch-state good">{{ orch_analytics.total_knowledge_packs }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Monthly file volume</strong><small>Last 30 days</small></div>
+                    <div><strong>Files handled this month</strong><small>Last 30 days</small></div>
                     <span class="orch-state">{{ orch_analytics.monthly_moves }}</span>
                 </div>
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Automation accuracy</h3>
+            <h3>Sorting trust</h3>
             <div class="orch-list">
                 <div class="orch-row">
-                    <div><strong>Suggestions approved</strong><small>Of {{ orch_analytics.decisions_approved|add:orch_analytics.decisions_rejected }} resolved</small></div>
+                    <div><strong>Suggestions accepted</strong><small>Of {{ orch_analytics.decisions_approved|add:orch_analytics.decisions_rejected }} reviewed</small></div>
                     <span class="orch-state {% if orch_analytics.automation_accuracy >= 70 %}good{% else %}warning{% endif %}">{{ orch_analytics.automation_accuracy }}%</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Suggestions rejected</strong><small>Decision inbox</small></div>
+                    <div><strong>Suggestions changed</strong><small>Decision inbox</small></div>
                     <span class="orch-state">{{ orch_analytics.decisions_rejected }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Auto-moved</strong><small>No review needed</small></div>
+                    <div><strong>Moved by itself</strong><small>No review needed</small></div>
                     <span class="orch-state">{{ orch_analytics.decisions_auto_moved }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Undo rate</strong><small>Of successful moves</small></div>
+                    <div><strong>Undo rate</strong><small>Of sorted files</small></div>
                     <span class="orch-state">{{ orch_analytics.undo_rate }}%</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <section class="orch-grid" aria-label="Live system metrics">
+    <div class="orch-section-title">Quick counts</div>
+    <section class="orch-grid" aria-label="Live app metrics">
         {% for card in orch_cards %}
         <a class="orch-card" href="{{ card.url }}">
             <span>{{ card.label }}</span>
@@ -441,7 +462,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>System health</h3>
+            <h3>App health</h3>
             <div class="orch-list">
                 {% for item in orch_health %}
                 <div class="orch-row">
@@ -456,7 +477,7 @@
         </div>
 
         <div class="orch-panel">
-            <h3>Routing methods</h3>
+            <h3>How files were sorted</h3>
             <div class="orch-list">
                 {% for row in orch_method_rows %}
                 <div class="orch-row">
@@ -475,7 +496,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Recent file decisions</h3>
+            <h3>Recently handled files</h3>
             <div class="orch-list">
                 {% for move in orch_recent_moves %}
                 <div class="orch-row">
@@ -495,7 +516,7 @@
         </div>
 
         <div class="orch-panel">
-            <h3>Pending work</h3>
+            <h3>Needs a look</h3>
             <div class="orch-list">
                 {% for item in orch_reviews %}
                 <div class="orch-row">
@@ -523,7 +544,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Profile paths</h3>
+            <h3>Profile types</h3>
             <div class="orch-list">
                 {% for row in orch_profile_rows %}
                 <div class="orch-row">
@@ -540,7 +561,7 @@
         </div>
 
         <div class="orch-panel">
-            <h3>Integrations</h3>
+            <h3>Connections</h3>
             <div class="orch-list">
                 {% for connection in orch_integrations %}
                 <div class="orch-row">
@@ -562,10 +583,10 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Watcher status</h3>
+            <h3>Folder watcher</h3>
             <div class="orch-list">
                 <div class="orch-row">
-                    <div><strong>Running</strong></div>
+                    <div><strong>Watching folders</strong></div>
                     <span class="orch-state {% if orch_diagnostics.watcher.running %}good{% else %}bad{% endif %}">
                         {{ orch_diagnostics.watcher.running|yesno:"Active,Inactive" }}
                     </span>
@@ -575,11 +596,11 @@
                     <span class="orch-state">{{ orch_diagnostics.watcher.last_activity|default:"Never" }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Files in 24h</strong></div>
+                    <div><strong>Files seen in 24h</strong></div>
                     <span class="orch-state">{{ orch_diagnostics.watcher.files_watched_24h }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Uptime</strong></div>
+                    <div><strong>Time awake</strong></div>
                     <span class="orch-state">{{ orch_diagnostics.watcher.uptime_hours|default:"0" }}h</span>
                 </div>
                 {% if orch_diagnostics.watcher.recent_errors %}
@@ -595,7 +616,7 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Error summary</h3>
+            <h3>Problems found</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Failed moves</strong><small>Last 7 days</small></div>
@@ -632,7 +653,7 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Performance</h3>
+            <h3>Speed and resource use</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Files processed today</strong></div>
@@ -645,7 +666,7 @@
                     </span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Avg sort time today</strong></div>
+                    <div><strong>Average sort time today</strong></div>
                     <span class="orch-state">{% if orch_performance.sort_avg_ms %}{{ orch_performance.sort_avg_ms }}ms{% else %}No data yet{% endif %}</span>
                 </div>
                 <div class="orch-row">
@@ -653,25 +674,25 @@
                     <span class="orch-state">{% if orch_performance.sort_slowest %}{{ orch_performance.sort_slowest.detail|truncatechars:30 }} ({{ orch_performance.sort_slowest.duration_ms }}ms){% else %}No data yet{% endif %}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>MUELE sync</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <div><strong>MUELE checks</strong><small>Average, last {{ orch_performance.window_days }} days</small></div>
                     <span class="orch-state">{% if orch_performance.muele_sync.avg_ms %}{{ orch_performance.muele_sync.avg_ms }}ms ({{ orch_performance.muele_sync.count }}){% else %}No data yet{% endif %}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Timetable sync</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <div><strong>Timetable checks</strong><small>Average, last {{ orch_performance.window_days }} days</small></div>
                     <span class="orch-state">{% if orch_performance.timetable_sync.avg_ms %}{{ orch_performance.timetable_sync.avg_ms }}ms ({{ orch_performance.timetable_sync.count }}){% else %}No data yet{% endif %}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Summary generation</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <div><strong>Summary writing</strong><small>Average, last {{ orch_performance.window_days }} days</small></div>
                     <span class="orch-state">{% if orch_performance.summary_generate.avg_ms %}{{ orch_performance.summary_generate.avg_ms }}ms ({{ orch_performance.summary_generate.count }}){% else %}No data yet{% endif %}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Course guide generation</strong><small>Avg, last {{ orch_performance.window_days }} days</small></div>
+                    <div><strong>Course guide writing</strong><small>Average, last {{ orch_performance.window_days }} days</small></div>
                     <span class="orch-state">{% if orch_performance.course_guide_generate.avg_ms %}{{ orch_performance.course_guide_generate.avg_ms }}ms ({{ orch_performance.course_guide_generate.count }}){% else %}No data yet{% endif %}</span>
                 </div>
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Page load times</h3>
+            <h3>Screen load times</h3>
             <div class="orch-list">
                 {% for page in orch_performance.page_loads %}
                 <div class="orch-row">
@@ -682,14 +703,14 @@
                 </div>
                 {% empty %}
                 <div class="orch-row">
-                    <div>No page-load data yet</div>
-                    <span class="orch-state">Visit Dashboard, Study, Connections, MUELE Courses, Timeline, or Resource Radar to collect some</span>
+                    <div>No screen timing yet</div>
+                    <span class="orch-state">Open more Orch screens to collect timing</span>
                 </div>
                 {% endfor %}
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Search index</h3>
+            <h3>Search health</h3>
             <div class="orch-list">
                 <div class="orch-row">
                     <div><strong>Status</strong></div>
@@ -710,7 +731,7 @@
                 {% if not orch_search_index.healthy %}
                 <div class="orch-row" style="border-color:rgba(255,107,107,0.3);">
                     <div>
-                        <strong style="color:var(--orch-bad);">Search is falling back to plain filename matching</strong>
+                        <strong style="color:var(--orch-bad);">Search is using basic filename matching for now</strong>
                         <small style="color:var(--orch-bad);">{{ orch_search_index.error|truncatechars:120 }}</small>
                     </div>
                 </div>
@@ -721,10 +742,10 @@
 
     <section class="orch-two">
         <div class="orch-panel">
-            <h3>Database health</h3>
+            <h3>Stored app data</h3>
             <div class="orch-list">
                 <div class="orch-row">
-                    <div><strong>Database exists</strong></div>
+                    <div><strong>Storage file found</strong></div>
                     <span class="orch-state {% if orch_diagnostics.database.exists %}good{% else %}bad{% endif %}">
                         {{ orch_diagnostics.database.exists|yesno:"Yes,No" }}
                     </span>
@@ -734,11 +755,11 @@
                     <span class="orch-state">{{ orch_diagnostics.database.size_mb }} MB</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Tables</strong></div>
+                    <div><strong>Saved groups</strong></div>
                     <span class="orch-state">{{ orch_diagnostics.database.table_counts|length }}</span>
                 </div>
                 <div class="orch-row">
-                    <div><strong>Connection</strong></div>
+                    <div><strong>Can read it</strong></div>
                     <span class="orch-state {% if orch_diagnostics.database.connection_ok %}good{% else %}bad{% endif %}">
                         {{ orch_diagnostics.database.connection_ok|yesno:"OK,Failed" }}
                     </span>
@@ -751,7 +772,7 @@
             </div>
         </div>
         <div class="orch-panel">
-            <h3>Folder permissions</h3>
+            <h3>Folder access</h3>
             <div class="orch-list">
                 {% for perm in orch_diagnostics.permissions %}
                 <div class="orch-row">
@@ -796,7 +817,7 @@
 
     <div class="orch-two">
         <div class="orch-panel">
-            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Recent backups</h3>
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Backups</h3>
             <div class="orch-list">
                 {% if orch_diagnostics.backups %}
                 {% for backup in orch_diagnostics.backups|slice:":5" %}
@@ -809,12 +830,12 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <p class="orch-note">No backups available. Use maintenance tools below.</p>
+                <p class="orch-note">No backups yet. Create one before making bigger changes.</p>
                 {% endif %}
             </div>
         </div>
         <div class="orch-panel">
-            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Maintenance actions</h3>
+            <h3><svg viewBox="0 0 24 24" fill="none" style="width:18px;vertical-align:middle;margin-right:6px;"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Maintenance</h3>
             <div class="orch-links" style="margin-top:8px;">
                 <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
                     {% csrf_token %}
@@ -822,7 +843,7 @@
                         Create backup
                     </button>
                 </form>
-                <form method="post" action="{% url 'admin:index' %}" style="display:inline-flex; gap:8px; align-items:center;" onsubmit="return confirm('Restore this backup? The current database will be backed up first, then replaced.');">
+                <form method="post" action="{% url 'admin:index' %}" style="display:inline-flex; gap:8px; align-items:center;" onsubmit="return confirm('Restore this backup? Orch will save the current data first, then replace it with the selected backup.');">
                     {% csrf_token %}
                     <input type="hidden" name="_orch_action" value="restore_backup">
                     <select name="backup_path" style="height:36px; border-radius:12px;" {% if not orch_diagnostics.backups %}disabled{% endif %}>
@@ -838,14 +859,14 @@
                 </form>
                 <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" name="_orch_action" value="vacuum_db" class="orch-link" style="cursor:pointer;">
-                        Vacuum database
+                    <button type="submit" name="_orch_action" value="vacuum_db" class="orch-link" style="cursor:pointer;" onclick="return confirm('Clean up stored app data now? This keeps the same records and may free a little space.');">
+                        Clean up stored app data
                     </button>
                 </form>
                 <form method="post" action="{% url 'admin:index' %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" name="_orch_action" value="reindex_db" class="orch-link" style="cursor:pointer;">
-                        Reindex database
+                    <button type="submit" name="_orch_action" value="reindex_db" class="orch-link" style="cursor:pointer;" onclick="return confirm('Refresh search data now? This can help search find recent files again.');">
+                        Refresh search data
                     </button>
                 </form>
             </div>
@@ -853,10 +874,10 @@
     </div>
 
     <section class="orch-panel">
-        <h3>Admin workspaces</h3>
+        <h3>Records</h3>
         <div class="orch-links">
             <a class="orch-link" href="{{ orch_links.profiles }}">Profiles</a>
-            <a class="orch-link" href="{{ orch_links.moves }}">File decisions</a>
+            <a class="orch-link" href="{{ orch_links.moves }}">Files handled</a>
             <a class="orch-link" href="{{ orch_links.reviews }}">Review queue</a>
             <a class="orch-link" href="{{ orch_links.inbox }}">Decision inbox</a>
             <a class="orch-link" href="{{ orch_links.rules }}">Folder rules</a>
@@ -868,9 +889,13 @@
     </section>
 
     {% if app_list %}
-    <div id="content-main">
-        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
-    </div>
+    <details class="orch-panel orch-advanced">
+        <summary>Advanced records</summary>
+        <p class="orch-note">Open this only when you need to inspect or edit the saved records behind Orch.</p>
+        <div id="content-main">
+            {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+        </div>
+    </details>
     {% else %}
     <p class="orch-note">{% translate "You do not have permission to view or edit anything." %}</p>
     {% endif %}
