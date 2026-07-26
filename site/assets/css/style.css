@@ -683,6 +683,22 @@ a { color: inherit; }
     transform: translateY(-2px);
 }
 
+.author-social a[aria-label="LinkedIn"] {
+    background: #0A66C2;
+    border-color: #0A66C2;
+    color: #FFFFFF;
+}
+
+.author-social a[aria-label="LinkedIn"]:hover {
+    background: #0959AA;
+    border-color: #0959AA;
+    color: #FFFFFF;
+}
+
+.author-social a[aria-label="LinkedIn"] .icon {
+    color: #FFFFFF;
+}
+
 .author-social .icon {
     width: 20px;
     height: 20px;
