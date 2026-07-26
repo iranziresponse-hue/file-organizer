@@ -52,6 +52,7 @@ urlpatterns = [
     path("integrations/drive/retry-backups/", views.drive_backup_retry, name="drive_backup_retry"),
     path("api/browse-folders/", views.browse_folders, name="browse_folders"),
     path("api/activity-ping/", views.activity_ping, name="activity_ping"),
+    path("api/status-bar/", views.status_bar_data, name="status_bar_data"),
     path("api/command-search/", views.command_palette_search, name="command_palette_search"),
     path("moves/clear/", views.move_clear_history, name="move_clear_history"),
     path("moves/<int:pk>/clear/", views.move_clear_one, name="move_clear_one"),

@@ -35,6 +35,80 @@ class ActivityPingViewTests(SandboxedPathsTestCase):
         self.assertIsNone(response.json()["latest"])
 
 
+class StatusBarViewTests(SandboxedPathsTestCase):
+    def test_no_profile_returns_has_profile_false(self):
+        response = self.client.get(reverse("status_bar_data"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["has_profile"])
+
+    def test_reports_watched_folder_and_last_move(self):
+        profile = self.make_profile()
+        self.make_settings()
+        MoveEvent.objects.create(
+            profile=profile,
+            filename="notes.pdf",
+            destination_path=str(self.profile_root / "notes.pdf"),
+            method="course_code",
+            success=True,
+        )
+
+        data = self.client.get(reverse("status_bar_data")).json()
+
+        self.assertTrue(data["has_profile"])
+        self.assertEqual(data["watching"], self.downloads.name)
+        self.assertIn("notes.pdf", data["last_move"])
+
+    def test_reports_pending_review_count(self):
+        from django.utils import timezone
+
+        from organizer.models import ReviewItem
+
+        profile = self.make_profile()
+        ReviewItem.objects.create(profile=profile, title="Chapter 3", status="queued", due_at=timezone.now())
+        ReviewItem.objects.create(profile=profile, title="Chapter 4", status="done", due_at=timezone.now())
+
+        data = self.client.get(reverse("status_bar_data")).json()
+
+        self.assertEqual(data["pending_review"], 1)
+
+    def test_reports_sync_state_from_connected_integrations(self):
+        profile = self.make_profile()
+
+        data = self.client.get(reverse("status_bar_data")).json()
+        self.assertEqual(data["sync"], "Local only")
+
+        IntegrationConnection.objects.create(
+            profile=profile, provider="muele", display_name="MUELE", status="connected",
+        )
+
+        data = self.client.get(reverse("status_bar_data")).json()
+        self.assertEqual(data["sync"], "1 connected")
+
+    def test_reports_an_active_background_task(self):
+        from organizer.models import BackgroundTask
+
+        profile = self.make_profile()
+        BackgroundTask.objects.create(
+            profile=profile, kind="muele_sync", status="running",
+            progress_current=2, progress_total=5,
+        )
+
+        data = self.client.get(reverse("status_bar_data")).json()
+
+        self.assertIsNotNone(data["background_task"])
+        self.assertEqual(data["background_task"]["progress_current"], 2)
+        self.assertEqual(data["background_task"]["progress_total"], 5)
+
+    def test_base_template_renders_the_status_bar_skeleton(self):
+        # The bar itself starts hidden and is shown/populated client-side by
+        # status-bar.js (see get_snapshot()'s query cost above) -- rendering
+        # it unconditionally here keeps page responses free of any extra
+        # queries, unlike an earlier context-processor-based approach that
+        # broke organizer.tests.test_query_budgets's per-page query counts.
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, 'id="app-status-bar"')
+
+
 class DashboardViewTests(SandboxedPathsTestCase):
     def test_no_profiles_at_all_prompts_the_wizard(self):
         response = self.client.get(reverse("dashboard"))

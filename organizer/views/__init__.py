@@ -25,6 +25,7 @@ from .dashboard import (
     setup_item_dismiss,
     setup_items_restore,
     start,
+    status_bar_data,
 )
 from .files import (
     category_test,
@@ -164,7 +165,7 @@ __all__ = [
     "publishing_channel_delete", "publishing_channels", "resource_radar",
     "review_mark_done", "review_queue", "review_skip", "rule_test", "settings_edit",
     "setup_item_dismiss", "setup_items_restore",
-    "sorting_inbox", "start", "study_home", "study_timetable", "subject_dashboard",
+    "sorting_inbox", "start", "status_bar_data", "study_home", "study_timetable", "subject_dashboard",
     "subject_memory_detail", "support_message", "task_status", "timeline_view", "timetable_colleges",
     "timetable_connect", "timetable_document_delete", "timetable_document_download",
     "timetable_document_upload", "timetable_entry_create", "timetable_entry_delete",

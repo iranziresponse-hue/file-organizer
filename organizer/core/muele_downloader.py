@@ -17,6 +17,7 @@ from threading import Event
 from typing import Callable
 
 import requests
+from django.utils import timezone
 
 from . import muele_api, rules as routing_rules
 from .paths import BASE_DIR
@@ -308,7 +309,7 @@ def sync_profile_courses(
                 else:
                     result["errors"] += 1
 
-            course.last_sync_at = datetime.now()
+            course.last_sync_at = timezone.now()
             course.save(update_fields=["last_sync_at"])
             result["courses_synced"] += 1
 
@@ -326,7 +327,7 @@ def sync_profile_courses(
     # <real date>, most recent attempt failed" instead of just lying with
     # a freshly-bumped clock.
     if result["errors"] == 0:
-        connection.last_sync_at = datetime.now()
+        connection.last_sync_at = timezone.now()
         connection.status = "connected"
         connection.save(update_fields=["last_sync_at", "status", "updated_at"])
     else:

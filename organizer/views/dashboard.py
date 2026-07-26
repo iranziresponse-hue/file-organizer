@@ -261,6 +261,16 @@ def activity_ping(request):
     return JsonResponse({"latest": latest})
 
 
+def status_bar_data(request):
+    """Backs the persistent status bar's polling refresh (status-bar.js) --
+    same snapshot shape used for its initial server-rendered state, see
+    the status_bar context processor."""
+    from ..core import status_bar
+
+    profile = Profile.get_active()
+    return JsonResponse(status_bar.get_snapshot(profile))
+
+
 def command_palette_search(request):
     """Backs the Ctrl/Cmd+K command palette's file/summary results (the
     static nav destinations it also shows are matched client-side, see

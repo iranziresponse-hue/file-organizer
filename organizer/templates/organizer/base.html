@@ -240,6 +240,114 @@
         <div class="blob blob-blue"></div>
     </div>
 
+    <aside class="app-sidebar" aria-label="Section navigation">
+        {% with current=request.resolver_match.url_name path=request.path %}
+        <div class="app-sidebar-group">
+            <span class="app-sidebar-label">Home</span>
+            <a href="{% url 'dashboard' %}" class="app-sidebar-link{% if current == 'dashboard' %} is-active{% endif %}" {% if current == 'dashboard' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+        </div>
+
+        <div class="app-sidebar-group">
+            <span class="app-sidebar-label">Files</span>
+            <a href="{% url 'sorting_inbox' %}" class="app-sidebar-link{% if current == 'sorting_inbox' %} is-active{% endif %}" {% if current == 'sorting_inbox' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3 12h4.5l1.6 3h5.8l1.6-3H21" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    <path d="M5 12 6.2 5.6A2 2 0 0 1 8.2 4h7.6a2 2 0 0 1 2 1.6L19 12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    <path d="M5 12v5.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                </svg>
+                <span>Decision Inbox</span>
+            </a>
+            <a href="{% url 'undo_recent' %}" class="app-sidebar-link{% if current == 'undo_recent' %} is-active{% endif %}" {% if current == 'undo_recent' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Recent Moves</span>
+            </a>
+            <a href="{% url 'organization_memory' %}" class="app-sidebar-link{% if current == 'organization_memory' or current == 'organization_dna' %} is-active{% endif %}" {% if current == 'organization_memory' or current == 'organization_dna' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 4.5a3 3 0 0 0-3 3v.2A3 3 0 0 0 4 10.5v.6a3 3 0 0 0 1 2.24V15a3 3 0 0 0 3 3h1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M15 4.5a3 3 0 0 1 3 3v.2a3 3 0 0 1 2 2.8v.6a3 3 0 0 1-1 2.24V15a3 3 0 0 1-3 3h-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 4.5V18M15 4.5V18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Organization Memory</span>
+            </a>
+        </div>
+
+        <div class="app-sidebar-group">
+            <span class="app-sidebar-label">Study</span>
+            <a href="{% url 'study_home' %}" class="app-sidebar-link{% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %} is-active{% endif %}" {% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3 5.5C3 4.7 3.7 4 4.5 4H11v16H4.5c-.8 0-1.5-.7-1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                    <path d="M21 5.5c0-.8-.7-1.5-1.5-1.5H13v16h6.5c.8 0 1.5-.7 1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                </svg>
+                <span>Learning Hub</span>
+            </a>
+        </div>
+
+        <div class="app-sidebar-group">
+            <span class="app-sidebar-label">Projects</span>
+            <a href="{% url 'career_home' %}" class="app-sidebar-link{% if path|slice:":8" == "/career/" and path|slice:":16" != "/career/projects" %} is-active{% endif %}" {% if path|slice:":8" == "/career/" and path|slice:":16" != "/career/projects" %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    <path d="M3 12h18" stroke="currentColor" stroke-width="1.7"/>
+                </svg>
+                <span>Career</span>
+            </a>
+            <a href="{% url 'project_studio' %}" class="app-sidebar-link{% if path|slice:":16" == "/career/projects" %} is-active{% endif %}" {% if path|slice:":16" == "/career/projects" %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3 3 8l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                    <path d="M3 13l9 5 9-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Project Studio</span>
+            </a>
+        </div>
+
+        <div class="app-sidebar-group">
+            <span class="app-sidebar-label">Settings</span>
+            <a href="{% url 'connections_home' %}" class="app-sidebar-link{% if current == 'connections_home' or path|slice:":14" == "/integrations/" %} is-active{% endif %}" {% if current == 'connections_home' or path|slice:":14" == "/integrations/" %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 15l6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M11 6.5 12.5 5A4 4 0 1 1 18 10.5L16.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M13 17.5 11.5 19A4 4 0 1 1 6 13.5L7.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>Connections</span>
+            </a>
+            <a href="{% url 'profiles_list' %}" class="app-sidebar-link{% if path|slice:":10" == "/profiles/" %} is-active{% endif %}" {% if path|slice:":10" == "/profiles/" %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="8" r="3.3" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M5 19c1.2-3.5 4-5.2 7-5.2s5.8 1.7 7 5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                <span>Profiles</span>
+            </a>
+            <a href="{% url 'settings_edit' %}" class="app-sidebar-link{% if current == 'settings_edit' %} is-active{% endif %}" {% if current == 'settings_edit' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12.2 2.5h-.4a1.6 1.6 0 0 0-1.6 1.6v.2a1.7 1.7 0 0 1-.85 1.47l-.36.2a1.7 1.7 0 0 1-1.7 0l-.16-.1a1.6 1.6 0 0 0-2.18.6l-.2.35a1.6 1.6 0 0 0 .58 2.18l.14.08a1.7 1.7 0 0 1 .85 1.48v.42a1.7 1.7 0 0 1-.85 1.48l-.14.08a1.6 1.6 0 0 0-.58 2.18l.2.35a1.6 1.6 0 0 0 2.18.6l.16-.1a1.7 1.7 0 0 1 1.7 0l.36.2a1.7 1.7 0 0 1 .85 1.48v.2a1.6 1.6 0 0 0 1.6 1.6h.4a1.6 1.6 0 0 0 1.6-1.6v-.2a1.7 1.7 0 0 1 .85-1.47l.36-.2a1.7 1.7 0 0 1 1.7 0l.16.1a1.6 1.6 0 0 0 2.18-.6l.2-.35a1.6 1.6 0 0 0-.58-2.18l-.14-.08a1.7 1.7 0 0 1-.85-1.48v-.42a1.7 1.7 0 0 1 .85-1.48l.14-.08a1.6 1.6 0 0 0 .58-2.18l-.2-.35a1.6 1.6 0 0 0-2.18-.6l-.16.1a1.7 1.7 0 0 1-1.7 0l-.36-.2a1.7 1.7 0 0 1-.85-1.48v-.2a1.6 1.6 0 0 0-1.6-1.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <span>Settings</span>
+            </a>
+            {% if owner_console_visible %}
+            <a href="{% url 'owner_console' %}" class="app-sidebar-link{% if current == 'owner_console' %} is-active{% endif %}" {% if current == 'owner_console' %}aria-current="page"{% endif %}>
+                <svg class="app-sidebar-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3l7 3v6c0 4.8-3 8.4-7 9-4-.6-7-4.2-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                </svg>
+                <span>Owner tools</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endwith %}
+    </aside>
+
     <header class="topbar app-roof{% if request.resolver_match.url_name == 'dashboard' and service_mesh %} has-power-rail{% endif %}">
         <a class="brand" href="{% url 'dashboard' %}" aria-label="Orch dashboard">
             <span class="brand-mark" aria-hidden="true">
@@ -270,75 +378,6 @@
             </span>
         </a>
         <nav class="nav" aria-label="Primary navigation">
-            {% with current=request.resolver_match.url_name path=request.path %}
-            <a href="{% url 'dashboard' %}" class="tip-down{% if current == 'dashboard' %} is-active{% endif %}" data-tip="Dashboard" aria-label="Dashboard" {% if current == 'dashboard' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
-                    <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
-                </svg>
-            </a>
-            <a href="{% url 'study_home' %}" class="tip-down{% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %} is-active{% endif %}" data-tip="Learning" aria-label="Learning" {% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M3 5.5C3 4.7 3.7 4 4.5 4H11v16H4.5c-.8 0-1.5-.7-1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                    <path d="M21 5.5c0-.8-.7-1.5-1.5-1.5H13v16h6.5c.8 0 1.5-.7 1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'career_home' %}" class="tip-down{% if path|slice:":8" == "/career/" and path|slice:":16" != "/career/projects" %} is-active{% endif %}" data-tip="Career" aria-label="Career" {% if path|slice:":8" == "/career/" and path|slice:":16" != "/career/projects" %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/>
-                    <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                    <path d="M3 12h18" stroke="currentColor" stroke-width="1.7"/>
-                </svg>
-            </a>
-            <a href="{% url 'connections_home' %}" class="tip-down{% if current == 'connections_home' or path|slice:":14" == "/integrations/" %} is-active{% endif %}" data-tip="Connections" aria-label="Connections" {% if current == 'connections_home' or path|slice:":14" == "/integrations/" %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 15l6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M11 6.5 12.5 5A4 4 0 1 1 18 10.5L16.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M13 17.5 11.5 19A4 4 0 1 1 6 13.5L7.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'project_studio' %}" class="tip-down{% if path|slice:":16" == "/career/projects" %} is-active{% endif %}" data-tip="Projects" aria-label="Projects" {% if path|slice:":16" == "/career/projects" %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3 3 8l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                    <path d="M3 13l9 5 9-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'sorting_inbox' %}" class="tip-down{% if current == 'sorting_inbox' %} is-active{% endif %}" data-tip="Inbox" aria-label="Inbox" {% if current == 'sorting_inbox' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M3 12h4.5l1.6 3h5.8l1.6-3H21" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                    <path d="M5 12 6.2 5.6A2 2 0 0 1 8.2 4h7.6a2 2 0 0 1 2 1.6L19 12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                    <path d="M5 12v5.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'organization_memory' %}" class="tip-down{% if current == 'organization_memory' or current == 'organization_dna' %} is-active{% endif %}" data-tip="Memory" aria-label="Memory" {% if current == 'organization_memory' or current == 'organization_dna' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 4.5a3 3 0 0 0-3 3v.2A3 3 0 0 0 4 10.5v.6a3 3 0 0 0 1 2.24V15a3 3 0 0 0 3 3h1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M15 4.5a3 3 0 0 1 3 3v.2a3 3 0 0 1 2 2.8v.6a3 3 0 0 1-1 2.24V15a3 3 0 0 1-3 3h-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M9 4.5V18M15 4.5V18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'profiles_list' %}" class="tip-down{% if path|slice:":10" == "/profiles/" %} is-active{% endif %}" data-tip="Profiles" aria-label="Profiles" {% if path|slice:":10" == "/profiles/" %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="8" r="3.3" stroke="currentColor" stroke-width="1.7"/>
-                    <path d="M5 19c1.2-3.5 4-5.2 7-5.2s5.8 1.7 7 5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                </svg>
-            </a>
-            <a href="{% url 'settings_edit' %}" class="tip-down{% if current == 'settings_edit' %} is-active{% endif %}" data-tip="Settings" aria-label="Settings" {% if current == 'settings_edit' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12.2 2.5h-.4a1.6 1.6 0 0 0-1.6 1.6v.2a1.7 1.7 0 0 1-.85 1.47l-.36.2a1.7 1.7 0 0 1-1.7 0l-.16-.1a1.6 1.6 0 0 0-2.18.6l-.2.35a1.6 1.6 0 0 0 .58 2.18l.14.08a1.7 1.7 0 0 1 .85 1.48v.42a1.7 1.7 0 0 1-.85 1.48l-.14.08a1.6 1.6 0 0 0-.58 2.18l.2.35a1.6 1.6 0 0 0 2.18.6l.16-.1a1.7 1.7 0 0 1 1.7 0l.36.2a1.7 1.7 0 0 1 .85 1.48v.2a1.6 1.6 0 0 0 1.6 1.6h.4a1.6 1.6 0 0 0 1.6-1.6v-.2a1.7 1.7 0 0 1 .85-1.47l.36-.2a1.7 1.7 0 0 1 1.7 0l.16.1a1.6 1.6 0 0 0 2.18-.6l.2-.35a1.6 1.6 0 0 0-.58-2.18l-.14-.08a1.7 1.7 0 0 1-.85-1.48v-.42a1.7 1.7 0 0 1 .85-1.48l.14-.08a1.6 1.6 0 0 0 .58-2.18l-.2-.35a1.6 1.6 0 0 0-2.18-.6l-.16.1a1.7 1.7 0 0 1-1.7 0l-.36-.2a1.7 1.7 0 0 1-.85-1.48v-.2a1.6 1.6 0 0 0-1.6-1.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-            </a>
-            {% if owner_console_visible %}
-            <a href="{% url 'owner_console' %}" class="tip-down{% if current == 'owner_console' %} is-active{% endif %}" data-tip="Owner tools" aria-label="Owner tools" {% if current == 'owner_console' %}aria-current="page"{% endif %}>
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3l7 3v6c0 4.8-3 8.4-7 9-4-.6-7-4.2-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                </svg>
-            </a>
-            {% endif %}
-            {% endwith %}
             <span class="topbar-actions">
                 <button type="button" class="guide-btn tip-down" id="palette-toggle" aria-haspopup="dialog" aria-controls="palette-overlay" aria-label="Search Orch" data-tip="Search (Ctrl+K)">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -598,9 +637,33 @@
         {% endif %}
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="app-status-bar" id="app-status-bar" aria-label="Orch status" hidden>
+        <span class="status-bar-item" id="status-bar-watching">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12h4.5l1.6 3h5.8l1.6-3H21" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M5 12 6.2 5.6A2 2 0 0 1 8.2 4h7.6a2 2 0 0 1 2 1.6L19 12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M5 12v5.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            <span class="status-bar-text"></span>
+        </span>
+        <span class="status-bar-item" id="status-bar-last-move" hidden>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="status-bar-text"></span>
+        </span>
+        <a class="status-bar-item status-bar-link" id="status-bar-review" href="{% url 'review_queue' %}" hidden>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 15l6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M11 6.5 12.5 5A4 4 0 1 1 18 10.5L16.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 17.5 11.5 19A4 4 0 1 1 6 13.5L7.5 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span class="status-bar-text"><span id="status-bar-review-count">0</span> pending review</span>
+        </a>
+        <span class="status-bar-item" id="status-bar-sync">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 12.2a7.5 7.5 0 0 1 15 0v3.1a2.7 2.7 0 0 1-2.7 2.7h-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span class="status-bar-text"></span>
+        </span>
+        <span class="status-bar-item status-bar-task" id="status-bar-task" hidden>
+            <span class="status-bar-spinner" aria-hidden="true"></span>
+            <span class="status-bar-text" id="status-bar-task-label"></span>
+        </span>
+    </footer>
 </div>
 
     <script src="{% static 'organizer/js/topbar-behavior.js' %}"></script>
+    <script src="{% static 'organizer/js/status-bar.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
