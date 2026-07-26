@@ -29,7 +29,7 @@
                     {% if block.subject_code %}
                     <a href="{% url 'subject_memory_detail' block.subject_code %}" class="meta-token">{{ block.subject_code|course_label }}</a>
                     {% endif %}
-                    <strong style="{% if block.priority == 'high' %}color:var(--red);{% elif block.priority == 'low' %}color:var(--muted);{% endif %}">
+                    <strong class="{% if block.priority == 'high' %}text-red{% elif block.priority == 'low' %}text-muted{% endif %}">
                         {{ block.priority|capfirst }}
                     </strong>
                 </div>

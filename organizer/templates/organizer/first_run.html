@@ -36,12 +36,12 @@
                 <div class="profile-main">
                     <h3>{{ item.label }}</h3>
                     <span class="path-text">{{ item.detail }}</span>
-                    {% if item.warning %}<span class="path-text" style="color:var(--red);">Path may not exist</span>{% endif %}
+                    {% if item.warning %}<span class="path-text text-red">Path may not exist</span>{% endif %}
                     {% if item.info %}<span class="path-text">{{ item.info }}</span>{% endif %}
                 </div>
                 <div class="profile-actions">
                     {% if item.url %}
-                    <a href="{{ item.url }}" class="button button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;{% if item.done %}opacity:0.6;{% endif %}">
+                    <a href="{{ item.url }}" class="button button-ghost button-compact"{% if item.done %} style="opacity:0.6;"{% endif %}>
                         {% if item.done %}Edit{% else %}Set up{% endif %}
                     </a>
                     {% endif %}

@@ -2148,6 +2148,11 @@
             font-size: 0.78rem;
         }
 
+        .filter-pill-active {
+            background: rgba(31, 122, 63, 0.16);
+            border-color: rgba(242, 201, 76, 0.42);
+        }
+
         .button-danger-soft {
             color: var(--danger-text);
         }
@@ -2162,13 +2167,45 @@
             color: var(--danger-text);
         }
 
-        .text-info {
+        .text-info,
+        .value-info {
             color: var(--cyan);
         }
 
         .text-muted,
         .value-muted {
             color: var(--muted);
+        }
+
+        .text-red,
+        .value-red {
+            color: var(--red);
+        }
+
+        .text-green,
+        .value-green {
+            color: var(--green);
+        }
+
+        .text-amber,
+        .value-amber {
+            color: var(--amber);
+        }
+
+        .section-label {
+            font-size: 0.82rem;
+            color: var(--faint);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .card-highlight {
+            border-color: var(--cyan);
+        }
+
+        .card-alert {
+            border-color: var(--red);
         }
 
         .copy-block {

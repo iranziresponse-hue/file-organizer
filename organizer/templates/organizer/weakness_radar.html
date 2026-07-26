@@ -15,7 +15,7 @@
     </section>
 
     {% if headline %}
-    <section class="card compact-card" style="border-color:var(--red);">
+    <section class="card compact-card card-alert">
         <div class="card-header"><div><h2>This week's weakest area</h2></div></div>
         <p class="help-text" style="font-size:1rem; color:var(--text);">
             <strong>{{ headline.subject_code|course_label }}</strong>: {{ headline.topic }}
@@ -26,9 +26,9 @@
 
     <section class="stat-row">
         <div class="stat stat-primary"><div class="value">{{ subject_weak_areas|length }}</div><div class="label">Subjects flagged</div></div>
-        <div class="stat"><div class="value" style="color:var(--red);">{{ repeated_topics|length }}</div><div class="label">Repeated topics</div></div>
-        <div class="stat"><div class="value" style="color:var(--amber);">{{ neglected_subjects|length }}</div><div class="label">Subjects going quiet</div></div>
-        <div class="stat"><div class="value" style="color:var(--muted);">{{ unreviewed_resources|length }}</div><div class="label">No review scheduled</div></div>
+        <div class="stat"><div class="value value-red">{{ repeated_topics|length }}</div><div class="label">Repeated topics</div></div>
+        <div class="stat"><div class="value value-amber">{{ neglected_subjects|length }}</div><div class="label">Subjects going quiet</div></div>
+        <div class="stat"><div class="value value-muted">{{ unreviewed_resources|length }}</div><div class="label">No review scheduled</div></div>
     </section>
 
     {% if repeated_topics %}
@@ -41,7 +41,7 @@
         </div>
         <div class="meta-list" style="margin-top:8px;">
             {% for row in repeated_topics %}
-            <span class="suggestion-token" style="color:var(--red);">
+            <span class="suggestion-token text-red">
                 <strong>{{ row.topic }}</strong>
                 <span class="path-text">({{ row.subjects|join:", " }})</span>
             </span>

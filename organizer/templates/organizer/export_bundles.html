@@ -93,11 +93,11 @@
                     <span class="path-text">Status</span>
                     <strong>
                         {% if bundle.status == "ready" %}
-                            <span style="color:var(--green);">Ready</span>
+                            <span class="text-green">Ready</span>
                         {% elif bundle.status == "building" %}
-                            <span style="color:var(--cyan);">Building</span>
+                            <span class="text-info">Building</span>
                         {% elif bundle.status == "failed" %}
-                            <span style="color:var(--red);">Failed</span>
+                            <span class="text-red">Failed</span>
                         {% else %}
                             {{ bundle.get_status_display }}
                         {% endif %}
@@ -109,16 +109,16 @@
                 </div>
                 <div class="profile-actions" style="display:flex; gap:6px;">
                     {% if bundle.status == "ready" and bundle.output_path %}
-                    <a class="button" href="{% url 'export_download' bundle.pk %}" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">
+                    <a class="button button-compact" href="{% url 'export_download' bundle.pk %}">
                         <svg viewBox="0 0 24 24" fill="none" style="width:14px;">
                             <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        Download ZIP
+                        Download
                     </a>
                     {% endif %}
-                    <form method="post" action="{% url 'export_delete' bundle.pk %}" style="display:inline;" data-confirm="Delete this knowledge pack?">
+                    <form method="post" action="{% url 'export_delete' bundle.pk %}" class="inline-form" data-confirm="Delete this knowledge pack?">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:32px; min-height:32px; padding:4px 12px; font-size:0.82rem;">Delete</button>
+                        <button type="submit" class="button-ghost button-compact">Delete</button>
                     </form>
                 </div>
             </article>
@@ -154,7 +154,7 @@
             </div>
             <div class="stat">
                 <div class="value">Map</div>
-                <div class="label">Folder map<br><span class="path-text">JSON tree view</span></div>
+                <div class="label">Folder map<br><span class="path-text">A full list of where everything is</span></div>
             </div>
             <div class="stat">
                 <div class="value">Reading</div>
@@ -169,8 +169,8 @@
                 <div class="label">Study-guide PDF<br><span class="path-text">With course guide + file index</span></div>
             </div>
             <div class="stat">
-                <div class="value">Manifest</div>
-                <div class="label">Manifest<br><span class="path-text">metadata.json</span></div>
+                <div class="value">Summary sheet</div>
+                <div class="label">Pack details<br><span class="path-text">What's included and when it was made</span></div>
             </div>
         </div>
     </section>

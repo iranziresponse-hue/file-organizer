@@ -16,9 +16,9 @@
 
     <section class="stat-row" id="inbox-stats">
         <div class="stat stat-primary"><div class="value" id="stat-pending">{{ stats.pending }}</div><div class="label">Pending</div></div>
-        <div class="stat"><div class="value" id="stat-approved" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
-        <div class="stat"><div class="value" id="stat-rejected" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Cleared</div></div>
-        <div class="stat"><div class="value" id="stat-moved" style="color:var(--cyan);">{{ stats.moved }}</div><div class="label">Auto-moved</div></div>
+        <div class="stat"><div class="value value-green" id="stat-approved">{{ stats.approved }}</div><div class="label">Approved</div></div>
+        <div class="stat"><div class="value value-muted" id="stat-rejected">{{ stats.rejected }}</div><div class="label">Cleared</div></div>
+        <div class="stat"><div class="value value-info" id="stat-moved">{{ stats.moved }}</div><div class="label">Auto-moved</div></div>
     </section>
 
     {% if pending_items %}
@@ -43,31 +43,31 @@
                     <span class="path-text">Confidence</span>
                     <strong>{{ item.confidence }}%</strong>
                     {% if item.decision_type == "held_sensitive" %}
-                        <span class="path-text" style="color:var(--red);">Sensitive</span>
+                        <span class="path-text text-red">Sensitive</span>
                     {% endif %}
                 </div>
                 <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" class="inline-form">
                         {% csrf_token %}
-                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                        <button type="submit" class="button button-compact">
                             <svg viewBox="0 0 24 24" fill="none" style="width:14px;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             Approve once
                         </button>
                     </form>
-                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                    <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="remember" value="1">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Teach Orch to always route files like this here">Always do this</button>
+                        <button type="submit" class="button-ghost button-compact" title="Teach Orch to always route files like this here">Always do this</button>
                     </form>
-                    <button type="button" class="button-ghost reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Move somewhere else</button>
-                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                    <button type="button" class="button-ghost button-compact reroute-btn" data-item-pk="{{ item.pk }}" data-filename="{{ item.filename }}">Move somewhere else</button>
+                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" class="inline-form">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Leave the file where it is and remove this row">Clear</button>
+                        <button type="submit" class="button-ghost button-compact" title="Leave the file where it is and remove this row">Clear</button>
                     </form>
-                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" style="display:inline;">
+                    <form method="post" action="{% url 'inbox_ignore' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="never_again" value="1">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;" title="Stop suggesting this pattern in future">Never suggest again</button>
+                        <button type="submit" class="button-ghost button-compact" title="Stop suggesting this pattern in future">Never suggest again</button>
                     </form>
                 </div>
             </article>

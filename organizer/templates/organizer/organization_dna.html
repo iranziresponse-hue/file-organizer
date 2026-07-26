@@ -16,17 +16,17 @@
 
     <section class="stat-row">
         <div class="stat stat-primary"><div class="value">{{ stats.total_moves }}</div><div class="label">Files sorted</div></div>
-        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.pending_review }}</div><div class="label">Waiting for review</div></div>
-        <div class="stat"><div class="value" style="color:var(--red);">{{ stats.held_sensitive }}</div><div class="label">Held for sensitive files</div></div>
-        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.accuracy }}%</div><div class="label">Suggestion accuracy</div></div>
+        <div class="stat"><div class="value value-info">{{ stats.pending_review }}</div><div class="label">Waiting for review</div></div>
+        <div class="stat"><div class="value value-red">{{ stats.held_sensitive }}</div><div class="label">Held for sensitive files</div></div>
+        <div class="stat"><div class="value value-green">{{ stats.accuracy }}%</div><div class="label">Suggestion accuracy</div></div>
     </section>
 
     <section class="overview-grid">
         <div class="card compact-card">
             <div class="card-header"><div><h2>Automation accuracy</h2><p class="card-subtitle">How often Orch's own suggestions were kept</p></div></div>
             <div class="stat-row">
-                <div class="stat"><div class="value" style="color:var(--green);">{{ stats.approved }}</div><div class="label">Approved</div></div>
-                <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.rejected }}</div><div class="label">Rejected</div></div>
+                <div class="stat"><div class="value value-green">{{ stats.approved }}</div><div class="label">Approved</div></div>
+                <div class="stat"><div class="value value-muted">{{ stats.rejected }}</div><div class="label">Rejected</div></div>
                 <div class="stat"><div class="value">{{ stats.auto_moved }}</div><div class="label">Auto-moved</div></div>
                 <div class="stat"><div class="value">{{ stats.undo_rate }}%</div><div class="label">Undo rate</div></div>
             </div>

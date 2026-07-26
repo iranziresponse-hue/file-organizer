@@ -72,14 +72,14 @@
                     <span class="path-text">Coursework {{ row.target.coursework_weight }}% &middot; Test {{ row.target.test_weight }}% &middot; Exam {{ row.target.exam_weight }}% &middot; Target {{ row.target.target_percent }}%</span>
                 </div>
                 <div class="profile-detail">
-                    <strong style="{% if row.result.achievable == False %}color:var(--red);{% elif row.result.achievable %}color:var(--green);{% endif %}">
+                    <strong class="{% if row.result.achievable == False %}text-red{% elif row.result.achievable %}text-green{% endif %}">
                         {{ row.result.message }}
                     </strong>
                 </div>
                 <div class="profile-actions">
                     <form method="post" action="{% url 'grade_target_delete' row.target.pk %}" data-confirm="Delete this grade target?">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                        <button type="submit" class="button-ghost button-compact text-red">Delete</button>
                     </form>
                 </div>
             </article>

@@ -13,14 +13,14 @@
             <p class="path-text">
                 Last successful sync:
                 <strong>{% if connection.last_sync_at %}{{ connection.last_sync_at|date:"M j, Y, g:i A" }}{% else %}Never{% endif %}</strong>
-                {% if connection.status == "error" %}&middot; <span style="color:var(--red);">Last attempt failed, showing the most recent successful sync above</span>{% endif %}
+                {% if connection.status == "error" %}&middot; <span class="text-red">Last attempt failed, showing the most recent successful sync above</span>{% endif %}
             </p>
             {% endif %}
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
             {% if connection %}
-            <button type="button" class="button-ghost" id="sync-now-btn">
+            <button type="button" class="button-ghost" id="sync-now-btn" title="Check timetable.mak.ac.ug now for schedule changes">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M20 9a7 7 0 0 0-12.1-4.8L4 8M4 15a7 7 0 0 0 12.1 4.8L20 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -197,7 +197,7 @@
                     <td>
                         <form method="post" action="{% url 'timetable_entry_delete' entry.pk %}" data-confirm="Remove this entry?">
                             {% csrf_token %}
-                            <button type="submit" class="button-ghost button-danger-soft" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Remove</button>
+                            <button type="submit" class="button-ghost button-danger-soft button-compact">Remove</button>
                         </form>
                     </td>
                 </tr>

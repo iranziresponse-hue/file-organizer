@@ -56,9 +56,9 @@
                     </svg>
                     Edit
                 </a>
-                <form method="post" action="{% url 'profile_delete' p.pk %}" data-confirm="Delete {{ p.name }}? This removes its saved config, not the files already sorted on disk.">
+                <form method="post" action="{% url 'profile_delete' p.pk %}" data-confirm="Delete {{ p.name }}? This removes its saved settings, not the files already sorted on disk.">
                     {% csrf_token %}
-                    <button type="submit" class="button-ghost button-danger">
+                    <button type="submit" class="button-ghost button-danger-soft">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>

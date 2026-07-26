@@ -13,7 +13,7 @@
         </div>
         {% if profile %}
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <form method="post" style="display:inline;">
+            <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="refresh_topics">
                 <button type="submit">
@@ -110,7 +110,7 @@
                     {% endif %}
                 </p>
             </div>
-            <form method="post" style="display:inline;">
+            <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="refresh_topics">
                 <input type="hidden" name="subject_code" value="{{ subject.code }}">
@@ -156,7 +156,7 @@
         {% if subject.recent_activity %}
         <div class="section-gap"></div>
         <div class="recent-activity">
-            <h3 style="font-size:0.82rem; color:var(--faint); font-weight:700; text-transform:uppercase; margin-bottom:8px;">Recent Activity</h3>
+            <h3 class="section-label">Recent Activity</h3>
             <div class="activity-mini-list">
                 {% for act in subject.recent_activity %}
                 <div class="activity-mini-item">

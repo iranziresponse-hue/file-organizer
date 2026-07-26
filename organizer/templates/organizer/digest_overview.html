@@ -11,7 +11,7 @@
             <p>Daily and weekly summaries of your learning activity - files sorted, subjects active, reviews due, and assignments tracked.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <form method="post" style="display:inline;">
+            <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="generate">
                 <input type="hidden" name="period" value="daily">
@@ -22,7 +22,7 @@
                     Daily digest
                 </button>
             </form>
-            <form method="post" style="display:inline;">
+            <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="generate">
                 <input type="hidden" name="period" value="weekly">
@@ -113,7 +113,7 @@
                     <strong>{{ digest.metrics.open_assignments|default:"0" }}</strong>
                 </div>
                 <div class="profile-actions">
-                    <a class="button button-ghost" href="{% url 'digest_detail' digest.pk %}" style="height:30px; min-height:30px; padding:4px 12px; font-size:0.78rem;">
+                    <a class="button button-ghost button-compact" href="{% url 'digest_detail' digest.pk %}">
                         View
                     </a>
                 </div>

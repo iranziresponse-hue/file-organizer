@@ -38,7 +38,7 @@
                 <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="forgot-form" hidden>
                     {% csrf_token %}
                     <input type="hidden" name="remembered" value="0">
-                    <button type="submit" class="button-ghost" style="color:var(--red);">I forgot</button>
+                    <button type="submit" class="button-ghost text-red">I forgot</button>
                 </form>
             </div>
         </div>
@@ -69,19 +69,19 @@
                 <div class="profile-main"><h3>{{ code|course_label }}</h3></div>
                 <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
                     {% if code in subjects_with_past_papers %}
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="generate_past_papers">
                         <input type="hidden" name="subject_code" value="{{ code }}">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">From past papers</button>
+                        <button type="submit" class="button-ghost button-compact">From past papers</button>
                     </form>
                     {% endif %}
                     {% if code in subjects_with_summaries %}
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="generate_summaries">
                         <input type="hidden" name="subject_code" value="{{ code }}">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">From notes</button>
+                        <button type="submit" class="button-ghost button-compact">From notes</button>
                     </form>
                     {% endif %}
                 </div>
@@ -136,7 +136,7 @@
                     <div class="profile-actions">
                         <form method="post" action="{% url 'flashcard_delete' card.pk %}" data-confirm="Delete this card?">
                             {% csrf_token %}
-                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                            <button type="submit" class="button-ghost button-compact text-red">Delete</button>
                         </form>
                     </div>
                 </article>

@@ -115,24 +115,24 @@
                 </div>
                 <div class="profile-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
                     {% if plan.status == "scanned" %}
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="approve">
                         <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
-                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Approve</button>
+                        <button type="submit" class="button button-compact">Approve</button>
                     </form>
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="reject">
                         <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Reject</button>
+                        <button type="submit" class="button-ghost button-compact">Reject</button>
                     </form>
                     {% elif plan.status == "approved" %}
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="apply">
                         <input type="hidden" name="plan_pk" value="{{ plan.pk }}">
-                        <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Apply folders</button>
+                        <button type="submit" class="button button-compact">Apply folders</button>
                     </form>
                     {% endif %}
                 </div>

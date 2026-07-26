@@ -21,9 +21,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=10">
+<link rel="stylesheet" href="assets/css/style.css?v=11">
 </head>
 <body>
+<noscript><style>[data-reveal]{opacity:1!important;transform:none!important;}</style></noscript>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -58,7 +59,7 @@
                 <span class="brand-tagline">Keeps coursework tidy</span>
             </span>
         </a>
-        <nav class="main-nav">
+        <nav class="main-nav" id="main-nav">
             <a href="./">Home</a>
             <a href="why.html" aria-current="page">Why Orch</a>
             <a href="how-it-works.html">How it works</a>
@@ -66,6 +67,9 @@
             <a href="screenshots.html">Screenshots</a>
             <a href="makerere.html">Makerere</a>
         </nav>
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
         <div class="header-actions">
             <a class="btn btn-primary btn-sm" href="downloads.html">Download for Windows</a>
         </div>
@@ -164,7 +168,7 @@
     </div>
 </footer>
 
-<script src="assets/js/site.js?v=6"></script>
+<script src="assets/js/site.js?v=7"></script>
 
 </body>
 </html>

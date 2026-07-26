@@ -17,7 +17,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>MUELE is connected</h3>
+                <h2>MUELE is connected</h2>
                 <p class="card-subtitle">
                     {% if connection.username %}Connected as <strong>{{ connection.username }}</strong>.{% else %}Your MUELE account is linked.{% endif %}
                     {% if connection.last_sync_at %}Last synced {{ connection.last_sync_at|date:"M j, Y, g:i A" }}.{% else %}Not synced yet.{% endif %}
@@ -28,16 +28,18 @@
     </section>
 
     <section class="card compact-card">
-        <details>
-            <summary style="cursor:pointer; color: var(--muted);">Reconnect MUELE (if your session expired)</summary>
-            <div style="margin-top:16px;">
+        <div class="card-header">
+            <div>
+                <details>
+                    <summary style="cursor:pointer; color: var(--muted);">Reconnect MUELE (if your session expired)</summary>
+                    <div style="margin-top:16px;">
     {% endif %}
 
     <!-- Method 1: Automatic login -->
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>Option A: Log in with your MUELE account</h3>
+                <h2>Option A: Log in with your MUELE account</h2>
                 <p class="card-subtitle">Enter your Makerere login credentials. Orch generates a secure token automatically - your password is never stored.</p>
             </div>
         </div>
@@ -75,7 +77,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>Option B: Use an existing token</h3>
+                <h2>Option B: Use an existing token</h2>
                 <p class="card-subtitle">If you already have a MUELE web service token, paste it below.</p>
             </div>
         </div>
@@ -107,8 +109,10 @@
     </section>
 
     {% if connection.status == "connected" %}
+                    </div>
+                </details>
             </div>
-        </details>
+        </div>
     </section>
     {% endif %}
 
@@ -117,7 +121,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>Configure sync</h3>
+                <h2>Configure sync</h2>
                 <p class="card-subtitle">Choose what to sync from MUELE. You can change this later.</p>
             </div>
         </div>

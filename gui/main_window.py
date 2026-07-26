@@ -14,10 +14,11 @@ import webview
 
 from .server import dashboard_url
 
-# Matches base.html's --bg-deep. A white window background would flash
-# visibly for an instant on load since there's a brief gap between the
-# window appearing and the page's own dark CSS painting.
-PAGE_BACKGROUND = "#0B141A"
+# Matches base.html's light-theme --bg-deep (the app's default theme). A
+# mismatched window background would flash visibly for an instant on load
+# since there's a brief gap between the window appearing and the page's
+# own CSS painting.
+PAGE_BACKGROUND = "#F0F2F5"
 
 
 class _JSApi:

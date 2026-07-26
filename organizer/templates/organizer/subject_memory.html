@@ -20,7 +20,7 @@
                 View guide
             </button>
             {% else %}
-            <form method="post" action="{% url 'course_guide_generate' profile.pk memory.code %}" style="display:inline;">
+            <form method="post" action="{% url 'course_guide_generate' profile.pk memory.code %}" class="inline-form">
                 {% csrf_token %}
                 <button type="submit" class="button-ghost">Generate guide</button>
             </form>
@@ -90,7 +90,7 @@
             {% if memory.weak_areas %}
             <div class="meta-list" style="margin-top:12px;">
                 {% for area in memory.weak_areas %}
-                <span class="suggestion-token" style="color:var(--red);">{{ area }}</span>
+                <span class="suggestion-token text-red">{{ area }}</span>
                 {% endfor %}
             </div>
             {% else %}
@@ -153,11 +153,11 @@
                         </span>
                         <strong>
                             {% if item.status == "open" %}
-                                <span style="color:var(--cyan);">Open</span>
+                                <span class="text-info">Open</span>
                             {% elif item.status == "missed" %}
-                                <span style="color:var(--red);">Missed</span>
+                                <span class="text-red">Missed</span>
                             {% elif item.status == "submitted" %}
-                                <span style="color:var(--green);">Submitted</span>
+                                <span class="text-green">Submitted</span>
                             {% else %}
                                 {{ item.status }}
                             {% endif %}

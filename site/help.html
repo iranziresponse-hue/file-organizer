@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orch help notes</title>
-<meta name="description" content="Plain-language help notes for using Orch: setup, files, review, Makerere, study tools, projects, and support.">
+<title>Orch Help Notes</title>
+<meta name="description" content="User help for Orch: setup, file review, Makerere support, study tools, projects, and support.">
 <link rel="canonical" href="https://orch.spriteteam.com/help.html">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Orch help notes">
-<meta property="og:description" content="Plain-language help notes for using Orch: setup, files, review, Makerere, study tools, projects, and support.">
+<meta property="og:title" content="Orch Help Notes">
+<meta property="og:description" content="User help for Orch: setup, file review, Makerere support, study tools, projects, and support.">
 <meta property="og:url" content="https://orch.spriteteam.com/help.html">
 <meta property="og:image" content="https://orch.spriteteam.com/assets/img/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -16,9 +16,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=10">
+<link rel="stylesheet" href="assets/css/style.css?v=11">
 </head>
 <body>
+<noscript><style>[data-reveal]{opacity:1!important;transform:none!important;}</style></noscript>
 
 <header class="site-header">
     <div class="wrap">
@@ -29,7 +30,7 @@
                 <span class="brand-tagline">Keeps student work in order</span>
             </span>
         </a>
-        <nav class="main-nav">
+        <nav class="main-nav" id="main-nav">
             <a href="./">Home</a>
             <a href="why.html">Why Orch</a>
             <a href="how-it-works.html">How it works</a>
@@ -37,6 +38,9 @@
             <a href="screenshots.html">Screenshots</a>
             <a href="makerere.html">Makerere</a>
         </nav>
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
         <div class="header-actions">
             <a class="btn btn-primary btn-sm" href="downloads.html">Download for Windows</a>
         </div>
@@ -47,8 +51,8 @@
 <section class="page-hero">
     <div class="wrap">
         <span class="eyebrow">Help notes</span>
-        <h1 data-reveal>What to do in Orch, without the technical noise.</h1>
-        <p data-reveal>These notes explain the parts most users need: setup, sorting, review, deadlines, study tools, projects, and where to ask for help.</p>
+        <h1 data-reveal>Use Orch with confidence.</h1>
+        <p data-reveal>These notes cover the main parts of the app: setup, sorting, review, deadlines, study tools, projects, and support.</p>
     </div>
 </section>
 
@@ -57,7 +61,7 @@
         <div class="feature-grid">
             <div class="feature-card" data-reveal>
                 <h3>First setup</h3>
-                <p>Start by creating a profile. A profile is just a place for one kind of work, such as school, online learning, research, work training, or projects.</p>
+                <p>Start by creating a profile. A profile keeps one kind of work separate, such as school, online learning, research, work training, or projects.</p>
                 <ul>
                     <li>Makerere students can use the guided setup.</li>
                     <li>Other users can make their own labels and subjects.</li>
@@ -66,24 +70,24 @@
             </div>
             <div class="feature-card" data-reveal>
                 <h3>When files arrive</h3>
-                <p>Orch checks new files from the folders you chose. It looks at names, course codes, file types, and rules you taught it.</p>
+                <p>Orch checks new files from the folders you choose. It looks at names, course codes, file types, and rules you have saved.</p>
                 <ul>
-                    <li>Confident files can be sorted for you.</li>
+                    <li>Clear matches can be sorted for you.</li>
                     <li>Unclear files wait for your review.</li>
                     <li>Every move leaves a record.</li>
                 </ul>
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Decision Inbox</h3>
-                <p>This is where Orch places files it should not move without you. You can approve the suggestion, pick another folder, ignore it, or clear the row.</p>
+                <p>This is where Orch places files that need your decision. You can approve the suggestion, choose another folder, ignore the file, or clear the row.</p>
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Recent Moves and Undo</h3>
-                <p>Use Recent Moves to see what changed. If a file went to the wrong place, use undo or move it somewhere better.</p>
+                <p>Use Recent Moves to see what changed. If a file went to the wrong place, you can undo the move or choose a better folder.</p>
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Settings</h3>
-                <p>Settings is where you change watched folders, extra folders, sorting behavior, and optional helpers. If Orch says something needs setup, start there or use the setup checklist.</p>
+                <p>Settings is where you change watched folders, extra folders, sorting behavior, and optional helpers. If Orch says something needs setup, start with Settings or the setup checklist.</p>
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Profiles</h3>
@@ -98,7 +102,7 @@
         <div class="section-head" data-reveal>
             <span class="eyebrow">School and study</span>
             <h2>Use the study pages when files need context</h2>
-            <p>Sorting is only the start. Orch also gives you pages for subjects, reviews, assignments, exams, and study plans.</p>
+            <p>Sorting is only the start. Orch also provides pages for subjects, reviews, assignments, exams, and study plans.</p>
         </div>
         <div class="feature-grid">
             <div class="feature-card" data-reveal>
@@ -107,7 +111,7 @@
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Reviews</h3>
-                <p>Create review items from files or topics, then mark them done as you revise.</p>
+                <p>Create review items from files or topics, then mark them complete as you revise.</p>
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Assignments and exams</h3>
@@ -123,7 +127,7 @@
             </div>
             <div class="feature-card" data-reveal>
                 <h3>Exports</h3>
-                <p>When you need a copy of one subject or profile, export a bundle with useful files and notes.</p>
+                <p>When you need a copy of one subject or profile, export a bundle with the related files and notes.</p>
             </div>
         </div>
     </div>
@@ -132,18 +136,18 @@
 <section>
     <div class="wrap info-grid">
         <div class="info-panel" data-reveal>
-            <h2>Projects and career proof</h2>
-            <p>Project Studio is for work you may want to show later. Add the project name, what problem it solves, links, folder path, lessons learned, and updates. Orch can help turn that work into a weekly record or draft post when you choose.</p>
+            <h2>Projects and career records</h2>
+            <p>Project Studio is for work you may want to present later. Add the project name, the problem it solves, links, folder path, lessons learned, and updates. Orch can help turn that work into a weekly record or draft post when you choose.</p>
         </div>
         <div class="info-panel" data-reveal>
-            <h3>When something feels wrong</h3>
+            <h3>When something needs attention</h3>
             <ul>
                 <li>Check the setup checklist if Orch says a feature is not ready.</li>
                 <li>Look at Recent Moves if a file is missing.</li>
                 <li>Use Decision Inbox if Orch is waiting for your choice.</li>
-                <li>Use Support below if a course, page, or action still does not make sense.</li>
+                <li>Use Support if a course, page, or action still needs review.</li>
             </ul>
-            <p style="margin-top: 16px;"><a class="btn btn-ghost" href="#" data-support-open>Open support</a></p>
+            <p style="margin-top: 16px;"><a class="btn btn-ghost" href="#" data-support-open>Open Support</a></p>
         </div>
     </div>
 </section>
@@ -174,6 +178,6 @@
     </div>
 </footer>
 
-<script src="assets/js/site.js?v=6"></script>
+<script src="assets/js/site.js?v=7"></script>
 </body>
 </html>

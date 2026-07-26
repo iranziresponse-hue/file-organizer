@@ -12,7 +12,7 @@
             <p>Local, free topic-frequency analysis over your own past papers. Detects recurring topics across papers, not literal repeated questions; different years rarely phrase things identically.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <form method="post" style="display:inline;">
+            <form method="post" class="inline-form">
                 {% csrf_token %}
                 <button type="submit">{% if analysis %}Refresh analysis{% else %}Analyze past papers{% endif %}</button>
             </form>

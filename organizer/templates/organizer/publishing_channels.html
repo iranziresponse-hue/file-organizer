@@ -18,7 +18,7 @@
         <div class="card compact-card">
             <div class="card-header">
                 <div>
-                    <h3>{{ channel.display_name }}</h3>
+                    <h2>{{ channel.display_name }}</h2>
                     <p class="card-subtitle">{{ channel.get_provider_display }} &middot; <span class="workspace-status {% if channel.status == 'connected' or channel.status == 'configured' %}is-live{% elif channel.status == 'needs_key' %}is-warning{% endif %}">{% if channel.status == 'configured' %}Saved{% elif channel.status == 'needs_key' %}Needs token{% else %}{{ channel.get_status_display }}{% endif %}</span></p>
                 </div>
             </div>
@@ -39,7 +39,7 @@
         <div class="card compact-card workspace-muted-card">
             <div class="card-header">
                 <div>
-                    <h3>LinkedIn</h3>
+                    <h2>LinkedIn</h2>
                     <p class="card-subtitle">Not available yet</p>
                 </div>
             </div>
@@ -50,8 +50,8 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>Connect a custom website</h3>
-                <p class="card-subtitle">Point this at an endpoint on your own site or blog that accepts JSON posts.</p>
+                <h2>Connect a custom website</h2>
+                <p class="card-subtitle">Send drafts straight to your own site or blog.</p>
             </div>
         </div>
         <form method="post" class="form-grid">
@@ -63,13 +63,13 @@
                     <input type="text" id="display_name" name="display_name" placeholder="My blog" required>
                 </div>
                 <div class="field">
-                    <label for="base_url">Endpoint URL</label>
+                    <label for="base_url">Web address for new posts</label>
                     <input type="url" id="base_url" name="base_url" placeholder="https://example.com/api/posts" required>
                 </div>
             </div>
             <div class="field">
                 <label for="api_key">API key (optional)</label>
-                <input type="text" id="api_key" name="api_key" placeholder="Sent as a Bearer token" autocomplete="off" class="workspace-mono-input">
+                <input type="text" id="api_key" name="api_key" placeholder="Only needed if your site requires one" autocomplete="off" class="workspace-mono-input">
                 <p class="help-text">Stored in your OS credential store, never in Orch's database.</p>
             </div>
             <div class="field">
@@ -88,7 +88,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div>
-                <h3>Connect GitHub</h3>
+                <h2>Connect GitHub</h2>
                 <p class="card-subtitle">Push approved drafts as real commits into a repo you own.</p>
             </div>
         </div>

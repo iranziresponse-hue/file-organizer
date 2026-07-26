@@ -115,19 +115,19 @@
                         <strong>{% if rule.enabled %}Active{% else %}Paused{% endif %}</strong>
                     </div>
                     <div class="profile-actions" style="display:flex;gap:6px;">
-                        <form method="post" style="display:inline;">
+                        <form method="post" class="inline-form">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="toggle">
                             <input type="hidden" name="rule_pk" value="{{ rule.pk }}">
-                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                            <button type="submit" class="button-ghost button-compact">
                                 {{ rule.enabled|yesno:"Pause,Activate" }}
                             </button>
                         </form>
-                        <form method="post" style="display:inline;" data-confirm="Delete this rule?">
+                        <form method="post" class="inline-form" data-confirm="Delete this rule?">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="rule_pk" value="{{ rule.pk }}">
-                            <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Delete</button>
+                            <button type="submit" class="button-ghost button-compact">Delete</button>
                         </form>
                     </div>
                 </article>

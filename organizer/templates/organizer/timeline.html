@@ -17,22 +17,18 @@
             <div class="meta-list" style="gap:4px;">
                 {% for type_key, type_label in activity_types %}
                 <a href="?type={% if current_filter == type_key %}{% else %}{{ type_key }}{% endif %}&days={{ days }}"
-                   class="button button-ghost"
-                   style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
-                          {% if current_filter == type_key %}background:rgba(31,122,63,0.16); border-color:rgba(242,201,76,0.42);{% endif %}">
+                   class="button button-ghost button-compact{% if current_filter == type_key %} filter-pill-active{% endif %}">
                     {{ type_label }}
                 </a>
                 {% endfor %}
                 {% if current_filter %}
-                <a href="?days={{ days }}" class="button button-ghost" style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;">Clear filter</a>
+                <a href="?days={{ days }}" class="button button-ghost button-compact">Clear filter</a>
                 {% endif %}
             </div>
             <div class="meta-list" style="gap:4px;">
                 {% for d in day_options %}
                 <a href="?days={% if days == d|slugify %}{% else %}{{ d }}{% endif %}{% if current_filter %}&type={{ current_filter }}{% endif %}"
-                   class="button button-ghost"
-                   style="height:30px; min-height:30px; padding:4px 10px; font-size:0.78rem;
-                          {% if days == d|slugify %}background:rgba(31,122,63,0.16); border-color:rgba(242,201,76,0.42);{% endif %}">
+                   class="button button-ghost button-compact{% if days == d|slugify %} filter-pill-active{% endif %}">
                     {% if d == 7 %}Week{% elif d == 30 %}Month{% elif d == 90 %}Quarter{% else %}All{% endif %}
                 </a>
                 {% endfor %}
@@ -60,7 +56,7 @@
         <section class="card compact-card">
             <div class="card-header" style="margin-bottom:16px;">
                 <div>
-                    <h2 style="font-size:1.1rem;">{{ group_label }}</h2>
+                    <h3>{{ group_label }}</h3>
                     <p class="card-subtitle">{{ events|length }} event{{ events|length|pluralize }}</p>
                 </div>
             </div>

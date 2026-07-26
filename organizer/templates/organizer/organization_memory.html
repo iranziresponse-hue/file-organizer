@@ -16,9 +16,9 @@
 
     <section class="stat-row">
         <div class="stat stat-primary"><div class="value">{{ stats.total }}</div><div class="label">Learned rules</div></div>
-        <div class="stat"><div class="value" style="color:var(--green);">{{ stats.enabled }}</div><div class="label">Enabled</div></div>
-        <div class="stat"><div class="value" style="color:var(--cyan);">{{ stats.approved_patterns }}</div><div class="label">With approvals</div></div>
-        <div class="stat"><div class="value" style="color:var(--muted);">{{ stats.rejected_patterns }}</div><div class="label">With rejections</div></div>
+        <div class="stat"><div class="value value-green">{{ stats.enabled }}</div><div class="label">Enabled</div></div>
+        <div class="stat"><div class="value value-info">{{ stats.approved_patterns }}</div><div class="label">With approvals</div></div>
+        <div class="stat"><div class="value value-muted">{{ stats.rejected_patterns }}</div><div class="label">With rejections</div></div>
     </section>
 
     {% if rules %}
@@ -44,23 +44,23 @@
                         <strong>+{{ rule.confidence_boost }}</strong>
                     </div>
                     <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Save</button>
+                        <button type="submit" class="button-ghost button-compact">Save</button>
                     </div>
                 </form>
                 <div class="profile-actions" style="grid-column:1/-1; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" style="display:inline;">
+                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="toggle">
-                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;">{% if rule.enabled %}Disable{% else %}Enable{% endif %}</button>
+                        <button type="submit" class="button-ghost button-compact">{% if rule.enabled %}Disable{% else %}Enable{% endif %}</button>
                     </form>
-                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" style="display:inline;">
+                    <form method="post" action="{% url 'organization_memory_rule_update' rule.pk %}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="reset">
-                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;">Reset learning</button>
+                        <button type="submit" class="button-ghost button-compact">Reset learning</button>
                     </form>
-                    <form method="post" action="{% url 'organization_memory_rule_delete' rule.pk %}" style="display:inline;" data-confirm="Delete this learned rule?">
+                    <form method="post" action="{% url 'organization_memory_rule_delete' rule.pk %}" class="inline-form" data-confirm="Delete this learned rule?">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:28px;min-height:28px;padding:3px 10px;font-size:0.76rem;color:var(--red);">Delete</button>
+                        <button type="submit" class="button-ghost button-compact text-red">Delete</button>
                     </form>
                     <span class="path-text" style="margin-left:auto; align-self:center;">{% if rule.enabled %}Active{% else %}Disabled{% endif %}</span>
                 </div>

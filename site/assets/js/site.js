@@ -16,6 +16,47 @@
 })();
 
 (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var nav = document.getElementById('main-nav');
+    if (!toggle || !nav) return;
+
+    function closeMenu() {
+        nav.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function openMenu() {
+        nav.classList.add('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle.addEventListener('click', function () {
+        if (nav.classList.contains('is-open')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    nav.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', closeMenu);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+            closeMenu();
+            toggle.focus();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!nav.classList.contains('is-open')) return;
+        if (nav.contains(event.target) || toggle.contains(event.target)) return;
+        closeMenu();
+    });
+})();
+
+(function () {
     var encodedInbox = 'aXJhbnppcmVzcG9uc2VAZ21haWwuY29t';
 
     function supportInbox() {
@@ -30,13 +71,13 @@
             '<div class="support-dialog" role="dialog" aria-modal="true" aria-labelledby="support-title">',
             '    <button type="button" class="support-close" aria-label="Close support form">Close</button>',
             '    <span class="eyebrow">Support</span>',
-            '    <h2 id="support-title">Tell us what is going on</h2>',
-            '    <p>Write the question, bug, missing course detail, or confusing part. When you send, your email app opens with the message ready.</p>',
+            '    <h2 id="support-title">Contact Orch Support</h2>',
+            '    <p>Share your question, issue, missing course detail, or feedback. When you send, your email app opens with the message prepared.</p>',
             '    <form class="support-form">',
             '        <label for="support-subject">Subject</label>',
             '        <input id="support-subject" name="subject" type="text" placeholder="Example: MUELE courses are not showing" required>',
             '        <label for="support-body">Message</label>',
-            '        <textarea id="support-body" name="body" rows="7" placeholder="Add the page, what you clicked, what you expected, and what happened." required></textarea>',
+            '        <textarea id="support-body" name="body" rows="7" placeholder="Include the page, the action you tried, what you expected, and what happened." required></textarea>',
             '        <button type="submit" class="btn btn-primary">Send message</button>',
             '    </form>',
             '</div>'

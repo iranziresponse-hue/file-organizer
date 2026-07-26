@@ -14,7 +14,7 @@
         <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
-    <section class="card compact-card" style="border-color:var(--cyan);">
+    <section class="card compact-card card-highlight">
         <div class="card-header"><div><h2>Next best action</h2></div></div>
         <p class="help-text" style="font-size:1.05rem; color:var(--text);">{{ next_best_action }}</p>
         <div class="stat-row" style="margin-top:12px;">
@@ -118,7 +118,7 @@
             <div class="meta-list" style="margin-top:8px;">
                 {% for row in weak_radar.subject_weak_areas %}
                 {% for area in row.weak_areas %}
-                <span class="suggestion-token" style="color:var(--red);">{{ row.code }}: {{ area }}</span>
+                <span class="suggestion-token text-red">{{ row.code }}: {{ area }}</span>
                 {% endfor %}
                 {% endfor %}
             </div>
@@ -138,7 +138,7 @@
                 <article class="profile-row">
                     <div class="profile-main"><h3>{{ row.target.subject_code|course_label }}</h3></div>
                     <div class="profile-detail">
-                        <strong style="{% if row.result.achievable == False %}color:var(--red);{% elif row.result.achievable %}color:var(--green);{% endif %}">
+                        <strong class="{% if row.result.achievable == False %}text-red{% elif row.result.achievable %}text-green{% endif %}">
                             {% if row.result.required != None %}{{ row.result.required|floatformat:0 }}% needed{% else %}-{% endif %}
                         </strong>
                     </div>

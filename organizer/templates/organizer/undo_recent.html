@@ -31,7 +31,7 @@
                 <h2>Restorable moves ({{ restorable|length }})</h2>
                 <p class="card-subtitle">Files that Orch has moved and can be restored to their original location.</p>
             </div>
-            <form method="post" style="display:inline;" data-confirm="Restore all files from the last hour?">
+            <form method="post" class="inline-form" data-confirm="Restore all files from the last hour?">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="restore_all">
                 <button type="submit" class="button-ghost">Restore last hour</button>
@@ -48,11 +48,11 @@
                     <td class="path-text">{{ event.source_path|truncatechars:60 }}</td>
                     <td><span class="meta-token">{{ event.get_method_display }}</span></td>
                     <td>
-                        <form method="post" style="display:inline;" data-confirm="Restore {{ event.filename }} to its original location?">
+                        <form method="post" class="inline-form" data-confirm="Restore {{ event.filename }} to its original location?">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="restore">
                             <input type="hidden" name="move_pk" value="{{ event.pk }}">
-                            <button type="submit" class="button" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">
+                            <button type="submit" class="button button-compact">
                                 Restore
                             </button>
                         </form>

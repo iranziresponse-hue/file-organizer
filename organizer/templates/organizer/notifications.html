@@ -32,13 +32,13 @@
             </div>
             <div class="inline-actions-start">
                 {% if unread_count %}
-                <form method="post" style="display:inline;">
+                <form method="post" class="inline-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="mark_all_read">
                     <button type="submit" class="button-ghost">Mark all as read</button>
                 </form>
                 {% endif %}
-                <form method="post" style="display:inline;" data-confirm="Clear all notifications? This deletes the whole history and cannot be undone.">
+                <form method="post" class="inline-form" data-confirm="Clear all notifications? This deletes the whole history and cannot be undone.">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="clear_all">
                     <button type="submit" class="button-ghost button-danger-soft">Clear all</button>
@@ -55,7 +55,7 @@
                 <div class="profile-detail">
                     <span class="path-text">
                         {% if item.urgency == "critical" %}
-                            <span style="color:var(--red);">Critical</span>
+                            <span class="text-red">Critical</span>
                         {% elif item.urgency == "low" %}
                             Low priority
                         {% else %}

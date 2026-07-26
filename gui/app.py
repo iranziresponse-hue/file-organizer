@@ -23,6 +23,43 @@ def _silence_none_streams():
         sys.stderr = open(os.devnull, "w")
 
 
+_single_instance_mutex = None
+
+
+def _enforce_single_instance():
+    # Without this, launching Orch a second time (e.g. double-clicking the
+    # desktop/Start-menu shortcut while it's already running in the tray --
+    # closing the window hides it rather than quitting, see
+    # OrchMainWindow._on_closing, so this is the normal state most of the
+    # time) starts a whole second process: its own tray icon, its own
+    # hidden window, and its own dashboard server thread that fails to
+    # bind the already-used port. That second window still gets shown
+    # (nothing here waited to confirm ITS OWN server came up), but nothing
+    # ever loads into it -- exactly the second, blank dark window users
+    # were seeing. A named mutex lets a second launch detect the first
+    # instance, bring its window to the front instead, and exit
+    # immediately, before Django, the tray, or any window gets created.
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    global _single_instance_mutex
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW.restype = ctypes.c_void_p
+    handle = kernel32.CreateMutexW(None, False, "Iranzi.Orch.Desktop.SingleInstance")
+    ERROR_ALREADY_EXISTS = 183
+    if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+        user32 = ctypes.windll.user32
+        hwnd = user32.FindWindowW(None, "Orch")
+        if hwnd:
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            user32.SetForegroundWindow(hwnd)
+        os._exit(0)
+    # Kept alive for the life of the process -- letting it get garbage
+    # collected would release the mutex, defeating the whole point.
+    _single_instance_mutex = handle
+
+
 def _claim_windows_app_identity():
     # Without this, Windows groups the taskbar button under whatever exe
     # actually launched the process -- python.exe's own icon in dev mode,
@@ -57,6 +94,7 @@ def _wait_for_server(url, timeout=10, interval=0.05):
 
 def main():
     _silence_none_streams()
+    _enforce_single_instance()
     _claim_windows_app_identity()
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
