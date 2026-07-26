@@ -110,6 +110,12 @@ a { color: inherit; }
 .steps [data-reveal]:nth-child(3) { transition-delay: 180ms; }
 .steps [data-reveal]:nth-child(4) { transition-delay: 270ms; }
 
+/* ---------- Utilities ---------- */
+
+.mt-14 { margin-top: 14px; }
+.mt-16 { margin-top: 16px; }
+.mt-44 { margin-top: 44px; }
+
 .feature-grid [data-reveal]:nth-child(2) { transition-delay: 60ms; }
 .feature-grid [data-reveal]:nth-child(3) { transition-delay: 120ms; }
 .feature-grid [data-reveal]:nth-child(4) { transition-delay: 60ms; }
@@ -283,7 +289,25 @@ a { color: inherit; }
 }
 
 @media (max-width: 360px) {
-    .brand > span { display: none; }
+    .brand {
+        gap: 8px;
+        max-width: 92px;
+    }
+
+    .brand-name {
+        display: block;
+        font-size: 0.98rem;
+    }
+
+    .brand img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .header-actions .btn {
+        padding: 9px 12px;
+        font-size: 0.8rem;
+    }
 }
 
 /* ---------- Buttons ---------- */
@@ -1363,6 +1387,9 @@ body.support-open {
 
 .support-dialog {
     width: min(100%, 560px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1442,4 +1469,62 @@ body.support-open {
 .support-form textarea:focus {
     border-color: rgba(31, 122, 63, 0.48);
     box-shadow: 0 0 0 4px rgba(31, 122, 63, 0.12);
+}
+
+.support-form .btn {
+    width: fit-content;
+}
+
+@media (max-width: 560px) {
+    .support-overlay {
+        align-items: start;
+        padding: 12px;
+    }
+
+    .support-dialog {
+        width: 100%;
+        max-height: calc(100dvh - 16px);
+        padding: 16px;
+    }
+
+    .support-dialog h2 {
+        font-size: 1.22rem;
+        padding-right: 72px;
+        margin: 6px 0 8px;
+    }
+
+    .support-dialog p {
+        font-size: 0.9rem;
+        line-height: 1.42;
+        margin-bottom: 12px;
+    }
+
+    .support-close {
+        top: 12px;
+        right: 12px;
+        padding: 6px 9px;
+    }
+
+    .support-form {
+        gap: 7px;
+    }
+
+    .support-form label {
+        font-size: 0.84rem;
+    }
+
+    .support-form input,
+    .support-form textarea {
+        padding: 9px 10px;
+    }
+
+    .support-form textarea {
+        height: 64px;
+        min-height: 56px;
+    }
+
+    .support-form .btn {
+        width: 100%;
+        min-height: 40px;
+    }
 }

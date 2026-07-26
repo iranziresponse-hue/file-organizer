@@ -16,6 +16,32 @@
 })();
 
 (function () {
+    var VISIBLE_COUNT = 3;
+    document.querySelectorAll('.feature-grid').forEach(function (grid) {
+        var cards = Array.prototype.slice.call(grid.querySelectorAll('.feature-card'));
+        if (cards.length <= VISIBLE_COUNT) return;
+
+        var extra = cards.slice(VISIBLE_COUNT);
+        extra.forEach(function (card) { card.hidden = true; });
+
+        var moreCount = extra.length;
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-ghost feature-grid-toggle mt-16';
+        button.textContent = 'Show ' + moreCount + ' more';
+        button.setAttribute('aria-expanded', 'false');
+        grid.insertAdjacentElement('afterend', button);
+
+        button.addEventListener('click', function () {
+            var expanded = button.getAttribute('aria-expanded') === 'true';
+            extra.forEach(function (card) { card.hidden = expanded; });
+            button.setAttribute('aria-expanded', String(!expanded));
+            button.textContent = expanded ? 'Show ' + moreCount + ' more' : 'Show fewer';
+        });
+    });
+})();
+
+(function () {
     var toggle = document.getElementById('nav-toggle');
     var nav = document.getElementById('main-nav');
     if (!toggle || !nav) return;
@@ -72,7 +98,7 @@
             '    <button type="button" class="support-close" aria-label="Close support form">Close</button>',
             '    <span class="eyebrow">Support</span>',
             '    <h2 id="support-title">Contact Orch Support</h2>',
-            '    <p>Share your question, issue, missing course detail, or feedback. This site has no server of its own, so the next step opens your email app with the message already filled in -- you send it from there.</p>',
+            '    <p>Share your question, issue, missing course detail, or feedback. This site has no server of its own. The next step opens your email app with the message already filled in, and you send it from there.</p>',
             '    <form class="support-form">',
             '        <label for="support-subject">Subject</label>',
             '        <input id="support-subject" name="subject" type="text" placeholder="Example: MUELE courses are not showing" required>',
@@ -86,7 +112,16 @@
         return overlay;
     }
 
+    var lastFocused = null;
+
+    function focusableElements(overlay) {
+        return Array.prototype.slice.call(
+            overlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        );
+    }
+
     function openSupport(overlay) {
+        lastFocused = document.activeElement;
         overlay.hidden = false;
         document.body.classList.add('support-open');
         var subject = overlay.querySelector('#support-subject');
@@ -96,6 +131,25 @@
     function closeSupport(overlay) {
         overlay.hidden = true;
         document.body.classList.remove('support-open');
+        if (lastFocused && typeof lastFocused.focus === 'function') {
+            lastFocused.focus();
+        }
+        lastFocused = null;
+    }
+
+    function trapFocus(overlay, event) {
+        if (event.key !== 'Tab' || overlay.hidden) return;
+        var focusable = focusableElements(overlay);
+        if (!focusable.length) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -120,6 +174,7 @@
 
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape' && !overlay.hidden) closeSupport(overlay);
+            trapFocus(overlay, event);
         });
 
         form.addEventListener('submit', function (event) {
