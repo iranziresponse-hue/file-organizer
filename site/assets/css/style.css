@@ -102,16 +102,6 @@ a { color: inherit; }
     50% { transform: translateY(-4px); }
 }
 
-@keyframes flowArrowNudge {
-    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.72; }
-    50% { transform: translateY(-50%) translateX(5px); opacity: 1; }
-}
-
-@keyframes flowArrowDownNudge {
-    0%, 100% { transform: translateX(50%) translateY(0); opacity: 0.72; }
-    50% { transform: translateX(50%) translateY(5px); opacity: 1; }
-}
-
 .pain-grid [data-reveal]:nth-child(2) { transition-delay: 70ms; }
 .pain-grid [data-reveal]:nth-child(3) { transition-delay: 140ms; }
 .pain-grid [data-reveal]:nth-child(4) { transition-delay: 210ms; }
@@ -521,91 +511,6 @@ a { color: inherit; }
 .hub-card:hover h3 .icon { transform: translateX(5px); }
 
 .hub-card p { color: var(--muted); font-size: 0.9rem; }
-
-/* ---------- Card flow connectors ---------- */
-
-.flow-card {
-    position: relative;
-}
-
-.flow-arrow {
-    position: absolute;
-    z-index: 4;
-    top: 50%;
-    right: -27px;
-    width: 34px;
-    height: 16px;
-    color: var(--mak-green);
-    opacity: 0.72;
-    pointer-events: none;
-    transform: translateY(-50%);
-    transition: opacity 180ms ease;
-}
-
-.flow-arrow::before,
-.flow-arrow::after {
-    content: "";
-    position: absolute;
-    display: block;
-}
-
-.flow-arrow::before {
-    left: 0;
-    right: 8px;
-    top: 50%;
-    border-top: 2px solid currentColor;
-    transform: translateY(-50%);
-}
-
-.flow-arrow::after {
-    right: 0;
-    top: 50%;
-    width: 8px;
-    height: 8px;
-    border-top: 2px solid currentColor;
-    border-right: 2px solid currentColor;
-    transform: translateY(-50%) rotate(45deg);
-}
-
-.flow-card:hover > .flow-arrow {
-    animation: flowArrowNudge 1s var(--ease-out) infinite;
-    opacity: 1;
-}
-
-.flow-card.is-flow-down > .flow-arrow {
-    top: auto;
-    right: 50%;
-    bottom: -28px;
-    width: 16px;
-    height: 34px;
-    transform: translateX(50%);
-}
-
-.flow-card.is-flow-down > .flow-arrow::before {
-    left: 50%;
-    right: auto;
-    top: 0;
-    bottom: 8px;
-    border-top: 0;
-    border-left: 2px solid currentColor;
-    transform: translateX(-50%);
-}
-
-.flow-card.is-flow-down > .flow-arrow::after {
-    right: auto;
-    left: 50%;
-    top: auto;
-    bottom: 0;
-    transform: translateX(-50%) rotate(135deg);
-}
-
-.flow-card.is-flow-down:hover > .flow-arrow {
-    animation: flowArrowDownNudge 1s var(--ease-out) infinite;
-}
-
-.flow-card.is-flow-last > .flow-arrow {
-    display: none;
-}
 
 /* ---------- Author card ---------- */
 
@@ -1074,39 +979,6 @@ section:nth-of-type(even) {
     border-color: rgba(31, 122, 63, 0.52);
 }
 
-.cta-steps li.flow-card > .flow-arrow {
-    left: 3px;
-    right: auto;
-    bottom: -23px;
-    top: auto;
-    width: 16px;
-    height: 28px;
-    transform: none;
-}
-
-.cta-steps li.flow-card > .flow-arrow::before {
-    left: 50%;
-    right: auto;
-    top: 0;
-    bottom: 8px;
-    border-top: 0;
-    border-left: 2px solid currentColor;
-    transform: translateX(-50%);
-}
-
-.cta-steps li.flow-card > .flow-arrow::after {
-    right: auto;
-    left: 50%;
-    top: auto;
-    bottom: 0;
-    transform: translateX(-50%) rotate(135deg);
-}
-
-.cta-steps li.flow-card:hover > .flow-arrow {
-    animation: none;
-    opacity: 1;
-}
-
 .cta-steps strong {
     color: var(--text);
     font-size: 0.98rem;
@@ -1183,7 +1055,6 @@ section:nth-of-type(even) {
         padding: 26px 22px;
     }
     section { padding: 56px 0; }
-    .flow-arrow { display: none; }
 }
 
 .footer-copy { color: var(--muted); font-size: 0.8rem; margin-top: 20px; text-align: center; }
