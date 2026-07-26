@@ -1,3 +1,27 @@
+        /* Bundled locally (organizer/static/organizer/fonts/) instead of
+           linking fonts.googleapis.com -- a desktop app hitting Google's
+           CDN on every page navigation is a network dependency a real
+           native app wouldn't have, and it costs a real roundtrip (or a
+           silent fallback-font flash) the moment there's no connection.
+           Both files are the variable-font builds Google itself serves,
+           latin subset only, each covering every weight this stylesheet
+           actually uses via the range below. */
+        @font-face {
+            font-family: "Inter";
+            font-style: normal;
+            font-weight: 400 800;
+            font-display: swap;
+            src: url("../fonts/Inter-variable.woff2") format("woff2-variations");
+        }
+
+        @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 500 700;
+            font-display: swap;
+            src: url("../fonts/SpaceGrotesk-variable.woff2") format("woff2-variations");
+        }
+
         :root {
             color-scheme: dark;
             --bg-deep: #0A0C14;
@@ -118,7 +142,14 @@
 
         html {
             font-size: 16px;
-            scroll-behavior: smooth;
+            /* No global scroll-behavior: smooth here on purpose -- it
+               intercepts every wheel/trackpad/scrollbar scroll and re-times
+               it through CSS's fixed-duration ease, which feels laggy and
+               artificial next to native OS scroll physics (compare
+               WhatsApp Desktop, which never touches this). The one spot
+               that wants an animated jump (study.html's section links)
+               already opts in per-call via scrollIntoView({behavior:
+               'smooth'}) instead of relying on this global default. */
         }
 
         body {
@@ -515,7 +546,7 @@
             width: 0;
             min-width: 0;
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) minmax(86px, 150px) auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
             gap: 10px;
             height: 0;
@@ -581,11 +612,11 @@
         html.power-rail-active .topbar-power {
             flex: 0 0 auto;
             width: auto;
-            min-width: min(360px, 44vw);
+            min-width: min(260px, 34vw);
             height: auto;
             min-height: 38px;
             padding: 0 0 0 12px;
-            grid-template-columns: auto minmax(92px, auto) minmax(74px, 118px) auto;
+            grid-template-columns: minmax(92px, auto) auto;
             opacity: 1;
             pointer-events: auto;
             border-width: 0 0 0 1px;
@@ -1842,9 +1873,9 @@
 
         .guide-panel {
             position: relative;
-            max-width: 640px;
-            width: 100%;
-            max-height: 80vh;
+            width: 75%;
+            max-width: 860px;
+            max-height: 90vh;
             overflow-y: auto;
             background: rgba(20, 24, 33, 0.96);
             border: 1px solid var(--stroke);
@@ -2137,10 +2168,6 @@
             max-width: 500px;
         }
 
-        .support-panel {
-            max-width: 440px;
-        }
-
         .guide-list-nested {
             margin-top: 6px;
         }
@@ -2151,6 +2178,223 @@
 
         .form-actions-spaced {
             margin-top: 12px;
+        }
+
+        .workspace-page {
+            --section-gap: 20px;
+            --card-pad: 22px;
+            gap: var(--section-gap);
+        }
+
+        .workspace-page .page-heading {
+            align-items: flex-start;
+            padding: 2px 0 6px;
+        }
+
+        .workspace-page .page-heading::before {
+            display: none;
+        }
+
+        .workspace-page .page-heading h2 {
+            font-size: clamp(1.8rem, 2.2vw, 2.35rem);
+            line-height: 1.08;
+            font-weight: 760;
+        }
+
+        .workspace-page .page-heading p {
+            margin-top: 8px;
+            max-width: 760px;
+            font-size: 0.98rem;
+            line-height: 1.55;
+        }
+
+        .workspace-page .eyebrow {
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: none;
+        }
+
+        .workspace-page .card,
+        .workspace-page .connection-card,
+        .workspace-page .connection-stat,
+        .workspace-page .profile-row {
+            border-radius: 8px;
+        }
+
+        .workspace-page .card::before,
+        .workspace-page .card::after {
+            display: none;
+        }
+
+        .workspace-page .card,
+        .workspace-page .connection-card,
+        .workspace-page .connection-stat {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)),
+                rgba(10, 14, 24, 0.58);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+        }
+
+        .workspace-page .card:hover,
+        .workspace-page .connection-card:hover,
+        .workspace-page .connection-stat:hover,
+        .workspace-page .profile-row:hover {
+            transform: none;
+        }
+
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--section-gap);
+            align-items: stretch;
+        }
+
+        .workspace-grid > .card,
+        .workspace-grid > .connection-group,
+        .workspace-grid > .connection-card {
+            height: 100%;
+        }
+
+        .workspace-callout {
+            border-color: rgba(143, 189, 248, 0.34);
+        }
+
+        .workspace-callout-text {
+            color: var(--text);
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        .workspace-list {
+            margin-top: 12px;
+        }
+
+        .workspace-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .workspace-actions-start {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .workspace-meta-line {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .workspace-section-title {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .workspace-muted-card {
+            border-style: dashed;
+            opacity: 1;
+        }
+
+        .workspace-text-block {
+            margin-top: 8px;
+            white-space: pre-line;
+        }
+
+        .profile-row.workspace-row-tight {
+            grid-template-columns: 1fr auto;
+        }
+
+        .workspace-mono-input {
+            font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        }
+
+        .workspace-status,
+        .workspace-page .status-dot,
+        .workspace-page .connection-status {
+            min-height: auto;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            color: var(--muted);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .workspace-page .connection-status.is-connected,
+        .workspace-page .status-dot.is-live,
+        .workspace-page .workspace-status.is-live {
+            color: var(--success-text);
+        }
+
+        .workspace-page .connection-status.is-setup,
+        .workspace-page .connection-status.is-needs-key,
+        .workspace-page .status-dot.is-warning,
+        .workspace-page .workspace-status.is-warning {
+            color: var(--warning-text);
+        }
+
+        .workspace-page .connection-status.is-add {
+            color: var(--cyan);
+        }
+
+        .workspace-page .connection-area {
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        .workspace-page .connection-card {
+            min-height: 224px;
+        }
+
+        .workspace-page .connection-reason {
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.032);
+        }
+
+        .workspace-page .hero-icon-row {
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .workspace-page .hero-icon-tip {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+        }
+
+        .workspace-page .hero-icon-tip svg,
+        .workspace-brand-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .workspace-page .profile-row {
+            background: rgba(255, 255, 255, 0.045);
+            box-shadow: none;
+        }
+
+        .workspace-page .empty-state {
+            min-height: 120px;
         }
 
         .check-label {
@@ -3494,7 +3738,8 @@
             white-space: nowrap;
         }
 
-        .priority-footer form {
+        .priority-footer form,
+        .priority-footer a {
             flex: 0 0 auto;
         }
 
@@ -3769,10 +4014,11 @@
             padding: 5px 10px;
             font-size: 0.76rem;
         }
+
         /* Dashboard: plain, even cards instead of command-center panels. */
         .mission-control {
             min-height: auto;
-            border-radius: 18px;
+            border-radius: 8px;
             border-color: rgba(255, 255, 255, 0.14);
             background: rgba(8, 11, 20, 0.54);
             box-shadow: var(--shadow-soft);
@@ -3784,10 +4030,10 @@
         }
 
         .mission-main h2 {
-            max-width: 18ch;
-            font-size: 3.1rem;
-            line-height: 1.02;
-            font-weight: 800;
+            max-width: 22ch;
+            font-size: clamp(2rem, 3vw, 2.55rem);
+            line-height: 1.08;
+            font-weight: 760;
         }
 
         .mission-main p {
@@ -3799,9 +4045,9 @@
         }
 
         .mission-signal {
-            min-height: 116px;
+            min-height: 104px;
             height: 100%;
-            border-radius: 14px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.045);
         }
 
@@ -3816,9 +4062,9 @@
         }
 
         .priority-card {
-            min-height: 188px;
+            min-height: 176px;
             height: 100%;
-            border-radius: 16px;
+            border-radius: 8px;
             background: rgba(8, 11, 20, 0.44);
             box-shadow: var(--shadow-soft);
             transition: border-color var(--ease), background var(--ease);
@@ -3872,7 +4118,7 @@
         .service-lane,
         .service-node,
         .service-priority {
-            border-radius: 14px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.045);
         }
 
@@ -3907,7 +4153,7 @@
 
         @media (max-width: 700px) {
             .mission-main h2 {
-                font-size: 2.2rem;
+                font-size: 1.9rem;
             }
         }
 
@@ -4330,6 +4576,31 @@
             background: transparent;
         }
 
+        html[data-theme="light"] .workspace-page .card,
+        html[data-theme="light"] .workspace-page .connection-stat,
+        html[data-theme="light"] .workspace-page .connection-card {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(244, 247, 251, 0.72)),
+                #F8FAFC;
+            border-color: rgba(24, 34, 53, 0.12);
+            box-shadow: 0 12px 30px rgba(55, 65, 81, 0.1);
+        }
+
+        html[data-theme="light"] .workspace-page .profile-row {
+            background: rgba(255, 255, 255, 0.72);
+            border-color: rgba(24, 34, 53, 0.12);
+        }
+
+        html[data-theme="light"] .workspace-page .connection-reason {
+            background: rgba(24, 34, 53, 0.035);
+        }
+
+        html[data-theme="light"] .workspace-page .hero-icon-tip {
+            background: rgba(255, 255, 255, 0.78);
+            border-color: rgba(24, 34, 53, 0.12);
+            box-shadow: 0 10px 24px rgba(55, 65, 81, 0.1);
+        }
+
         html[data-theme="light"] .nav a:hover {
             color: var(--text);
             background: rgba(31, 122, 63, 0.08);
@@ -4487,6 +4758,7 @@
                 radial-gradient(circle at center, rgba(244, 247, 251, 0.96) 0 57%, transparent 58%),
                 conic-gradient(var(--mak-gold) var(--service-score), rgba(24, 34, 53, 0.12) 0);
         }
+
         html[data-theme="light"] .mission-control,
         html[data-theme="light"] .mission-signal,
         html[data-theme="light"] .priority-card,
@@ -4731,6 +5003,7 @@
 
             .grid-2,
             .overview-grid,
+            .workspace-grid,
             .cockpit-grid,
             .focus-shell,
             .form-two,
@@ -4819,3 +5092,124 @@
                 grid-template-columns: 1fr;
             }
         }
+
+/* ---------------------------------------------------------------------
+   Desktop shell titlebar -- only rendered when base.html's is_desktop_shell
+   context flag is set (organizer.context_processors.desktop_shell), i.e.
+   only inside Orch's own frameless window (gui/main_window.py), never in
+   a regular browser tab. Sits above everything else at a fixed height;
+   has-desktop-titlebar on <body> pushes the rest of the page down by
+   that same height so nothing sits underneath it.
+--------------------------------------------------------------------- */
+
+.desktop-titlebar {
+    display: flex;
+    align-items: stretch;
+    height: 32px;
+    background: var(--bg-ink, #070912);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 500;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body.has-desktop-titlebar {
+    padding-top: 32px;
+}
+
+.desktop-titlebar-drag {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    /* user-select:none already stops the "Orch" label from being selected,
+       but without this the browser still shows a text I-beam cursor while
+       hovering it -- a dead giveaway this is a webpage, not a titlebar. */
+    cursor: default;
+}
+
+.desktop-titlebar-mark {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+}
+
+.desktop-titlebar .icon-restore {
+    display: none;
+}
+
+.desktop-titlebar-controls {
+    display: flex;
+    flex-shrink: 0;
+}
+
+/* Overrides every generic .button/button property below the width/height/
+   layout ones -- the global button reset (base.css's ".button, button"
+   rule, near the top of this file) sets min-height, padding, border-radius
+   and a glow box-shadow that would otherwise leak through here since this
+   rule never previously touched them, making these look like faint rounded
+   pills instead of flat Discord-style titlebar buttons. */
+.desktop-titlebar-btn {
+    width: 44px;
+    height: 32px;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background-color var(--ease), color var(--ease);
+}
+
+.desktop-titlebar-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text, #F4F7FB);
+    transform: none;
+    box-shadow: none;
+}
+
+.desktop-titlebar-btn:active {
+    transform: none;
+}
+
+.desktop-titlebar-btn.desktop-titlebar-close:hover {
+    background: #E94B5F;
+    color: #fff;
+}
+
+/* The dashboard's roofed/power-rail topbar variants pin themselves to
+   top: 0 everywhere else (regular browser tab, mobile) -- inside the
+   desktop shell that sits exactly under the custom titlebar above,
+   hiding the topbar's own top edge behind it. !important is deliberate:
+   top gets set three separate times for these classes (base app-roof,
+   power-rail-active compact mode, and again inside the sub-820px media
+   query) and this needs to beat all three regardless of viewport width. */
+body.has-desktop-titlebar .topbar.app-roof,
+body.has-desktop-titlebar .topbar.has-power-rail {
+    top: 32px !important;
+}
+
+/* Every modal/guide overlay uses inset: 0, i.e. the full viewport including
+   the strip behind the custom titlebar -- centering a panel against that
+   full box pushes its top edge under the opaque titlebar. Starting the
+   overlay's own box 32px lower keeps its centered content clear of it. */
+body.has-desktop-titlebar .guide-overlay {
+    top: 32px;
+}

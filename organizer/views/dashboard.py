@@ -340,6 +340,10 @@ def _next_class(profile, now):
     return classes.filter(start_time__gte=current_time).order_by("start_time").first()
 
 
+def _profile_uses_learning_tools(profile):
+    return bool(profile and (profile.purpose in {"school", "online"} or profile.setup_path == "makerere"))
+
+
 def _app_status(profile, last_move):
     watcher = diagnostics.get_watcher_status()
     folders = diagnostics.check_all_watched_folders()
@@ -372,7 +376,7 @@ def _app_status(profile, last_move):
         {
             "label": "Folders",
             "value": "Ready" if folders_ok else "Needs setup",
-            "detail": "Downloads and study folders are reachable" if folders_ok else "Check folder paths in Settings",
+            "detail": "Downloads and profile folders are reachable" if folders_ok else "Check folder paths in Settings",
             "state": "live" if folders_ok else "warning",
         },
         {
@@ -384,7 +388,7 @@ def _app_status(profile, last_move):
         {
             "label": "Sync",
             "value": "Connected" if connected_count else "Optional",
-            "detail": ", ".join(connected_labels) if connected_labels else "Connect MUELE or timetable when you need it",
+            "detail": ", ".join(connected_labels) if connected_labels else "Connect optional services when you need them",
             "state": "live" if connected_count else "muted",
         },
         {
@@ -412,27 +416,27 @@ def _today_panel(profile, events, now, start, end):
 
     return [
         {
-            "label": "Files sorted today",
+            "label": "Files moved today",
             "value": files_sorted_today,
-            "detail": "New sorted moves",
+            "detail": "Moved into place",
             "state": "live" if files_sorted_today else "muted",
         },
         {
-            "label": "Classes today",
+            "label": "Timetable items",
             "value": classes_today,
-            "detail": "From timetable",
+            "detail": "From your timetable",
             "state": "live" if classes_today else "muted",
         },
         {
-            "label": "Reviews due today",
+            "label": "Follow-ups due",
             "value": reviews_due_today,
-            "detail": "Queued review items",
+            "detail": "Saved review items",
             "state": "warning" if reviews_due_today else "muted",
         },
         {
-            "label": "New MUELE items",
+            "label": "New MUELE files",
             "value": muele_items_today,
-            "detail": "Synced today",
+            "detail": "Found today",
             "state": "live" if muele_items_today else "muted",
         },
         {
@@ -448,7 +452,7 @@ def _next_best_action(profile, now, start, end):
     if not profile:
         return {
             "title": "Create your first profile",
-            "detail": "Tell Orch what you study so it knows where your files should go.",
+            "detail": "Tell Orch which folder you want organized and what labels you use there.",
             "url": reverse("start"),
             "label": "Start setup",
             "state": "warning",
@@ -468,7 +472,7 @@ def _next_best_action(profile, now, start, end):
     if review:
         subject = review.subject_code or "General"
         return {
-            "title": f"Review {subject} notes",
+            "title": f"Review {subject}",
             "detail": review.title,
             "url": reverse("review_queue"),
             "label": "Start review",
@@ -505,17 +509,17 @@ def _next_best_action(profile, now, start, end):
     if top_video:
         return {
             "title": f"Watch: {top_video.title}",
-            "detail": top_video.reason or "A video pick based on your subject memory.",
+            "detail": top_video.reason or "A video pick based on your saved topics.",
             "url": reverse("resource_radar"),
             "label": "Watch it",
             "state": "live",
         }
 
     timetable_connected = IntegrationConnection.objects.filter(profile=profile, provider="mak_timetable").exists()
-    if not timetable_connected:
+    if _profile_uses_learning_tools(profile) and not timetable_connected:
         return {
             "title": "Connect timetable",
-            "detail": "Add your class timetable so Orch can remind you before class.",
+            "detail": "Add a timetable if this profile follows classes, sessions, or training times.",
             "url": reverse("timetable_connect"),
             "label": "Connect",
             "state": "warning",
@@ -524,11 +528,11 @@ def _next_best_action(profile, now, start, end):
     this_week_digest = LearningDigest.objects.filter(profile=profile, created_at__gte=now - timedelta(days=7)).exists()
     if not this_week_digest:
         return {
-            "title": "Make weekly summary",
-            "detail": "Make a simple weekly summary of your files, subjects, and things left to do.",
+            "title": "Make weekly file summary",
+            "detail": "Make a simple summary of files moved, topics seen, and things left to do.",
             "post_action": "create_digest",
             "url": reverse("study_home"),
-            "label": "Generate",
+            "label": "Make summary",
             "state": "live",
         }
 
@@ -544,7 +548,7 @@ def _next_best_action(profile, now, start, end):
 
     return {
         "title": "Open timeline",
-        "detail": "See the files Orch moved recently.",
+        "detail": "See what Orch moved recently.",
         "url": reverse("timeline"),
         "label": "View timeline",
         "state": "muted",
@@ -642,9 +646,9 @@ def _command_items(profile, next_action):
     items = [
         {"label": "Open inbox", "detail": "Sort uncertain files", "url": reverse("sorting_inbox")},
         {"label": "Add folder rule", "detail": "Create a routing rule", "url": reverse("folder_rules")},
-        {"label": "Generate digest", "detail": "Create a study digest", "post_action": "create_digest"},
-        {"label": "Open Focus Mode", "detail": "Start a timed study block", "anchor": "focus-mode"},
-        {"label": "Open Resource Radar", "detail": "Find videos and books", "url": reverse("resource_radar")},
+        {"label": "Make summary", "detail": "Create a weekly file summary", "post_action": "create_digest"},
+        {"label": "Open Focus Mode", "detail": "Start a timed focus block", "anchor": "focus-mode"},
+        {"label": "Open Resource Radar", "detail": "Find videos and books for a topic", "url": reverse("resource_radar")},
         {"label": "Open system setup", "detail": "Review app readiness", "url": reverse("first_run")},
     ]
     if next_action:
@@ -659,7 +663,7 @@ def _command_items(profile, next_action):
         for code in (config.groups if config else [])[:10]:
             items.append({
                 "label": f"Go to {code}",
-                "detail": "Open subject memory",
+                "detail": "Open profile memory",
                 "url": reverse("subject_memory_detail", args=[code]),
             })
     return items
@@ -710,11 +714,13 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
     youtube_ready = bool(youtube_config.get("enabled") and youtube_config.get("api_key"))
     drive_configured = bool(drive_config.get("enabled") and drive_config.get("client_id"))
     drive_connected = bool(drive_configured and drive_api.is_connected())
+    learning_profile = _profile_uses_learning_tools(profile)
 
     GlobalSortCategory.ensure_defaults()
     enabled_global_categories = GlobalSortCategory.objects.exclude(key="sensitive").filter(enabled=True)
     enabled_global_count = enabled_global_categories.count()
     learned_rules = OrganizationMemoryRule.objects.filter(profile=profile, enabled=True).count() if profile else 0
+    folder_rule_count = FolderRule.objects.filter(profile=profile, enabled=True).count() if profile else 0
 
     career_profile = CareerProfile.objects.filter(profile=profile).first() if profile else None
     project_count = Project.objects.filter(profile=profile).count() if profile else 0
@@ -723,22 +729,60 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
 
     lanes = [
         {
-            "title": "Classes and course files",
-            "detail": "Class times, course files, and assignment dates.",
+            "title": "Profile sorting",
+            "detail": "Watched folders, rules, and files waiting for your say.",
+            "items": [
+                _service_item(
+                    "Downloads watcher",
+                    app_status_items[0]["state"],
+                    app_status_items[0]["value"],
+                    app_status_items[0]["detail"],
+                    reverse("first_run"),
+                    "Check",
+                ),
+                _service_item(
+                    "Folder rules",
+                    "live" if folder_rule_count else "muted",
+                    f"{folder_rule_count} rule{'s' if folder_rule_count != 1 else ''} turned on" if folder_rule_count else "Add rules for names, types, or folders",
+                    "Rules tell Orch where repeat files should go",
+                    reverse("folder_rules"),
+                    "Open",
+                ),
+                _service_item(
+                    "Files to check",
+                    "warning" if pending_decisions else "live",
+                    f"{pending_decisions} waiting" if pending_decisions else "Clear",
+                    f"{learned_rules} saved rule{'s' if learned_rules != 1 else ''}",
+                    reverse("sorting_inbox"),
+                    "Review",
+                ),
+                _service_item(
+                    "Extra sorting",
+                    "live" if enabled_global_count else "muted",
+                    f"{enabled_global_count} extra categor{'ies' if enabled_global_count != 1 else 'y'} enabled",
+                    "Media, ebooks, archives, installers, code, and sensitive files are separate opt-ins",
+                    reverse("settings_edit"),
+                    "Tune",
+                ),
+            ],
+        },
+        {
+            "title": "Learning tools",
+            "detail": "Optional course, timetable, review, and resource helpers.",
             "items": [
                 _service_item(
                     "Makerere MUELE",
-                    "live" if muele_connected else "warning",
-                    "Course files and assignment dates" if muele_connected else "Connect to bring in course files and assignment dates",
-                    f"Last sync {_short_timesince(muele_connection.last_sync_at)}" if muele_connection and muele_connection.last_sync_at else "Brings MUELE files and dates into Orch",
+                    "live" if muele_connected else "warning" if learning_profile else "muted",
+                    "Course files and assignment dates" if muele_connected else "Connect to bring in course files and assignment dates" if learning_profile else "Optional Makerere course file sync",
+                    f"Last sync {_short_timesince(muele_connection.last_sync_at)}" if muele_connection and muele_connection.last_sync_at else "Optional Makerere support for course files",
                     reverse("muele_courses") if muele_connected else reverse("muele_connect"),
                     "Manage" if muele_connected else "Connect",
                 ),
                 _service_item(
                     "Makerere Timetable",
-                    "live" if timetable_connected else "warning",
-                    f"{timetable_entries} timetable entries added" if timetable_connected else "Add your class timetable",
-                    "Helps Orch show today's classes and class reminders",
+                    "live" if timetable_connected else "warning" if learning_profile else "muted",
+                    f"{timetable_entries} timetable entries added" if timetable_connected else "Add your timetable" if learning_profile else "Optional timetable reminders",
+                    "Useful for class, session, or training reminders",
                     reverse("timetable_view") if timetable_connected else reverse("timetable_connect"),
                     "View" if timetable_connected else "Connect",
                 ),
@@ -746,27 +790,27 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                     "Resource Radar",
                     "live" if youtube_ready else "muted",
                     "YouTube search is connected" if youtube_ready else "Works with search links; a YouTube key improves video picks",
-                    "Finds videos and books for topics you are struggling with",
+                    "Finds videos and books for saved topics",
                     reverse("resource_radar"),
                     "Open",
                 ),
             ],
         },
         {
-            "title": "Projects and proof",
-            "detail": "Projects, notes, drafts, and things you can show later.",
+            "title": "Projects and backup",
+            "detail": "Work evidence, drafts, summaries, AI help, and Drive backup.",
             "items": [
                 _service_item(
                     "Career page",
-                    "live" if career_profile else "warning",
-                    career_profile.get_career_track_display() if career_profile else "Choose what you are working toward",
-                    career_profile.weekly_goal if career_profile and career_profile.weekly_goal else "Keeps school work connected to your longer-term goals",
+                    "live" if career_profile else "muted",
+                    career_profile.get_career_track_display() if career_profile else "Optional direction and weekly goal",
+                    career_profile.weekly_goal if career_profile and career_profile.weekly_goal else "Keeps your files and projects connected to your longer-term goals",
                     reverse("career_home"),
                     "Open",
                 ),
                 _service_item(
                     "Project Studio",
-                    "live" if project_count else "warning",
+                    "live" if project_count else "muted",
                     f"{project_count} project{'s' if project_count != 1 else ''} saved" if project_count else "Add a project you are building",
                     "Keeps project files, notes, and proof in one place",
                     reverse("project_studio"),
@@ -784,23 +828,9 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                     "Weekly Career Digest",
                     "live" if latest_digest else "muted",
                     f"Latest summary {_short_timesince(latest_digest.created_at)}" if latest_digest else "No weekly project summary yet",
-                    "Summarizes what you studied, built, and may want to share",
+                    "Summarizes what you worked on, built, and may want to share",
                     reverse("career_digest"),
                     "Generate",
-                ),
-            ],
-        },
-        {
-            "title": "Safety and backup",
-            "detail": "Checks, backups, and files that need your permission.",
-            "items": [
-                _service_item(
-                    "Downloads watcher",
-                    app_status_items[0]["state"],
-                    app_status_items[0]["value"],
-                    app_status_items[0]["detail"],
-                    reverse("first_run"),
-                    "Check",
                 ),
                 _service_item(
                     "AI summaries",
@@ -809,22 +839,6 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
                     "Orch can still sort files without this",
                     reverse("settings_edit"),
                     "Settings",
-                ),
-                _service_item(
-                    "Files to check",
-                    "warning" if pending_decisions else "live",
-                    f"{pending_decisions} waiting" if pending_decisions else "Clear",
-                    f"{learned_rules} saved rule{'s' if learned_rules != 1 else ''}",
-                    reverse("sorting_inbox"),
-                    "Review",
-                ),
-                _service_item(
-                    "Extra sorting",
-                    "live" if enabled_global_count else "muted",
-                    f"{enabled_global_count} extra categor{'ies' if enabled_global_count != 1 else 'y'} enabled",
-                    "Orch only sorts extra file types when you allow it",
-                    reverse("settings_edit"),
-                    "Tune",
                 ),
                 _service_item(
                     "Google Drive Backup",
@@ -861,7 +875,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
             else "Orch is ready for setup"
         ),
         "detail": (
-            f"Set up {next_activation['name']} next so Orch can help with more of your school work."
+            f"Set up {next_activation['name']} next so Orch can handle more of your files."
             if next_activation
             else "Everything important is set up."
         ),
@@ -869,16 +883,13 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
 
 
 def _dashboard_priority_cards(profile, service_mesh, pending_inbox_count):
-    # "Academic priority" (a copy of next_best_action) and "Safety layer"
-    # (a copy of app_status_items[0], the file-watcher tile) used to live
-    # here too -- both were pure restatements of facts the mission-control
-    # hero and its now_strip already show above this deck, so this only
-    # carries the two signals genuinely not shown anywhere else on the page.
+    # Keep this deck short: the top panel already shows the current file
+    # watcher, active profile, recent move, and pending file count.
     return [
         {
             "label": "Projects",
             "title": "Save your project work",
-            "detail": "Keep projects, class work, and useful notes together so you can find them later.",
+            "detail": "Keep projects, work files, notes, and proof together so you can find them later.",
             "meta": f"{service_mesh['connected_count']} parts of Orch set up",
             "state": "live" if profile else "warning",
             "url": reverse("career_home"),
@@ -974,6 +985,23 @@ def _create_focus_session(request, profile):
         metadata={"focus_session_id": session.pk},
     )
     return session
+
+
+def desktop_shell_enter(request):
+    """The one URL Orch's own desktop window (gui/main_window.py) loads
+    first, instead of the dashboard directly -- marks this browser session
+    as "inside the desktop shell" so base.html's context processor
+    (organizer.context_processors.desktop_shell) can show the frameless
+    window's own minimize/close titlebar on every page from here on,
+    without every internal link needing to carry that state itself. A
+    regular browser tab never hits this URL, so it never sees that
+    titlebar. Also does the same first-run-vs-existing-profile routing
+    gui/app.py used to do with a second navigation call, so the desktop
+    window only ever has to load one URL to get started."""
+    request.session["is_desktop_shell"] = True
+    if not Profile.objects.exists():
+        return redirect("start")
+    return redirect("dashboard")
 
 
 @perf.measure_view
@@ -1405,5 +1433,3 @@ def owner_mode_toggle(request):
         json.dumps({"owner_mode": enabled}, indent=2), encoding="utf-8"
     )
     return JsonResponse({"ok": True, "enabled": enabled})
-
-

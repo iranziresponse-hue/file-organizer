@@ -4,21 +4,21 @@
 {% block title %}Project Studio - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
             <h2>Project studio</h2>
-            <p>Every project you build here becomes a career asset, not just a folder.</p>
+            <p>Keep useful work, notes, links, and progress together.</p>
         </div>
-        <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
+        <a class="button button-ghost" href="{% url 'career_home' %}">Back</a>
     </section>
 
     <section class="stat-row">
         <div class="stat stat-primary"><div class="value">{{ total_count }}</div><div class="label">Total projects</div></div>
         <div class="stat"><div class="value">{{ grouped.building|length }}</div><div class="label">Building</div></div>
         <div class="stat"><div class="value">{{ grouped.testing|length }}</div><div class="label">Testing</div></div>
-        <div class="stat" style="color:var(--green);"><div class="value">{{ grouped.shipped|length }}</div><div class="label">Shipped</div></div>
+        <div class="stat"><div class="value value-success">{{ grouped.shipped|length }}</div><div class="label">Shipped</div></div>
     </section>
 
     <section class="card compact-card">
@@ -64,8 +64,9 @@
         </form>
     </section>
 
+    <section class="workspace-grid">
     {% for status, label in status_labels %}
-    <section class="card compact-card">
+    <article class="card compact-card">
         <div class="card-header"><div><h2>{{ label }} ({{ grouped|get_item:status|length }})</h2></div></div>
         {% with items=grouped|get_item:status %}
         {% if items %}
@@ -73,16 +74,16 @@
             {% for project in items %}
             <article class="profile-row">
                 <div class="profile-main">
-                    <h3><a href="{% url 'project_detail' project.pk %}">{{ project.title }}</a>{% if project.github_synced_at %} <span class="path-text" style="font-size:0.78rem;">&#9733; {{ project.github_stars }}</span>{% endif %}</h3>
+                    <h3><a href="{% url 'project_detail' project.pk %}">{{ project.title }}</a>{% if project.github_synced_at %} <span class="path-text">Stars: {{ project.github_stars }}</span>{% endif %}</h3>
                     <span class="path-text">{{ project.problem_statement|truncatechars:100|default:"No problem statement yet" }}</span>
                     {% if project.tech_stack %}
-                    <span class="path-text" style="font-size:0.78rem;">{{ project.tech_stack|join:", " }}</span>
+                    <span class="path-text">{{ project.tech_stack|join:", " }}</span>
                     {% endif %}
                 </div>
                 <div class="profile-actions">
                     <form method="post" action="{% url 'project_delete' project.pk %}" onsubmit="return confirm('Delete this project?');">
                         {% csrf_token %}
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;color:var(--red);">Delete</button>
+                        <button type="submit" class="button-ghost button-compact button-danger-soft">Delete</button>
                     </form>
                 </div>
             </article>
@@ -92,7 +93,8 @@
         <p class="help-text">Nothing here.</p>
         {% endif %}
         {% endwith %}
-    </section>
+    </article>
     {% endfor %}
+    </section>
 </div>
 {% endblock %}

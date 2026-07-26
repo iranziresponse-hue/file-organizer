@@ -4,14 +4,14 @@
 {% block title %}{{ draft.topic|default:"Draft" }} - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
             <h2>{{ draft.topic|default:draft.get_post_type_display }}</h2>
-            <p>{{ draft.get_post_type_display }} &middot; <span class="status-dot {% if draft.status == 'posted' %}is-live{% elif draft.status == 'approved' %}is-warning{% endif %}">{{ draft.get_status_display }}</span></p>
+            <p>{{ draft.get_post_type_display }} &middot; <span class="workspace-status {% if draft.status == 'posted' %}is-live{% elif draft.status == 'approved' %}is-warning{% endif %}">{{ draft.get_status_display }}</span></p>
         </div>
-        <div class="inline-actions-start">
+        <div class="workspace-actions">
             {% if draft.status == "draft" %}
             <form method="post" action="{% url 'content_draft_approve' draft.pk %}">
                 {% csrf_token %}
@@ -58,7 +58,7 @@
         </form>
     </section>
 
-    <section class="overview-grid">
+    <section class="workspace-grid">
         {% for style, field_value, label in variants %}
         <div class="card compact-card">
             <div class="card-header">
@@ -122,7 +122,7 @@
             <p class="help-text">
                 {{ post.created_at|date:"M j, Y, g:i A" }} &middot;
                 {% if post.channel %}{{ post.channel.display_name }}{% else %}deleted channel{% endif %} &middot;
-                <span class="status-dot {% if post.status == 'sent' %}is-live{% elif post.status == 'failed' %}is-warning{% endif %}">{{ post.get_status_display }}</span>
+                <span class="workspace-status {% if post.status == 'sent' %}is-live{% elif post.status == 'failed' %}is-warning{% endif %}">{{ post.get_status_display }}</span>
                 {% if post.external_url %}&middot; <a href="{{ post.external_url }}" target="_blank" rel="noopener">View live</a>{% endif %}
                 {% if post.status == "failed" and post.error_message %}&middot; {{ post.error_message }}{% endif %}
             </p>

@@ -4,25 +4,25 @@
 {% block title %}{{ project.title }} - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
             <h2>{{ project.title }}</h2>
             <p>{{ project.get_status_display }}{% if project.github_url %} &middot; <a href="{{ project.github_url }}" target="_blank" rel="noopener">{{ project.github_url }}</a>{% endif %}</p>
             {% if project.github_url %}
-            <p class="help-text">
-                {% if project.github_synced_at %}&#9733; {{ project.github_stars }} stars &middot; synced {{ project.github_synced_at|date:"M j, Y, g:i A" }}{% else %}Not synced with GitHub yet{% endif %}
-                <form method="post" style="display:inline;">
+            <div class="workspace-meta-line">
+                <span>{% if project.github_synced_at %}GitHub stars: {{ project.github_stars }} &middot; synced {{ project.github_synced_at|date:"M j, Y, g:i A" }}{% else %}Not synced with GitHub yet{% endif %}</span>
+                <form method="post" class="inline-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="refresh_github">
-                    <button type="submit" class="button-ghost" style="padding:2px 8px;">Refresh GitHub info</button>
+                    <button type="submit" class="button-ghost button-compact">Refresh GitHub info</button>
                 </form>
-            </p>
+            </div>
             {% endif %}
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <form method="post" action="{% url 'project_generate_draft' project.pk %}" style="display:inline;">
+        <div class="workspace-actions">
+            <form method="post" action="{% url 'project_generate_draft' project.pk %}" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="post_type" value="project_update">
                 <button type="submit" class="button-ghost">Generate post draft</button>
@@ -76,7 +76,7 @@
                 <textarea name="lessons_learned" rows="3">{{ project.lessons_learned }}</textarea>
             </div>
             <div class="field">
-                <label>Portfolio-ready description</label>
+                <label>Shareable description</label>
                 <textarea name="portfolio_description" rows="3">{{ project.portfolio_description }}</textarea>
             </div>
             <div class="form-actions"><button type="submit">Save</button></div>
@@ -84,27 +84,27 @@
     </section>
 
     <section class="card compact-card">
-        <div class="card-header"><div><h2>Weekly progress</h2></div></div>
+        <div class="card-header"><div><h2>Progress</h2></div></div>
         <form method="post" class="form-grid">
             {% csrf_token %}
             <input type="hidden" name="action" value="add_update">
             <div class="field">
                 <label for="update_content">Log an update</label>
-                <textarea id="update_content" name="update_content" rows="2" placeholder="What did you do this week?"></textarea>
+                <textarea id="update_content" name="update_content" rows="2" placeholder="What changed? What did you do?"></textarea>
             </div>
             <div class="form-actions"><button type="submit">Add update</button></div>
         </form>
         {% if updates %}
-        <div class="profile-list" style="margin-top:12px;">
+        <div class="profile-list workspace-list">
             {% for update in updates %}
             <article class="profile-row">
-                <div class="profile-main"><p style="margin:0;">{{ update.content }}</p></div>
+                <div class="profile-main"><p>{{ update.content }}</p></div>
                 <div class="profile-detail"><span class="path-text">{{ update.created_at|date:"Y-m-d" }}</span></div>
             </article>
             {% endfor %}
         </div>
         {% else %}
-        <p class="help-text" style="margin-top:12px;">No progress logged yet.</p>
+        <p class="help-text workspace-list">No progress logged yet.</p>
         {% endif %}
     </section>
 

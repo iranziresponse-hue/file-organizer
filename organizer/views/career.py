@@ -72,9 +72,8 @@ from ..models import (
 
 
 def career_home(request):
-    """Career Command Center: current semester, active projects, career
-    track/goal, latest digest, recent drafts, and a simple next-action
-    heuristic."""
+    """Direction, active projects, weekly goal, latest digest, recent drafts,
+    and a simple next-action heuristic."""
     from ..core.contexts import get_context_for_profile
 
     profile = Profile.get_active()
@@ -101,11 +100,11 @@ def career_home(request):
     if stale_project:
         next_action = f"Log a progress update on '{stale_project.title}'; it's been quiet for a while."
     elif not Project.objects.filter(profile=profile).exists():
-        next_action = "Log your first project in Project Studio to start building career evidence."
+        next_action = "Add your first project so Orch can keep its files, links, and progress together."
     elif not latest_digest:
-        next_action = "Generate this week's career digest to see what you've accomplished."
+        next_action = "Generate this week's summary to see what moved and what you worked on."
     else:
-        next_action = "Review your latest digest and draft a post about what you built this week."
+        next_action = "Review your latest summary and draft something from the work worth sharing."
 
     return render(request, "organizer/career_home.html", {
         "profile": profile,
@@ -309,7 +308,7 @@ def career_digest_generate(request):
 
     if request.method == "POST":
         career_digest_core.generate_weekly_digest(profile, log=write_log)
-        messages.success(request, "This week's career digest is ready.")
+        messages.success(request, "This week's summary is ready.")
     return redirect("career_digest")
 
 
@@ -634,5 +633,3 @@ def content_draft_export_html(request, pk):
     safe_name = re.sub(r"[^\w\-. ]", "_", draft.topic or draft.get_post_type_display()) or "post"
     response["Content-Disposition"] = f'attachment; filename="{safe_name}.html"'
     return response
-
-

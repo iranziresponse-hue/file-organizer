@@ -1,22 +1,22 @@
 {% extends "organizer/base.html" %}
 {% load orch_extras %}
 
-{% block title %}Post Composer - Orch{% endblock %}
+{% block title %}Drafts - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Post composer</h2>
-            <p>Orch drafts. Orch beautifies. You approve. Then you click Post yourself, nothing is ever posted automatically.</p>
+            <h2>Drafts</h2>
+            <p>Write a draft, polish it if you want, and publish only when you choose.</p>
         </div>
         <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
     </section>
 
     {% if not ai_enabled %}
     <section class="card compact-card">
-        <p class="help-text">Smart Orch is off, so drafts here use the local raw version only. Turn it on in Settings for polished/professional/short/website variants.</p>
+        <p class="help-text">Smart Orch is off, so drafts stay as you wrote them. Turn it on in Settings if you want alternate versions.</p>
     </section>
     {% endif %}
 

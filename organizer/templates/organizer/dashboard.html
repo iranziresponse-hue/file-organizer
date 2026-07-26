@@ -4,7 +4,7 @@
 {% block title %}Dashboard - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-full">
+<div class="page-stack page-full workspace-page">
     {% if not profile %}
     <section class="card">
         <div class="empty-state">
@@ -104,12 +104,6 @@
 
     <section class="card compact-card service-board" data-power-hero>
         <div class="service-board-hero">
-            <div class="service-orbit" style="--service-score: {{ service_mesh.readiness }}%;" aria-label="Service readiness {{ service_mesh.readiness }} percent">
-                <div>
-                    <strong>{{ service_mesh.readiness }}%</strong>
-                    <span>readiness</span>
-                </div>
-            </div>
             <div class="service-brief">
                 <span class="eyebrow">What Orch can see</span>
                 <h2>{{ service_mesh.headline }}</h2>
@@ -118,9 +112,9 @@
                     <span></span>
                 </div>
                 <div class="meta-list">
-                    <span class="meta-token">{{ service_mesh.connected_count }} live</span>
-                    <span class="meta-token">{{ service_mesh.missing_count }} to activate</span>
-                    <span class="meta-token">{{ service_mesh.total_count }} total systems</span>
+                    <span class="meta-token">{{ service_mesh.connected_count }} ready</span>
+                    <span class="meta-token">{{ service_mesh.missing_count }} left</span>
+                    <span class="meta-token">{{ service_mesh.total_count }} parts</span>
                 </div>
             </div>
             {% if service_mesh.next_activation %}
@@ -183,7 +177,7 @@
                     <p class="card-subtitle">Active routing context</p>
                 </div>
                 <div class="inline-actions">
-                    <span class="state-chip state-live">Routing live</span>
+                    <span class="path-text">Routing is on</span>
                     <a class="button" href="{% url 'profile_edit' profile.pk %}">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -274,7 +268,7 @@
                 <p class="card-subtitle">Makerere University course sync status</p>
             </div>
             <div class="inline-actions-start">
-                <span class="state-chip state-live">Connected now</span>
+                <span class="path-text">Connected now</span>
                 <a class="button button-ghost" href="{% url 'muele_courses' %}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M4 7.5C4 5.6 5.6 4 7.5 4h2.8c.9 0 1.8.4 2.4 1.1l1 1.2h2.8c1.9 0 3.5 1.6 3.5 3.5v6.7c0 1.9-1.6 3.5-3.5 3.5h-9C5.6 20 4 18.4 4 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
@@ -392,7 +386,7 @@
             <div class="inline-actions-start">
                 <span class="meta-token" id="recent-moves-total">{{ page_obj.paginator.count }} total</span>
                 {% if page_obj.paginator.count %}
-                <form method="post" action="{% url 'move_clear_history' %}" style="display:inline;" onsubmit="return confirm('Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.');">
+                <form method="post" action="{% url 'move_clear_history' %}" class="inline-form" onsubmit="return confirm('Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.');">
                     {% csrf_token %}
                     <button type="submit" class="button-ghost button-danger-soft">Clear history</button>
                 </form>
@@ -435,7 +429,7 @@
                         </td>
                         <td>
                             {% if event.explanation or event.sort_decision.matched_rule %}
-                            <button type="button" class="button-ghost why-toggle-btn" data-why-toggle="why-{{ event.pk }}" aria-expanded="false" aria-controls="why-{{ event.pk }}" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Why?</button>
+                            <button type="button" class="button-ghost button-compact why-toggle-btn" data-why-toggle="why-{{ event.pk }}" aria-expanded="false" aria-controls="why-{{ event.pk }}">Why?</button>
                             {% endif %}
                         </td>
                         <td>

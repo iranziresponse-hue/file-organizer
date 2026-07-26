@@ -3,22 +3,22 @@
 {% block title %}Connections - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading connections-hero">
         <div>
             <span class="eyebrow">{% if profile %}{{ profile.name }}{% else %}App-wide{% endif %}</span>
             <h2>Connections</h2>
-            <p>Every service Orch can use, what is already connected, what can be added, and why each setup step matters.</p>
+            <p>See what Orch can work with, what is already connected, and what is worth adding for this profile.</p>
             <div class="hero-icon-row" role="list" aria-label="Jump to a connection category">
                 {% for group in groups %}
                 <a class="hero-icon-tip" role="listitem" href="#group-{{ forloop.counter }}" data-tip="{{ group.title }}: {{ group.detail }}">
-                    {% if group.title == "Academic systems" %}
+                    {% if group.title == "Learning tools" %}
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 3 2 8l10 5 10-5-10-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
                         <path d="M6 10.5V16c0 1 2.5 3 6 3s6-2 6-3v-5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M22 8v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
                     </svg>
-                    {% elif group.title == "Intelligence" %}
+                    {% elif group.title == "Smart help" %}
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 3c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 7.8 11.4 6.2 12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                         <path d="M19 14.5c.3 1.3.9 1.9 2.2 2.2-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-.9 2.2-2.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
@@ -95,7 +95,7 @@
                 </div>
                 <p>{{ card.detail }}</p>
                 <div class="connection-reason">
-                    <strong>Why connect:</strong> {{ card.reason }}
+                    <strong>What this helps with:</strong> {{ card.reason }}
                 </div>
                 <div class="connection-footer">
                     <div class="connection-meta">

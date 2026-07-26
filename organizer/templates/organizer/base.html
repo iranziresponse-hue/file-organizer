@@ -8,9 +8,6 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'organizer/img/orch-mark.svg' %}">
     <link rel="alternate icon" type="image/x-icon" href="{% static 'organizer/img/orch-mark.ico' %}">
     <link rel="shortcut icon" href="{% static 'organizer/img/orch-mark.ico' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <script>
         (function () {
             var saved = window.localStorage.getItem('orch-theme');
@@ -20,8 +17,100 @@
     <link rel="stylesheet" href="{% static 'organizer/css/base.css' %}">
     <script src="{% static 'organizer/js/nav-dropdowns.js' %}"></script>
 </head>
-<body>
+<body{% if is_desktop_shell %} class="has-desktop-titlebar"{% endif %}>
 {% csrf_token %}
+{% if is_desktop_shell %}
+<div class="desktop-titlebar">
+    <div class="desktop-titlebar-drag pywebview-drag-region">
+        <img src="{% static 'organizer/img/orch-mark.svg' %}" alt="" class="desktop-titlebar-mark">
+        <span>Orch</span>
+    </div>
+    <div class="desktop-titlebar-controls">
+        <button type="button" class="desktop-titlebar-btn" id="desktop-fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen (F11)">
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M1 4V1h3M11 4V1H8M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="desktop-titlebar-btn" id="desktop-minimize-btn" aria-label="Minimize" title="Minimize (Ctrl+M)">
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2" y="5.4" width="8" height="1.2" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="desktop-titlebar-btn" id="desktop-maximize-btn" aria-label="Maximize" title="Maximize">
+            <svg class="icon-maximize" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+            <svg class="icon-restore" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><rect x="3.5" y="1.5" width="6.5" height="6.5" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M1.5 4v6.5H8" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>
+        </button>
+        <button type="button" class="desktop-titlebar-btn desktop-titlebar-close" id="desktop-close-btn" aria-label="Close to tray" title="Close to tray">
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+</div>
+<script>
+(function () {
+    function applyMaximizedIcon(maximizeBtn, isMaximized) {
+        maximizeBtn.querySelector('.icon-maximize').style.display = isMaximized ? 'none' : '';
+        maximizeBtn.querySelector('.icon-restore').style.display = isMaximized ? '' : 'none';
+        maximizeBtn.title = isMaximized ? 'Restore' : 'Maximize';
+    }
+
+    function wire() {
+        var dragRegion = document.querySelector('.desktop-titlebar-drag');
+        var fullscreenBtn = document.getElementById('desktop-fullscreen-btn');
+        var minimizeBtn = document.getElementById('desktop-minimize-btn');
+        var maximizeBtn = document.getElementById('desktop-maximize-btn');
+        var closeBtn = document.getElementById('desktop-close-btn');
+
+        if (minimizeBtn) minimizeBtn.addEventListener('click', function () { window.pywebview.api.minimize(); });
+        if (closeBtn) closeBtn.addEventListener('click', function () { window.pywebview.api.close_to_tray(); });
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', function () {
+                window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
+                    document.body.classList.toggle('is-fullscreen', isFullscreen);
+                });
+            });
+        }
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', function () {
+                window.pywebview.api.toggle_maximize().then(function (isMaximized) {
+                    applyMaximizedIcon(maximizeBtn, isMaximized);
+                });
+            });
+        }
+        // Double-clicking the empty titlebar area is the standard modern-app
+        // shortcut for toggling maximize (Discord, VS Code, most of Windows).
+        if (dragRegion && maximizeBtn) {
+            dragRegion.addEventListener('dblclick', function () {
+                window.pywebview.api.toggle_maximize().then(function (isMaximized) {
+                    applyMaximizedIcon(maximizeBtn, isMaximized);
+                });
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'F11') {
+                event.preventDefault();
+                window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
+                    document.body.classList.toggle('is-fullscreen', isFullscreen);
+                });
+            } else if (event.key === 'Escape') {
+                // Only exit fullscreen, never swallow Escape otherwise, since
+                // the app's own dialogs/dropdowns already use it to close.
+                if (document.body.classList.contains('is-fullscreen')) {
+                    window.pywebview.api.toggle_fullscreen().then(function (isFullscreen) {
+                        document.body.classList.toggle('is-fullscreen', isFullscreen);
+                    });
+                }
+            } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
+                event.preventDefault();
+                window.pywebview.api.minimize();
+            }
+        });
+    }
+
+    if (window.pywebview) {
+        wire();
+    } else {
+        window.addEventListener('pywebviewready', wire);
+    }
+})();
+</script>
+{% endif %}
 <div class="app-shell has-app-roof">
     <div class="liquid-field" aria-hidden="true">
         <div class="blob blob-cyan"></div>
@@ -55,7 +144,7 @@
             </span>
             <span class="brand-copy">
                 <h1>Orch</h1>
-                <span>Sorts course files</span>
+                <span>Sorts your files</span>
             </span>
         </a>
         <nav class="nav" aria-label="Primary navigation">
@@ -68,7 +157,7 @@
                     <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/>
                 </svg>
             </a>
-            <a href="{% url 'study_home' %}" class="tip-down{% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %} is-active{% endif %}" data-tip="Study" aria-label="Study" {% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %}aria-current="page"{% endif %}>
+            <a href="{% url 'study_home' %}" class="tip-down{% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %} is-active{% endif %}" data-tip="Learning" aria-label="Learning" {% if path|slice:":7" == "/study/" and current != 'sorting_inbox' and current != 'organization_memory' and current != 'organization_dna' %}aria-current="page"{% endif %}>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M3 5.5C3 4.7 3.7 4 4.5 4H11v16H4.5c-.8 0-1.5-.7-1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                     <path d="M21 5.5c0-.8-.7-1.5-1.5-1.5H13v16h6.5c.8 0 1.5-.7 1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -166,15 +255,11 @@
             </span>
         </nav>
         {% if request.resolver_match.url_name == 'dashboard' and service_mesh %}
-        <div class="topbar-power" id="topbar-power" style="--service-score: {{ service_mesh.readiness }}%;" aria-hidden="true">
-            <div class="topbar-power-score" aria-label="Orch readiness {{ service_mesh.readiness }} percent">
-                <strong>{{ service_mesh.readiness }}%</strong>
-            </div>
+        <div class="topbar-power" id="topbar-power" aria-hidden="true">
             <div class="topbar-power-copy">
-                <span class="now-label">{{ service_mesh.connected_count }}/{{ service_mesh.total_count }} systems live</span>
+                <span class="now-label">{{ service_mesh.connected_count }}/{{ service_mesh.total_count }} connected</span>
                 <span class="now-value">{{ service_mesh.headline }}</span>
             </div>
-            <div class="topbar-power-meter" aria-hidden="true"><span></span></div>
             {% if service_mesh.next_activation %}
             <a class="button button-live button-compact" href="{{ service_mesh.next_activation.url }}">{{ service_mesh.next_activation.action_label }}</a>
             {% endif %}
@@ -213,25 +298,25 @@
                 <li>Already have a messy folder from before you started using Orch? <strong>Folder Imports</strong> looks through it and suggests subjects and rules, then only touches anything once you say yes.</li>
             </ul>
 
-            <h4>2. Studying with what's sorted</h4>
+            <h4>2. Learning from what is sorted</h4>
             <ul>
-                <li><strong>Study</strong> builds a memory of each subject from your sorted files: the topics it's noticed, the areas you're weak in, and a <strong>review queue</strong> that reminds you to revisit things before you'd naturally forget them.</li>
-                <li><strong>Resource Radar</strong> finds real videos, books, and GitHub repositories related to your weak areas, never a made-up link. <strong>Learning Routes</strong> turn one weak area into a simple sequence: find a resource, read a short summary, review it, then check how confident you feel.</li>
-                <li>Any document can get an AI-written study summary if Smart Orch is turned on. <strong>Digests</strong> give you a recap of the week. <strong>Knowledge Packs</strong> export a subject, or your whole profile, as one portable bundle you can keep or share.</li>
+                <li><strong>Learning</strong> builds a memory from your sorted files: topics it has noticed, things you may want to revisit, and a <strong>review queue</strong> for follow-ups you do not want to lose.</li>
+                <li><strong>Resource Radar</strong> finds real videos, books, and GitHub repositories related to saved topics, never a made-up link. <strong>Learning Routes</strong> turn one topic into a simple sequence: find a resource, read a short summary, review it, then check how confident you feel.</li>
+                <li>Any document can get an AI-written summary if Smart Orch is turned on. <strong>Digests</strong> give you a recap of the week. <strong>Knowledge Packs</strong> export a subject, project, or your whole profile as one portable bundle you can keep or share.</li>
             </ul>
 
-            <h4>3. Career and portfolio</h4>
+            <h4>3. Projects and proof</h4>
             <ul>
-                <li>The <strong>Career</strong> tab is a command center: your current semester, the projects you're building, your career track and weekly goal, and a suggested next action.</li>
-                <li><strong>Projects</strong> is where you track things you're building, from idea to finished, and turn them into portfolio evidence.</li>
-                <li>Resource Radar also recommends real GitHub repositories related to your course units, so you have something concrete to build on or learn from.</li>
+                <li>The <strong>Career</strong> tab keeps your direction, projects, weekly goal, and next action in one place.</li>
+                <li><strong>Projects</strong> is where you track things you're building, from idea to finished, and turn them into proof you can reuse later.</li>
+                <li>Resource Radar also recommends real GitHub repositories related to saved topics, so you have something concrete to build on or learn from.</li>
                 <li>Write a post about your work as a <strong>draft</strong>, polish it with Smart Orch if you want, then publish it straight to GitHub (as a real commit) or a custom website you control, or export it as Markdown or HTML to post anywhere else yourself. <strong>Career Digests</strong> recap your career activity the same way study Digests do.</li>
             </ul>
 
             <h4>4. Staying connected</h4>
             <ul>
                 <li><strong>Connections</strong> is one page listing every outside service Orch can use: what's already connected, what you can add, and why each one is worth setting up.</li>
-                <li>Makerere students get real, sourced course units during setup, and can connect <strong>MUELE</strong> (to pull in course files and deadlines), a <strong>timetable</strong>, cloud backups, GitHub, and publishing channels, all from this one page.</li>
+                <li>Makerere profiles get real, sourced course units during setup, and can connect <strong>MUELE</strong> (to pull in course files and deadlines), a <strong>timetable</strong>, cloud backups, GitHub, and publishing channels, all from this one page.</li>
                 <li>Orch never stores a password for any of these. It only ever uses the service's own official sign-in (OAuth or an API key you provide), and you can disconnect at any time.</li>
             </ul>
 

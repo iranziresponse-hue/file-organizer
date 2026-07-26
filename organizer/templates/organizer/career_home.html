@@ -4,27 +4,27 @@
 {% block title %}Career - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Career command center</h2>
-            <p>What should I study? What should I build? What should I apply for? What should I show the world?</p>
+            <h2>Career and work</h2>
+            <p>Keep your direction, projects, notes, and drafts in one place.</p>
         </div>
     </section>
 
-    <section class="card compact-card" style="border-color:var(--cyan);">
+    <section class="card compact-card workspace-callout">
         <div class="card-header"><div><h2>Next action</h2></div></div>
-        <p class="help-text" style="font-size:1.05rem; color:var(--text);">{{ next_action }}</p>
+        <p class="help-text workspace-callout-text">{{ next_action }}</p>
     </section>
 
-    <section class="overview-grid">
+    <section class="workspace-grid">
         <div class="card compact-card">
-            <div class="card-header"><div><h2>Career track & weekly goal</h2></div></div>
+            <div class="card-header"><div><h2>Direction and weekly goal</h2></div></div>
             <form method="post" action="{% url 'career_profile_update' %}" class="form-grid">
                 {% csrf_token %}
                 <div class="field">
-                    <label for="career_track">Career track</label>
+                    <label for="career_track">Direction</label>
                     <select id="career_track" name="career_track">
                         <option value="">Not set</option>
                         {% for value, label in career_track_choices %}
@@ -33,7 +33,7 @@
                     </select>
                 </div>
                 <div class="field">
-                    <label for="weekly_goal">This week's career goal</label>
+                    <label for="weekly_goal">This week's goal</label>
                     <input type="text" id="weekly_goal" name="weekly_goal" value="{{ career_profile.weekly_goal }}" placeholder="e.g. Ship the login flow on Orch">
                 </div>
                 <div class="form-actions"><button type="submit">Save</button></div>
@@ -41,10 +41,10 @@
         </div>
 
         <div class="card compact-card">
-            <div class="card-header"><div><h2>Current semester</h2></div></div>
+            <div class="card-header"><div><h2>Current profile</h2></div></div>
             {% if config %}
             <p class="help-text">{{ config.primary_value }} / {{ config.secondary_value }}</p>
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list meta-list-spaced">
                 {% for code in config.groups %}
                 <a href="{% url 'subject_memory_detail' code %}" class="suggestion-token">{{ code|course_label }}</a>
                 {% endfor %}
@@ -55,13 +55,13 @@
         </div>
     </section>
 
-    <section class="overview-grid">
+    <section class="workspace-grid">
         <div class="card compact-card">
             <div class="card-header">
                 <div>
                     <h2>Projects in progress ({{ active_projects|length }})</h2>
                 </div>
-                <a class="button button-ghost" href="{% url 'project_studio' %}">Project Studio</a>
+                <a class="button button-ghost" href="{% url 'project_studio' %}">Projects</a>
             </div>
             {% if active_projects %}
             <div class="profile-list">
@@ -75,23 +75,23 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text">No projects logged yet. Every engineering project you build is a career asset once it's tracked here.</p>
+            <p class="help-text">No projects saved yet. Add work you want to keep track of, explain later, or share when it is ready.</p>
             {% endif %}
         </div>
 
         <div class="card compact-card">
             <div class="card-header">
-                <div><h2>Latest career digest</h2></div>
+                <div><h2>Latest weekly summary</h2></div>
                 <a class="button button-ghost" href="{% url 'career_digest' %}">Full history</a>
             </div>
             {% if latest_digest %}
             <p class="path-text">{{ latest_digest.period_start|date:"M j" }} to {{ latest_digest.period_end|date:"M j" }}</p>
-            <p class="help-text" style="white-space:pre-line; margin-top:8px;">{{ latest_digest.content|truncatechars:400 }}</p>
+            <p class="help-text workspace-text-block">{{ latest_digest.content|truncatechars:400 }}</p>
             {% else %}
-            <p class="help-text">No digest generated yet.</p>
-            <form method="post" action="{% url 'career_digest_generate' %}" style="margin-top:8px;">
+            <p class="help-text">No weekly summary yet.</p>
+            <form method="post" action="{% url 'career_digest_generate' %}" class="form-actions-spaced">
                 {% csrf_token %}
-                <button type="submit" class="button-ghost">Generate this week's digest</button>
+                <button type="submit" class="button-ghost">Make this week's summary</button>
             </form>
             {% endif %}
         </div>
@@ -100,7 +100,7 @@
     <section class="card compact-card">
         <div class="card-header">
             <div><h2>Recent drafts</h2></div>
-            <a class="button button-ghost" href="{% url 'content_drafts' %}">Post Composer</a>
+            <a class="button button-ghost" href="{% url 'content_drafts' %}">Drafts</a>
         </div>
         {% if recent_drafts %}
         <div class="profile-list">
@@ -117,7 +117,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="help-text">No drafts yet. Generate one from a project or your latest digest.</p>
+        <p class="help-text">No drafts yet. Start from a project, a weekly summary, or a note you already wrote.</p>
         {% endif %}
     </section>
 </div>

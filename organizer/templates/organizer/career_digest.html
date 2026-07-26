@@ -1,20 +1,20 @@
 {% extends "organizer/base.html" %}
 {% load orch_extras %}
 
-{% block title %}Career Digest - Orch{% endblock %}
+{% block title %}Weekly Summary - Orch{% endblock %}
 
 {% block content %}
-<div class="page-stack page-center page-wide">
+<div class="page-stack page-center page-wide workspace-page">
     <section class="page-heading">
         <div>
             <span class="eyebrow">{{ profile.name }}</span>
-            <h2>Weekly career digest</h2>
-            <p>What you studied, what you built, and what you can show for it, generated from your own activity.</p>
+            <h2>Weekly work summary</h2>
+            <p>What moved, what you built, and what may be worth sharing, generated from your own activity.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="workspace-actions">
             <form method="post" action="{% url 'career_digest_generate' %}">
                 {% csrf_token %}
-                <button type="submit">Generate this week's digest</button>
+                <button type="submit">Make this week's summary</button>
             </form>
             <a class="button button-ghost" href="{% url 'career_home' %}">Back to career</a>
         </div>
@@ -25,20 +25,20 @@
         <div class="card-header"><div><h2>History</h2></div></div>
         <div class="profile-list">
             {% for digest in digests %}
-            <article class="profile-row" style="grid-template-columns: 1fr auto;">
+            <article class="profile-row workspace-row-tight">
                 <div class="profile-main">
                     <h3>{{ digest.period_start|date:"M j" }} to {{ digest.period_end|date:"M j, Y" }}</h3>
-                    <p class="path-text" style="white-space:pre-line;">{{ digest.content }}</p>
+                    <p class="path-text copy-block">{{ digest.content }}</p>
                 </div>
                 <div class="profile-actions">
-                    <form method="post" action="{% url 'content_drafts' %}" style="display:inline;">
+                    <form method="post" action="{% url 'content_drafts' %}" class="inline-form">
                         {% csrf_token %}
-                        <input type="hidden" name="raw_text" value="This week in my studies:
+                        <input type="hidden" name="raw_text" value="This week in my work:
 
 {{ digest.content }}">
                         <input type="hidden" name="post_type" value="course_reflection">
                         <input type="hidden" name="topic" value="Week of {{ digest.period_start|date:'M j' }}">
-                        <button type="submit" class="button-ghost" style="height:30px;min-height:30px;padding:4px 10px;font-size:0.78rem;">Draft a post</button>
+                        <button type="submit" class="button-ghost button-compact">Draft a post</button>
                     </form>
                 </div>
             </article>
@@ -53,7 +53,7 @@
             </span>
             <div>
                 <h3>No digest yet</h3>
-                <p>Generate your first one above; it's built from your study activity and project updates this week.</p>
+                <p>Generate your first one above; it is built from file activity and project updates this week.</p>
             </div>
         </div>
     </section>

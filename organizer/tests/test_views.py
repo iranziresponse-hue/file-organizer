@@ -103,6 +103,7 @@ class DashboardViewTests(SandboxedPathsTestCase):
         self.assertContains(response, "Needs attention")
         self.assertContains(response, "Plain status view")
         self.assertContains(response, "Downloads folder")
+        self.assertContains(response, "Profile sorting")
 
     def test_dashboard_priority_deck_has_no_duplicate_signals(self):
         # "Academic priority" duplicated the top dashboard panel right

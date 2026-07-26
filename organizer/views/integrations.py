@@ -192,9 +192,13 @@ def _connection_card(
     }
 
 
+def _profile_uses_learning_tools(profile):
+    return bool(profile and (profile.purpose in {"school", "online"} or profile.setup_path == "makerere"))
+
+
 @perf.measure_view
 def connections_home(request):
-    """Unified service cockpit for everything Orch can connect to.
+    """Unified service map for everything Orch can connect to.
 
     The individual setup flows still live where they already did. This page
     is the user's map: what is connected, what needs setup, what is optional,
@@ -232,33 +236,34 @@ def connections_home(request):
     active_categories = GlobalSortCategory.objects.exclude(key="sensitive").filter(enabled=True).count()
 
     has_profile = bool(profile)
+    learning_profile = _profile_uses_learning_tools(profile)
     profile_setup_url = reverse("start")
     publishing_url = reverse("publishing_channels") if has_profile else profile_setup_url
     drafts_url = reverse("content_drafts") if has_profile else profile_setup_url
     academic_cards = [
         _connection_card(
             title="Makerere MUELE",
-            area="Academic feed",
-            status="connected" if muele and muele.status == "connected" else "setup" if has_profile else "blocked",
-            status_label="Connected" if muele and muele.status == "connected" else "Set up" if has_profile else "Needs profile",
+            area="Learning files",
+            status="connected" if muele and muele.status == "connected" else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
+            status_label="Connected" if muele and muele.status == "connected" else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
             detail=(
                 f"Connected as {muele.username}" if muele and muele.username
-                else "Sync course files, assignment deadlines, and course activity."
+                else "Bring in course files, assignment dates, and learning activity when this profile needs it."
             ),
-            reason="This is the highest-value Makerere connection because it turns course chaos into files, deadlines, and dashboard priorities.",
+            reason="Useful for Makerere profiles. Other profiles can ignore it and still use Orch normally.",
             action=_connection_action(reverse("muele_courses") if muele and muele.status == "connected" else reverse("muele_connect") if has_profile else profile_setup_url, "Manage" if muele and muele.status == "connected" else "Set up" if has_profile else "Create profile"),
             meta=f"Last sync {_short_timesince(muele.last_sync_at)}" if muele and muele.last_sync_at else "Makerere",
             scope=profile.name if profile else "No active profile",
         ),
         _connection_card(
             title="Makerere Timetable",
-            area="Academic schedule",
-            status="connected" if timetable and timetable_entries else "setup" if has_profile else "blocked",
-            status_label="Connected" if timetable and timetable_entries else "Set up" if has_profile else "Needs profile",
-            detail=f"{timetable_entries} classes/tests/exams synced." if timetable_entries else "Connect your group timetable for daily class awareness.",
-            reason="This powers the War Room, class-aware planning, and reminders tied to your real Makerere group.",
+            area="Schedule",
+            status="connected" if timetable and timetable_entries else "setup" if has_profile and learning_profile else "not_connected" if has_profile else "blocked",
+            status_label="Connected" if timetable and timetable_entries else "Set up" if has_profile and learning_profile else "Optional" if has_profile else "Needs profile",
+            detail=f"{timetable_entries} timetable entries synced." if timetable_entries else "Add a timetable for classes, sessions, tests, exams, or training times.",
+            reason="Useful when this profile has time-based work. It should not be required for ordinary file sorting.",
             action=_connection_action(reverse("timetable_view") if timetable and timetable_entries else reverse("timetable_connect") if has_profile else profile_setup_url, "View" if timetable and timetable_entries else "Set up" if has_profile else "Create profile"),
-            meta=timetable.config.get("group", "") if timetable and timetable.config else "Teaching timetable",
+            meta=timetable.config.get("group", "") if timetable and timetable.config else "Timetable",
             scope=profile.name if profile else "No active profile",
         ),
         _connection_card(
@@ -267,7 +272,7 @@ def connections_home(request):
             status="not_connected",
             status_label="Not connected",
             detail="Generic Moodle support is planned after the Makerere MUELE flow is stable.",
-            reason="Useful for students outside Makerere, but it should not distract Makerere users from the stronger MUELE path.",
+            reason="Useful for profiles that use Moodle, but it should stay optional until the connector is ready.",
             action=None,
             meta="Planned",
             scope="Future",
@@ -278,7 +283,7 @@ def connections_home(request):
             status="not_connected",
             status_label="Not connected",
             detail="Calendar sync is not wired yet; Orch currently uses timetable and assignments internally.",
-            reason="The right future version should push deadlines and focus blocks to the user's calendar only after approval.",
+            reason="The right future version should push dated items to your calendar only after approval.",
             action=None,
             meta="Planned",
             scope="Future",
@@ -291,8 +296,8 @@ def connections_home(request):
             area="Reasoning layer",
             status="connected" if ai_config.get("enabled") and ai_config.get("api_key") else "setup",
             status_label="Connected" if ai_config.get("enabled") and ai_config.get("api_key") else "Set up",
-            detail="Summaries, course guides, and fallback routing are active." if ai_config.get("enabled") and ai_config.get("api_key") else "Optional API key not configured.",
-            reason="This makes Orch feel intelligent, but the app still works locally without it.",
+            detail="Summaries and fallback routing are active." if ai_config.get("enabled") and ai_config.get("api_key") else "Optional API key not configured.",
+            reason="Useful for summaries and suggestions, but Orch still sorts locally without it.",
             action=_connection_action(reverse("settings_edit"), "Manage" if ai_config.get("api_key") else "Set up"),
             meta="Optional",
             scope="App-wide",
@@ -303,18 +308,18 @@ def connections_home(request):
             status="connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "add",
             status_label="Connected" if youtube_config.get("enabled") and youtube_config.get("api_key") else "Add",
             detail="Real video picks are enabled." if youtube_config.get("enabled") and youtube_config.get("api_key") else "Resource Radar still works with search links.",
-            reason="Add it when you want Orch to pick specific videos for weak topics instead of giving a search query.",
+            reason="Add it when you want Orch to pick specific videos for saved topics instead of giving a search query.",
             action=_connection_action(reverse("settings_edit"), "Manage" if youtube_config.get("api_key") else "Add"),
             meta="Optional",
             scope="App-wide",
         ),
         _connection_card(
             title="GitHub Repo Search",
-            area="Engineering resources",
+            area="Code resources",
             status="connected",
             status_label="Connected",
             detail="Repo recommendations work anonymously without setup.",
-            reason="Useful for software engineering students: it turns weak topics into real codebases to inspect.",
+            reason="Useful when a topic needs real code examples to inspect.",
             action=_connection_action(reverse("resource_radar"), "Open"),
             meta="No key required",
             scope="App-wide",
@@ -333,7 +338,7 @@ def connections_home(request):
                 "Google credentials saved; connect the account." if drive_ready else
                 "Client ID and secret not configured."
             ),
-            reason="Keeps sorted academic evidence recoverable while preserving Orch's local-first design.",
+            reason="Keeps sorted files recoverable while preserving Orch's local-first design.",
             action=_connection_action(reverse("drive_connect") if drive_ready and not drive_connected else reverse("settings_edit"), "Connect" if drive_ready and not drive_connected else "Manage" if drive_connected else "Add"),
             meta="App-wide",
             scope="Backup",
@@ -355,7 +360,7 @@ def connections_home(request):
             status="not_connected",
             status_label="Not connected",
             detail="No Notion connector is implemented yet.",
-            reason="Good future target for study databases, but it needs a clean permission model before it belongs in Orch.",
+            reason="Good future target for workspace notes, but it needs a clean permission model before it belongs in Orch.",
             action=None,
             meta="Planned",
             scope="Future",
@@ -368,8 +373,8 @@ def connections_home(request):
             area="Publishing",
             status="connected" if custom_channels.filter(status="connected").exists() else "add",
             status_label="Connected" if custom_channels.filter(status="connected").exists() else "Add",
-            detail=f"{custom_channels.count()} website channel{'s' if custom_channels.count() != 1 else ''} configured." if custom_channels.exists() else "Connect your own portfolio/blog endpoint.",
-            reason="This is the most flexible route: Orch drafts, beautifies, waits for your click, then sends to your own site.",
+            detail=f"{custom_channels.count()} website channel{'s' if custom_channels.count() != 1 else ''} configured." if custom_channels.exists() else "Connect your own website or blog endpoint.",
+            reason="This is the most flexible route: Orch keeps the draft here, waits for your click, then sends it to your own site.",
             action=_connection_action(publishing_url, "Manage" if custom_channels.exists() else "Add" if has_profile else "Create profile"),
             meta="User-owned API",
             scope=profile.name if profile else "No active profile",
@@ -380,9 +385,9 @@ def connections_home(request):
             status="connected" if github_channels.filter(status="connected").exists() else "setup" if github_channels.exists() else "add",
             status_label="Connected" if github_channels.filter(status="connected").exists() else "Set up" if github_channels.exists() else "Add",
             detail=f"{github_channels.count()} repo channel{'s' if github_channels.count() != 1 else ''} configured." if github_channels.exists() else "Publish approved posts as commits to a repo.",
-            reason="Strong for engineering students because your learning evidence becomes dated, inspectable portfolio history.",
+            reason="Useful when you want approved drafts to become dated commits in a repo you own.",
             action=_connection_action(publishing_url, "Manage" if github_channels.exists() else "Add" if has_profile else "Create profile"),
-            meta="Portfolio evidence",
+            meta="Repo commits",
             scope=profile.name if profile else "No active profile",
         ),
         _connection_card(
@@ -391,7 +396,7 @@ def connections_home(request):
             status="not_connected" if not linkedin else linkedin.status,
             status_label="Not connected" if not linkedin else linkedin.get_status_display(),
             detail="OAuth publishing is not connected. Orch will never ask for your LinkedIn password.",
-            reason="The right flow is: Orch suggests and beautifies the weekly post, then you click to approve and publish through an official channel.",
+            reason="The right flow is: Orch suggests a draft, then you click to approve and publish through an official channel.",
             action=_connection_action(publishing_url, "Read setup note" if has_profile else "Create profile"),
             meta="OAuth required",
             scope="Future channel",
@@ -410,10 +415,10 @@ def connections_home(request):
     ]
 
     groups = [
-        {"title": "Academic systems", "detail": "Feeds that know your semester, courses, deadlines, and timetable.", "cards": academic_cards},
-        {"title": "Intelligence", "detail": "Optional APIs that make recommendations and summaries sharper.", "cards": intelligence_cards},
+        {"title": "Learning tools", "detail": "Optional course, timetable, review, and resource helpers.", "cards": academic_cards},
+        {"title": "Smart help", "detail": "Optional APIs that make summaries and recommendations sharper.", "cards": intelligence_cards},
         {"title": "Storage and workspace", "detail": "Where Orch watches, backs up, or may export your work.", "cards": storage_cards},
-        {"title": "Publishing", "detail": "Where career evidence and weekly posts can go after your approval.", "cards": publishing_cards},
+        {"title": "Publishing", "detail": "Where approved drafts can go after your click.", "cards": publishing_cards},
     ]
     all_cards = [card for group in groups for card in group["cards"]]
     connected_count = sum(1 for card in all_cards if card["status"] == "connected")
@@ -722,7 +727,7 @@ def timetable_connect(request):
     "SE-2"), so Study can show and notify about real lectures/tests/exams.
     The site has no login and no export format, so this walks the same
     Academic Year -> Semester -> College -> Group choices its own page
-    does, live, rather than ever guessing which group is the student's."""
+    does, live, rather than ever guessing which group is the user's."""
     from ..core import timetable_sync
 
     profile = Profile.get_active()
