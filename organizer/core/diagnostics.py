@@ -100,6 +100,23 @@ def get_watcher_log_tail(lines: int = 50) -> list[str]:
         return ["Could not read log file."]
 
 
+def get_error_log_tail(lines: int = 30) -> list[str]:
+    """Get the last N lines from orch-error.log -- Django's own ERROR-level
+    log (config.settings' LOGGING config), distinct from the watcher's own
+    log above. Used for the support popup's optional diagnostics bundle."""
+    from django.conf import settings
+
+    log_path = Path(settings.BASE_DIR) / "orch-error.log"
+    if not log_path.exists():
+        return ["No error log yet."]
+
+    try:
+        all_lines = log_path.read_text(encoding="utf-8").splitlines()
+        return all_lines[-lines:]
+    except OSError:
+        return ["Could not read error log."]
+
+
 # ---------------------------------------------------------------------------
 # Error reporting
 # ---------------------------------------------------------------------------

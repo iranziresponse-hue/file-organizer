@@ -20,7 +20,7 @@
         <p class="help-text" style="font-size:1rem; color:var(--text);">
             <strong>{{ headline.subject_code|course_label }}</strong>: {{ headline.topic }}
         </p>
-        <a class="button button-ghost" href="{% url 'subject_memory_detail' headline.subject_code %}" style="margin-top:8px;">Open course notes</a>
+        <a class="button button-ghost mt-8" href="{% url 'subject_memory_detail' headline.subject_code %}">Open course notes</a>
     </section>
     {% endif %}
 
@@ -39,7 +39,7 @@
                 <p class="card-subtitle">Flagged as weak in more than one subject; the clearest pattern on this page</p>
             </div>
         </div>
-        <div class="meta-list" style="margin-top:8px;">
+        <div class="meta-list mt-8">
             {% for row in repeated_topics %}
             <span class="suggestion-token text-red">
                 <strong>{{ row.topic }}</strong>
@@ -63,7 +63,7 @@
                 </div>
                 <a class="button button-ghost" href="{% url 'subject_memory_detail' row.code %}">Open</a>
             </div>
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for area in row.weak_areas %}
                 <span class="suggestion-token">{{ area }}</span>
                 {% endfor %}

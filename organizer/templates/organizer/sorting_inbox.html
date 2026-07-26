@@ -46,11 +46,11 @@
                         <span class="path-text text-red">Sensitive</span>
                     {% endif %}
                 </div>
-                <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="profile-actions inline-actions-tight">
                     <form method="post" action="{% url 'inbox_approve' item.pk %}" data-inbox-action data-item-pk="{{ item.pk }}" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="button button-compact">
-                            <svg viewBox="0 0 24 24" fill="none" style="width:14px;"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <svg class="icon-xs" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             Approve once
                         </button>
                     </form>
@@ -80,7 +80,7 @@
         <div class="guide-panel" style="max-width:500px;">
             <button type="button" class="guide-close" id="reroute-close"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             <h3>Move to a different folder</h3>
-            <p class="help-text" id="reroute-filename" style="margin-bottom:16px;"></p>
+            <p class="help-text mb-16" id="reroute-filename"></p>
             <form method="post" id="reroute-form-inner" data-inbox-action>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="reroute">
@@ -95,7 +95,7 @@
                     <input type="checkbox" name="confirm_external" value="1" style="width:auto;">
                     This folder is outside my usual Orch folders, move it anyway
                 </label>
-                <div class="form-actions" style="margin-top:12px;">
+                <div class="form-actions mt-12">
                     <button type="submit">Move & approve</button>
                 </div>
             </form>

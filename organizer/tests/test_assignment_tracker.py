@@ -120,3 +120,25 @@ class AssignmentTrackerItemUpdateTests(SandboxedPathsTestCase):
         self.client.post(reverse("assignment_tracker_item_delete", args=[self.item.pk]))
 
         self.assertFalse(AssignmentItem.objects.filter(pk=self.item.pk).exists())
+
+
+class AssignmentTrackerArchiveMissedTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+
+    def test_archives_only_missed_assignments(self):
+        missed = AssignmentItem.objects.create(profile=self.profile, title="Late one", status="missed")
+        open_item = AssignmentItem.objects.create(profile=self.profile, title="Still open", status="open")
+
+        response = self.client.post(reverse("assignment_tracker_archive_missed"))
+
+        self.assertRedirects(response, reverse("assignment_tracker"))
+        missed.refresh_from_db()
+        open_item.refresh_from_db()
+        self.assertEqual(missed.status, "archived")
+        self.assertEqual(open_item.status, "open")
+
+    def test_get_is_not_allowed(self):
+        response = self.client.get(reverse("assignment_tracker_archive_missed"))
+        self.assertEqual(response.status_code, 405)

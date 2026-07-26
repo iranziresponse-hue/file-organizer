@@ -66,7 +66,7 @@
                 </div>
             </div>
             {% if digest.metrics.methods %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for method in digest.metrics.methods %}
                 <span class="suggestion-token">
                     <strong>{{ method.total }}</strong>
@@ -75,10 +75,10 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:8px;">No files sorted in this period.</p>
+            <p class="help-text mt-8">No files sorted in this period.</p>
             {% endif %}
             {% if digest.metrics.muele_downloads %}
-            <p class="help-text" style="margin-top:8px;">{{ digest.metrics.muele_downloads }} from MUELE</p>
+            <p class="help-text mt-8">{{ digest.metrics.muele_downloads }} from MUELE</p>
             {% endif %}
         </div>
 
@@ -89,7 +89,7 @@
                 </div>
             </div>
             {% if digest.metrics.subjects %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for subject in digest.metrics.subjects %}
                 <span class="suggestion-token">
                     <strong>{{ subject.course_code|course_label }}</strong>
@@ -98,7 +98,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:8px;">No subject activity this period.</p>
+            <p class="help-text mt-8">No subject activity this period.</p>
             {% endif %}
         </div>
     </section>
@@ -110,7 +110,7 @@
                 <h2>Next steps</h2>
             </div>
         </div>
-        <div class="meta-list" style="margin-top:8px;">
+        <div class="meta-list mt-8">
             {% if digest.metrics.unsorted_items %}
             <p class="help-text">{{ digest.metrics.unsorted_items }} file(s) need sorting attention.</p>
             {% endif %}

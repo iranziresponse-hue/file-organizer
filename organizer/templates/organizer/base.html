@@ -401,57 +401,36 @@
 
             <h4>1. Sorting your files</h4>
             <ul>
-                <li>Orch watches your Downloads folder (and an optional second folder), set in <strong>Settings</strong>. Any new file that shows up there gets moved automatically.</li>
-                <li>Some file types always go to the same place, no matter what. Orch creates these folders itself the first time it needs one:
-                    <ul class="guide-list-nested">
-                        <li>Passwords, keys, and certificates &rarr; <code>Documents\Personal\Important</code></li>
-                        <li>Ebooks &rarr; your Library inbox, <code>Documents\Personal\Library\00 New - Sort Me</code> by default (you can change this in Settings)</li>
-                        <li>Photos, music, and video &rarr; <code>Documents\Personal\Media\...</code></li>
-                        <li>Zip and rar files &rarr; <code>Documents\Personal\Archives</code></li>
-                        <li>Installers (.exe, .msi, .apk) &rarr; <code>Documents\Personal\Installers</code></li>
-                        <li>Code and project files &rarr; <code>Documents\Work\_Unsorted</code></li>
-                    </ul>
-                </li>
-                <li>Everything else, like PDFs, Word docs, Excel sheets, and slides, is sorted by whichever <strong>profile</strong> is currently active. A profile is just one folder plus two labels you pick, usually something like Year and Semester.</li>
-                <li>Orch tries a few ways to figure out where a file belongs: first a subject code in the filename, then keywords that match a subject's topics, and, if extra suggestions are turned on, one last guess. If nothing matches, the file goes into that profile's own <code>_Unsorted</code> folder, sitting right next to the real subject folders so it's easy to find and move later.</li>
-                <li>No profile active yet, or a file type Orch doesn't recognize? It goes to <code>Documents\Personal\_NeedsSorting</code> so it's never lost.</li>
-                <li>Orch put something in the wrong place? Every row in the dashboard's <strong>Recent Moves</strong> table has a <strong>Move</strong> button so you can send it somewhere else yourself.</li>
-                <li>Want to double-check before a file moves? <strong>Files to check</strong> holds anything Orch wasn't fully sure about, so you can approve it, send it somewhere else, or ignore it. <strong>Folder Rules</strong> let you build your own sorting rules without writing anything technical. <strong>Undo</strong> reverses any move, and <strong>Recent Moves</strong> has a <strong>Clear history</strong> button if the list gets too long.</li>
-                <li>Already have a messy folder from before you started using Orch? <strong>Folder Imports</strong> looks through it and suggests subjects and rules, then only touches anything once you say yes.</li>
+                <li>Orch watches your Downloads folder (set in <strong>Settings</strong>). New files there get sorted automatically, mostly by whichever <strong>profile</strong> is active.</li>
+                <li>Not sure where something belongs? It's never lost: unclear files wait in <strong>Files to check</strong> so you can approve, redirect, or ignore them.</li>
+                <li>Wrong guess? Every row in <strong>Recent Moves</strong> has a <strong>Move</strong> button, and <strong>Undo</strong> reverses any move. <strong>Folder Rules</strong> let you teach Orch your own routing without writing anything technical.</li>
+                <li>Already have a messy folder from before Orch? <strong>Folder Imports</strong> looks through it and suggests subjects and rules, only touching anything once you say yes.</li>
             </ul>
 
             <h4>2. Learning from what is sorted</h4>
             <ul>
-                <li><strong>Learning</strong> builds a memory from your sorted files: topics it has noticed, things you may want to revisit, and a <strong>review queue</strong> for follow-ups you do not want to lose.</li>
-                <li><strong>Resource Radar</strong> finds real videos, books, and GitHub repositories related to saved topics, never a made-up link. <strong>Learning Routes</strong> turn one topic into a simple sequence: find a resource, read a short summary, review it, then check how confident you feel.</li>
-                <li>Any document can get a summary if writing help is turned on. <strong>Weekly summaries</strong> give you a recap of the week. <strong>Knowledge Packs</strong> export a subject, project, or your whole profile as one portable bundle you can keep or share.</li>
+                <li><strong>Learning</strong> turns your sorted files into topics, things worth revisiting, and a <strong>review queue</strong> so nothing gets forgotten.</li>
+                <li><strong>Resource Radar</strong> finds real videos, books, and repos for saved topics, never a made-up link. Any file can get a summary if writing help is turned on.</li>
             </ul>
 
             <h4>3. Projects and proof</h4>
             <ul>
-                <li>The <strong>Career</strong> tab keeps your direction, projects, weekly goal, and next action in one place.</li>
-                <li><strong>Projects</strong> is where you track things you're building, from idea to finished, and turn them into proof you can reuse later.</li>
-                <li>Resource Radar also recommends real GitHub repositories related to saved topics, so you have something concrete to build on or learn from.</li>
-                <li>Write a post about your work as a <strong>draft</strong>, polish it with writing help if you want, then publish it straight to GitHub or a custom website you control, or export it as Markdown or HTML to post anywhere else yourself. <strong>Weekly work summaries</strong> recap what moved and what you worked on.</li>
+                <li><strong>Projects</strong> tracks what you're building from idea to finished, turning it into proof you can reuse later.</li>
+                <li>Write about your work as a <strong>draft</strong>, then publish it to GitHub or your own site only when you choose to.</li>
             </ul>
 
             <h4>4. Staying connected</h4>
             <ul>
-                <li><strong>Connections</strong> shows what Orch can use, what is already connected, and what is worth adding for this profile.</li>
-                <li>Makerere profiles get real, sourced course units during setup, and can connect <strong>MUELE</strong> (to pull in course files and deadlines), a <strong>timetable</strong>, cloud backups, GitHub, and publishing channels, all from this one page.</li>
-                <li>Orch never stores a password for any of these. It only ever uses the service's own official sign-in (OAuth or an API key you provide), and you can disconnect at any time.</li>
+                <li><strong>Connections</strong> shows what's available and what's already set up for this profile: MUELE, timetable, backups, GitHub, and publishing.</li>
+                <li>Orch never stores a password for any of these. It always uses the service's own official sign-in, and you can disconnect at any time.</li>
             </ul>
 
             <h4>5. Staying on top of things</h4>
             <ul>
-                <li><strong>Notifications</strong> keeps a permanent record of deadline warnings, MUELE sync results, and anything else Orch has alerted you about, even if you missed the popup. Mark everything as read, or use <strong>Clear all</strong> if the list gets too long.</li>
-                <li><strong>Memory</strong> shows the sorting rules Orch has learned from your own corrections over time, so you can see (and edit) exactly why it makes the decisions it makes.</li>
+                <li><strong>Notifications</strong> keeps a record of deadlines and sync results, even ones you missed. <strong>Memory</strong> shows the sorting rules Orch has learned from your own corrections, so nothing it does is a black box.</li>
             </ul>
 
-            <h4>6. Managing it all</h4>
-            <ul>
-                <li>Create, switch, or edit a profile from <strong>Profiles</strong>. Change watched folders, ebook folders, backups, and writing help from <strong>Settings</strong>.</li>
-            </ul>
+            <p class="guide-intro mt-16">Create or switch profiles from <strong>Profiles</strong>. Change watched folders and other setup from <strong>Settings</strong>.</p>
         </div>
     </div>
 
@@ -552,6 +531,14 @@
                     <label for="support-message">Message</label>
                     <textarea id="support-message" name="message" placeholder="What's going on?" required></textarea>
                 </div>
+                <label class="setting-switch">
+                    <input type="checkbox" id="support-include-diagnostics" name="include_diagnostics" value="1">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Include app diagnostics</strong>
+                        <span>Adds the app version, watcher status, and recent error log lines to help fix this faster. Never sent unless you turn this on. <a href="{% url 'privacy_policy' %}" target="_blank" rel="noopener">What's included</a></span>
+                    </span>
+                </label>
                 <div id="support-feedback" class="help-text feedback-message"></div>
                 <div class="form-actions">
                     <button type="submit" id="support-submit">
@@ -599,6 +586,7 @@
     <script src="{% static 'organizer/js/command-palette.js' %}"></script>
     <script src="{% static 'organizer/js/confirm-dialog.js' %}"></script>
     <script src="{% static 'organizer/js/toast.js' %}"></script>
+    <script src="{% static 'organizer/js/focus-trap.js' %}"></script>
 
     <main>
         {% if messages %}

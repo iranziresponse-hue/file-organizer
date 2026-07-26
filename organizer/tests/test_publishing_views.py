@@ -216,3 +216,23 @@ class ContentDraftExportViewTests(SandboxedPathsTestCase):
         self.assertEqual(response["Content-Type"], "text/html; charset=utf-8")
         self.assertIn("attachment;", response["Content-Disposition"])
         self.assertIn(b"Body content.", response.content)
+
+
+class ContentDraftsDeletePostedViewTests(SandboxedPathsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.profile = self.make_profile()
+
+    def test_deletes_only_posted_drafts(self):
+        posted = ContentDraft.objects.create(profile=self.profile, raw_text="x", status="posted")
+        draft = ContentDraft.objects.create(profile=self.profile, raw_text="y", status="draft")
+
+        response = self.client.post(reverse("content_drafts_delete_posted"))
+
+        self.assertRedirects(response, reverse("content_drafts"))
+        self.assertFalse(ContentDraft.objects.filter(pk=posted.pk).exists())
+        self.assertTrue(ContentDraft.objects.filter(pk=draft.pk).exists())
+
+    def test_get_is_not_allowed(self):
+        response = self.client.get(reverse("content_drafts_delete_posted"))
+        self.assertEqual(response.status_code, 405)

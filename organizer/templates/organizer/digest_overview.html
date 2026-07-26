@@ -10,13 +10,13 @@
             <h2>Study digests</h2>
             <p>Daily and weekly summaries of your learning activity - files sorted, subjects active, reviews due, and assignments tracked.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
             <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="generate">
                 <input type="hidden" name="period" value="daily">
                 <button type="submit" class="button-ghost">
-                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
                         <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
                     Daily digest
@@ -27,7 +27,7 @@
                 <input type="hidden" name="action" value="generate">
                 <input type="hidden" name="period" value="weekly">
                 <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
                         <path d="M5 6.5C5 5.1 6.1 4 7.5 4h9C17.9 4 19 5.1 19 6.5v11c0 1.4-1.1 2.5-2.5 2.5h-9C6.1 20 5 18.9 5 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/>
                     </svg>
                     Weekly digest

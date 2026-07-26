@@ -12,9 +12,9 @@
             <h2>Find better study material.</h2>
             <p>Recommendations are built from your subject memory, themes, weak areas, and recent files. Orch links to real discovery sources without inventing rankings.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
         <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
-        <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <form class="inline-actions" method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="generate">
             <select name="subject_code" aria-label="Subject filter">
@@ -86,6 +86,14 @@
                 <h2>Recommended discovery links</h2>
                 <p class="card-subtitle">Open the source, compare results, then save or dismiss the recommendation.</p>
             </div>
+            {% if recommendations %}
+            <form method="post" class="inline-form" data-confirm="Dismiss every suggested recommendation shown here?">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="dismiss_all_suggested">
+                {% if current_subject %}<input type="hidden" name="subject_code" value="{{ current_subject }}">{% endif %}
+                <button type="submit" class="button-ghost">Dismiss all suggested</button>
+            </form>
+            {% endif %}
         </div>
 
         {% if recommendations %}

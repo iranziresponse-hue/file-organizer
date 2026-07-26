@@ -311,6 +311,24 @@ class ResourceRadarViewTests(SandboxedPathsTestCase):
         item.refresh_from_db()
         self.assertEqual(item.status, "dismissed")
 
+    def test_dismiss_all_suggested_clears_only_suggested_items(self):
+        items = resources.sync_recommendations(self.profile, limit=3)
+        saved_item = items[0]
+        saved_item.status = "saved"
+        saved_item.save(update_fields=["status"])
+
+        response = self.client.post(reverse("resource_radar"), {"action": "dismiss_all_suggested"})
+
+        self.assertRedirects(response, reverse("resource_radar"))
+        saved_item.refresh_from_db()
+        self.assertEqual(saved_item.status, "saved")
+        self.assertEqual(
+            ResourceRecommendation.objects.filter(profile=self.profile, status="suggested").count(), 0,
+        )
+        self.assertEqual(
+            ResourceRecommendation.objects.filter(profile=self.profile, status="dismissed").count(), 2,
+        )
+
     def test_resource_radar_requires_active_profile(self):
         self.profile.is_active = False
         self.profile.save()

@@ -12,7 +12,7 @@
             <h2>Learning timeline</h2>
             <p>A rich visual history of everything that's happened - sorted files, summaries, reviews, syncs, and digests.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
             <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
             <div class="meta-list" style="gap:4px;">
                 {% for type_key, type_label in activity_types %}
@@ -54,7 +54,7 @@
     {% else %}
         {% for group_label, events in timeline_groups %}
         <section class="card compact-card">
-            <div class="card-header" style="margin-bottom:16px;">
+            <div class="card-header mb-16">
                 <div>
                     <h3>{{ group_label }}</h3>
                     <p class="card-subtitle">{{ events|length }} event{{ events|length|pluralize }}</p>

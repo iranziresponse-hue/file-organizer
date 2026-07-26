@@ -48,7 +48,13 @@
 
     {% if drafts %}
     <section class="card compact-card">
-        <div class="card-header"><div><h2>Drafts ({{ drafts|length }})</h2></div></div>
+        <div class="card-header">
+            <div><h2>Drafts ({{ drafts|length }})</h2></div>
+            <form method="post" action="{% url 'content_drafts_delete_posted' %}" class="inline-form" data-confirm="Delete every draft already marked as posted? This can't be undone.">
+                {% csrf_token %}
+                <button type="submit" class="button-ghost button-danger-soft">Clear posted</button>
+            </form>
+        </div>
         <div class="profile-list">
             {% for draft in drafts %}
             <article class="profile-row">

@@ -13,6 +13,39 @@
         <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
     </section>
 
+    {% if setup_complete %}
+    <section class="card compact-card card-highlight">
+        <div class="card-header"><div><h2>Orch is ready</h2><p class="card-subtitle">Everything required is set up. Optional extras can be added any time from Settings.</p></div></div>
+        <div class="profile-list mt-12">
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Watching</h3>
+                    <span class="path-text">{{ watched_folder }}</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Active profile</h3>
+                    <span class="path-text">{{ profile.name }}</span>
+                </div>
+            </article>
+        </div>
+        <p class="help-text mt-16">What happens next:</p>
+        <ul class="mt-8">
+            <li>New files in your watched folder get sorted automatically.</li>
+            <li>Anything Orch isn't sure about waits in Files to check.</li>
+            <li>Every move is logged in Recent Moves, and can be undone.</li>
+        </ul>
+        <div class="inline-actions mt-16">
+            <form method="post" action="{% url 'open_watched_folder' %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="button">Open watched folder &middot; try it with a file</button>
+            </form>
+            <a class="button button-ghost" href="{% url 'dashboard' %}">Go to Dashboard</a>
+        </div>
+    </section>
+    {% endif %}
+
     <section class="card compact-card">
         <div class="card-header">
             <div>

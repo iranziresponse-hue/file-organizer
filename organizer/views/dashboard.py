@@ -17,6 +17,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.text import slugify
 
 from ..core import (
     diagnostics,
@@ -683,6 +684,7 @@ def _service_item(name, state, detail, insight, url=None, action_label="Open"):
         "muted": "is-muted",
     }
     return {
+        "key": slugify(name),
         "name": name,
         "state": state,
         "status": status_labels.get(state, "Available"),
@@ -691,6 +693,10 @@ def _service_item(name, state, detail, insight, url=None, action_label="Open"):
         "insight": insight,
         "url": url,
         "action_label": action_label,
+        # Only genuinely-optional ("muted") items can be hidden -- a
+        # "Needs setup" warning is a real gap, not a preference, so it
+        # always stays visible.
+        "dismissible": state == "muted",
     }
 
 
@@ -856,6 +862,17 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
         },
     ]
 
+    dismissed_keys = set(profile.dismissed_setup_items) if profile else set()
+    hidden_count = 0
+    for lane in lanes:
+        visible_items = []
+        for item in lane["items"]:
+            if item["dismissible"] and item["key"] in dismissed_keys:
+                hidden_count += 1
+                continue
+            visible_items.append(item)
+        lane["items"] = visible_items
+
     all_items = [item for lane in lanes for item in lane["items"]]
     connected_count = sum(1 for item in all_items if item["state"] in {"live", "saved"})
     total_count = len(all_items)
@@ -873,6 +890,7 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
         "lanes": lanes,
         "priority_action": priority_action,
         "next_activation": next_activation,
+        "hidden_count": hidden_count,
         "headline": (
             f"{connected_count} parts of Orch are set up"
             if connected_count
@@ -1108,6 +1126,41 @@ def dashboard(request):
     }
     context.update(_cockpit_context(request, profile, events, last_move))
     return render(request, "organizer/dashboard.html", context)
+
+
+def privacy_policy(request):
+    return render(request, "organizer/privacy.html", {"profile": Profile.get_active()})
+
+
+def setup_item_dismiss(request):
+    """Hides one optional ("muted") setup checklist item from the dashboard.
+    Only ever called for items the view itself marked dismissible -- a real
+    "Needs setup" warning can't be hidden this way, see _service_item."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+    item_key = request.POST.get("item_key", "").strip()
+    if item_key and item_key not in profile.dismissed_setup_items:
+        profile.dismissed_setup_items = [*profile.dismissed_setup_items, item_key]
+        profile.save(update_fields=["dismissed_setup_items"])
+    return redirect("dashboard")
+
+
+def setup_items_restore(request):
+    """Brings back every optional setup item previously hidden via
+    setup_item_dismiss for the active profile."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+    profile.dismissed_setup_items = []
+    profile.save(update_fields=["dismissed_setup_items"])
+    return redirect("dashboard")
 
 
 def profiles_list(request):

@@ -28,7 +28,7 @@
             </div>
         </div>
         {% if upcoming_periods %}
-        <div class="meta-list" style="margin-top:8px;">
+        <div class="meta-list mt-8">
             {% for period in upcoming_periods %}
             <span class="suggestion-token {% if period.is_exam_period %}text-live{% endif %}">
                 <strong>{{ period.name }}</strong>
@@ -78,7 +78,7 @@
                 </div>
             </div>
             {% if row.entry.course_code %}
-            <a class="button button-ghost" href="{% url 'subject_memory_detail' row.entry.course_code %}" style="margin-top:12px;">Open course notes</a>
+            <a class="button button-ghost mt-12" href="{% url 'subject_memory_detail' row.entry.course_code %}">Open course notes</a>
             {% endif %}
         </div>
         {% endfor %}
@@ -92,7 +92,7 @@
             <div>
                 <h3>No upcoming exams tracked yet</h3>
                 <p>Connect your Makerere timetable to pull in test and examination dates automatically.</p>
-                <a class="button button-ghost" href="{% url 'timetable_connect' %}" style="margin-top:12px;">Connect timetable</a>
+                <a class="button button-ghost mt-12" href="{% url 'timetable_connect' %}">Connect timetable</a>
             </div>
         </div>
     </section>

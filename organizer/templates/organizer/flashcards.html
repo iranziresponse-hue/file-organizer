@@ -28,7 +28,7 @@
             <div id="practice-answer" hidden style="margin-bottom:16px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.06);">
                 {% if next_card.back %}{{ next_card.back }}{% else %}<span class="path-text">No answer recorded; check your own notes or past paper solutions.</span>{% endif %}
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="inline-actions">
                 <button type="button" id="show-answer-btn" class="button-ghost">Show answer</button>
                 <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="remembered-form" hidden>
                     {% csrf_token %}
@@ -67,7 +67,7 @@
             {% for code in generation_sources %}
             <article class="profile-row">
                 <div class="profile-main"><h3>{{ code|course_label }}</h3></div>
-                <div class="profile-actions" style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div class="profile-actions inline-actions-tight">
                     {% if code in subjects_with_past_papers %}
                     <form method="post" class="inline-form">
                         {% csrf_token %}
@@ -120,9 +120,15 @@
     <section class="card compact-card">
         <div class="card-header"><div><h2>All cards</h2></div></div>
         {% for subject_code, cards in cards_by_subject.items %}
-        <details style="margin-top:12px;">
+        <details class="mt-12">
             <summary style="cursor:pointer; font-weight:600;">{{ subject_code|course_label }} ({{ cards|length }})</summary>
-            <div class="profile-list" style="margin-top:8px;">
+            <form method="post" class="inline-form mt-8" data-confirm="Delete all {{ cards|length }} card(s) for {{ subject_code|course_label }}?">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_subject_cards">
+                <input type="hidden" name="subject_code" value="{{ subject_code }}">
+                <button type="submit" class="button-ghost button-compact text-red">Delete all in this subject</button>
+            </form>
+            <div class="profile-list mt-8">
                 {% for card in cards %}
                 <article class="profile-row">
                     <div class="profile-main">

@@ -164,6 +164,24 @@ def resource_radar(request):
                 resource_core.set_recommendation_status(item, action)
                 return redirect(request.POST.get("next") or "resource_radar")
 
+        if action == "dismiss_all_suggested":
+            from ..core import resource_cache
+
+            dismiss_subject = request.POST.get("subject_code", "").strip() or None
+            queryset = ResourceRecommendation.objects.filter(profile=profile, status="suggested")
+            if dismiss_subject:
+                queryset = queryset.filter(subject_code=dismiss_subject)
+            count = queryset.update(status="dismissed")
+            # A plain queryset .update() skips model .save(), so the
+            # post_save signal that normally invalidates this cache never
+            # fires -- invalidate explicitly so the dismissed items don't
+            # keep showing from a stale cached list.
+            resource_cache.invalidate_resource_recommendations(profile.pk)
+            messages.success(request, f"Dismissed {count} suggested recommendation(s).")
+            if dismiss_subject:
+                return redirect(f"{reverse('resource_radar')}?subject={dismiss_subject}")
+            return redirect("resource_radar")
+
     from ..core import resource_cache
 
     recommendations = resource_cache.get_or_set_resource_recommendations(
@@ -340,6 +358,13 @@ def review_queue(request):
                 messages.success(request, f"Scheduled {count} new review item(s).")
             else:
                 messages.info(request, "No new items to schedule.")
+            return redirect("review_queue")
+        if action == "skip_all_due":
+            due_items = review_core.get_due_reviews(profile, limit=1000)
+            count = len(due_items)
+            for item in due_items:
+                review_core.skip_review(item)
+            messages.success(request, f"Skipped {count} due review item(s).")
             return redirect("review_queue")
 
     stats = review_core.get_stats(profile)
@@ -708,6 +733,22 @@ def assignment_tracker_item_delete(request, pk):
     return redirect("assignment_tracker")
 
 
+def assignment_tracker_archive_missed(request):
+    """Bulk-archives every assignment currently sitting in the Missed
+    bucket -- keeps the history (unlike a delete) while clearing the
+    tracker's most stressful-looking column in one step."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+
+    count = AssignmentItem.objects.filter(profile=profile, status="missed").update(status="archived")
+    messages.success(request, f"Archived {count} missed assignment(s).")
+    return redirect("assignment_tracker")
+
+
 def exam_countdown(request):
     """Exam Countdown Mode: days left per paper, a revision-coverage proxy
     (queued vs done ReviewItems for that subject -- not a true syllabus
@@ -914,6 +955,8 @@ def first_run_checklist(request):
 
     done_count = sum(1 for c in checklist if c.get("done"))
     total_count = sum(1 for c in checklist if not c.get("optional"))
+    required_items = [c for c in checklist if not c.get("optional")]
+    setup_complete = bool(required_items) and all(c["done"] for c in required_items)
 
     return render(request, "organizer/first_run.html", {
         "profile": profile,
@@ -921,7 +964,33 @@ def first_run_checklist(request):
         "checklist": checklist,
         "done_count": done_count,
         "total_count": total_count,
+        "setup_complete": setup_complete,
+        "watched_folder": settings.downloads_path if settings else "",
     })
+
+
+def open_watched_folder(request):
+    """Opens the active Downloads watch folder in File Explorer -- the
+    first-run success screen's "try it" action, so a new user can drop a
+    real file in and see it get sorted for real rather than a simulated
+    demo."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+
+    settings = AppSettings.get_solo() if AppSettings.objects.exists() else None
+    folder = settings.downloads_path if settings else ""
+    if not folder or not Path(folder).is_dir():
+        messages.error(request, "That folder doesn't exist yet. Set it up in Settings first.")
+        return redirect("first_run")
+
+    import os
+
+    try:
+        os.startfile(folder)
+        messages.success(request, "Opened your watched folder. Drop a file in to see Orch sort it.")
+    except OSError:
+        messages.error(request, "Couldn't open that folder.")
+    return redirect("first_run")
 
 
 def notifications_view(request):
@@ -987,6 +1056,10 @@ def support_message(request):
 
     from ..core import support as support_core
 
+    app_state = None
+    if request.POST.get("include_diagnostics") == "1":
+        app_state = support_core.build_app_state_snapshot(Profile.get_active())
+
     # Any SMTP/config failure lands on the saved SupportMessage row for the
     # admin to see (email_error, visible in the owner console) -- the
     # person submitting the form always just sees a clean confirmation,
@@ -997,6 +1070,7 @@ def support_message(request):
         subject=subject,
         message=message,
         page_url=request.POST.get("page_url", ""),
+        app_state=app_state,
     )
     return JsonResponse({"ok": True})
 
@@ -1319,6 +1393,13 @@ def flashcards(request):
                     back=request.POST.get("back", "").strip(),
                 )
                 messages.success(request, "Card added.")
+        elif action == "delete_subject_cards":
+            # The template groups blank subject_code cards under the label
+            # "Unassigned" (see cards_by_subject below); that label isn't a
+            # real stored value, so map it back to the actual blank code.
+            lookup_code = "" if subject_code == "Unassigned" else subject_code
+            deleted, _ = Flashcard.objects.filter(profile=profile, subject_code=lookup_code).delete()
+            messages.success(request, f"Deleted {deleted} card(s) for {subject_code or 'Unassigned'}.")
         return redirect("flashcards")
 
     due_count = Flashcard.objects.filter(profile=profile, status="active", due_at__lte=timezone.now()).count()

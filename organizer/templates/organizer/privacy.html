@@ -1,0 +1,81 @@
+{% extends "organizer/base.html" %}
+
+{% block title %}Privacy - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-medium">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">Privacy</span>
+            <h2>What stays on your laptop, and what doesn't</h2>
+            <p>Orch is a local desktop app with no servers of its own. This page explains, in plain terms, what never leaves your machine and what does, only when you turn a feature on.</p>
+        </div>
+        <a class="button button-ghost" href="{% url 'settings_edit' %}">Back to Settings</a>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Stays on your laptop, always</h2></div></div>
+        <p class="help-text">Everything below lives only in Orch's own local database file on this computer. None of it is uploaded anywhere by Orch itself.</p>
+        <ul class="mt-12">
+            <li>Every file move, and the reasoning behind it (Recent Moves, Undo)</li>
+            <li>Profiles, folder rules, and the routing rules Orch has learned from your approvals (Organization Memory)</li>
+            <li>Subjects, topics, review queue, flashcards, grade targets, and study plans</li>
+            <li>Projects, drafts, and career notes before you choose to publish them</li>
+            <li>Settings, watched folders, and the setup checklist</li>
+        </ul>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>Only leaves your laptop if you connect it</h2></div></div>
+        <p class="help-text">Each of these is off unless you set it up yourself, and each can be disconnected at any time from Connections or Settings.</p>
+        <div class="profile-list mt-12">
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>MUELE</h3>
+                    <span class="path-text">Your MUELE sign-in talks directly to Makerere's own MUELE service to pull in course files, assignments, and deadlines. Orch never stores your MUELE password; only a login token, kept in your operating system's own secure credential store, never in Orch's database.</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Google Drive backup</h3>
+                    <span class="path-text">If connected, copies of files Orch has already sorted are uploaded to a folder named "Orch Backups" inside your own Drive. Orch can only see and manage files it created there itself, never anything else in your Drive.</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>GitHub</h3>
+                    <span class="path-text">Repository recommendations use GitHub's public search and need no connection at all. Publishing a draft, and connecting your own access token, are both optional and only happen when you approve them; the token is kept in your OS credential store, never in Orch's database.</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Writing help and smart filing</h3>
+                    <span class="path-text">Off by default. If you add your own key, a filename (for smart filing) or a document's text (for a summary) is sent to that AI service to generate a suggestion. Nothing is sent unless this is turned on.</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Resource Radar video search</h3>
+                    <span class="path-text">Off by default. If you add a YouTube key, a topic name is sent to YouTube's search so Resource Radar can suggest real videos instead of a plain search link.</span>
+                </div>
+            </article>
+            <article class="profile-row">
+                <div class="profile-main">
+                    <h3>Support messages</h3>
+                    <span class="path-text">When you send a message from the Support popup, what you type and the page you sent it from are used to reach the developer. Nothing else about your setup is included automatically.</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="card compact-card">
+        <div class="card-header"><div><h2>What Orch never does</h2></div></div>
+        <ul class="mt-12">
+            <li>Never sells or shares your files or data with anyone</li>
+            <li>Never includes ads or third-party trackers</li>
+            <li>Never stores a password for MUELE, Google Drive, or GitHub; only official tokens, kept in your OS credential store</li>
+            <li>Never uploads your files anywhere without a connection you set up yourself</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

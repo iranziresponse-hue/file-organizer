@@ -17,7 +17,7 @@
     <section class="card compact-card card-highlight">
         <div class="card-header"><div><h2>Next best action</h2></div></div>
         <p class="help-text" style="font-size:1.05rem; color:var(--text);">{{ next_best_action }}</p>
-        <div class="stat-row" style="margin-top:12px;">
+        <div class="stat-row mt-12">
             <div class="stat stat-primary"><div class="value">{{ study_streak }}</div><div class="label">Day streak</div></div>
             <div class="stat"><div class="value">{{ due_flashcards }}</div><div class="label">Flashcards due</div></div>
             <div class="stat"><div class="value">{{ upcoming_exams|length }}</div><div class="label">Exams ahead</div></div>
@@ -86,7 +86,7 @@
         <div class="card compact-card">
             <div class="card-header"><div><h2>Course units</h2></div></div>
             {% if course_units %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for memory in course_units %}
                 <a href="{% url 'subject_memory_detail' memory.code %}" class="suggestion-token">{{ memory.code|course_label }}</a>
                 {% endfor %}
@@ -99,7 +99,7 @@
         <div class="card compact-card">
             <div class="card-header"><div><h2>Past-paper risk areas</h2></div></div>
             {% if past_paper_risk_areas %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for row in past_paper_risk_areas %}
                 <span class="suggestion-token"><strong>{{ row.topic }}</strong> <span class="path-text">({{ row.subjects|join:", " }})</span></span>
                 {% endfor %}
@@ -115,7 +115,7 @@
                 <a class="button button-ghost" href="{% url 'weakness_radar' %}">Full radar</a>
             </div>
             {% if weak_radar.subject_weak_areas %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for row in weak_radar.subject_weak_areas %}
                 {% for area in row.weak_areas %}
                 <span class="suggestion-token text-red">{{ row.code }}: {{ area }}</span>

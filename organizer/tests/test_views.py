@@ -201,6 +201,56 @@ class DashboardViewTests(SandboxedPathsTestCase):
         self.assertNotContains(response, "why-toggle-btn")
 
 
+class SetupItemDismissViewTests(SandboxedPathsTestCase):
+    def test_dismissing_an_optional_item_hides_it_from_the_dashboard(self):
+        profile = self.make_profile()
+        response = self.client.get(reverse("dashboard"))
+        muted_item = next(
+            item
+            for lane in response.context["service_mesh"]["lanes"]
+            for item in lane["items"]
+            if item["dismissible"]
+        )
+
+        self.client.post(reverse("setup_item_dismiss"), {"item_key": muted_item["key"]})
+        profile.refresh_from_db()
+
+        self.assertIn(muted_item["key"], profile.dismissed_setup_items)
+        response = self.client.get(reverse("dashboard"))
+        all_keys = [
+            item["key"]
+            for lane in response.context["service_mesh"]["lanes"]
+            for item in lane["items"]
+        ]
+        self.assertNotIn(muted_item["key"], all_keys)
+        self.assertEqual(response.context["service_mesh"]["hidden_count"], 1)
+
+    def test_a_warning_state_item_cannot_be_dismissed(self):
+        self.make_profile()
+        response = self.client.get(reverse("dashboard"))
+        warning_items = [
+            item
+            for lane in response.context["service_mesh"]["lanes"]
+            for item in lane["items"]
+            if item["state"] == "warning"
+        ]
+        self.assertTrue(all(not item["dismissible"] for item in warning_items))
+
+    def test_restoring_brings_back_every_hidden_item(self):
+        profile = self.make_profile()
+        profile.dismissed_setup_items = ["resource-radar", "google-drive-backup"]
+        profile.save(update_fields=["dismissed_setup_items"])
+
+        self.client.post(reverse("setup_items_restore"))
+        profile.refresh_from_db()
+
+        self.assertEqual(profile.dismissed_setup_items, [])
+
+    def test_dismiss_requires_an_active_profile(self):
+        response = self.client.post(reverse("setup_item_dismiss"), {"item_key": "resource-radar"})
+        self.assertRedirects(response, reverse("dashboard"))
+
+
 class MoveRelocateViewTests(SandboxedPathsTestCase):
     def setUp(self):
         super().setUp()
@@ -321,6 +371,59 @@ class FirstRunChecklistViewTests(SandboxedPathsTestCase):
         profile_row = next(c for c in response.context["checklist"] if c["id"] == "profile")
         self.assertTrue(profile_row["done"])
         self.assertIn("/edit/", profile_row["url"])
+
+    def test_setup_complete_is_false_until_every_required_item_is_done(self):
+        response = self.client.get(reverse("first_run"))
+        self.assertFalse(response.context["setup_complete"])
+
+    def test_setup_complete_shows_the_ready_banner(self):
+        from organizer.models import AppSettings, CourseConfig
+
+        profile = self.make_profile()
+        CourseConfig.objects.create(profile=profile, groups=["CSC2100"])
+        settings = AppSettings.get_solo()
+        settings.downloads_path = str(self.profile_root)
+        settings.save()
+
+        response = self.client.get(reverse("first_run"))
+
+        self.assertTrue(response.context["setup_complete"])
+        self.assertContains(response, "Orch is ready")
+
+    def test_open_watched_folder_requires_a_real_path(self):
+        self.make_profile()
+        response = self.client.post(reverse("open_watched_folder"))
+        self.assertRedirects(response, reverse("first_run"))
+
+    def test_open_watched_folder_opens_the_real_folder(self):
+        from unittest import mock
+
+        from organizer.models import AppSettings
+
+        self.make_profile()
+        settings = AppSettings.get_solo()
+        settings.downloads_path = str(self.profile_root)
+        settings.save()
+
+        with mock.patch("os.startfile") as mocked_startfile:
+            response = self.client.post(reverse("open_watched_folder"))
+
+        mocked_startfile.assert_called_once_with(str(self.profile_root))
+        self.assertRedirects(response, reverse("first_run"))
+
+
+class PrivacyPolicyViewTests(SandboxedPathsTestCase):
+    def test_loads_with_no_profile(self):
+        response = self.client.get(reverse("privacy_policy"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "MUELE")
+        self.assertContains(response, "Google Drive")
+        self.assertContains(response, "GitHub")
+
+    def test_loads_with_an_active_profile(self):
+        self.make_profile()
+        response = self.client.get(reverse("privacy_policy"))
+        self.assertEqual(response.status_code, 200)
 
 
 class MueleConnectViewTests(SandboxedPathsTestCase):

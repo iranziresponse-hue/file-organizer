@@ -23,16 +23,16 @@
                     <p class="card-subtitle">All files, summaries, and guides for your entire {{ profile.name }} context.</p>
                 </div>
             </div>
-            <form method="post" style="margin-top:16px;">
+            <form class="mt-16" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="create">
                 <input type="hidden" name="scope" value="profile">
-                <div class="field" style="margin-bottom:12px;">
+                <div class="field mb-12">
                     <label for="profile_title">Pack title</label>
                     <input type="text" id="profile_title" name="title" value="{{ profile.name }} - Complete Knowledge Pack">
                 </div>
                 <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
                         <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
@@ -48,11 +48,11 @@
                     <p class="card-subtitle">Files, summaries, course guide, and study-guide PDF for one subject.</p>
                 </div>
             </div>
-            <form method="post" style="margin-top:16px;">
+            <form class="mt-16" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="create">
                 <input type="hidden" name="scope" value="subject">
-                <div class="field" style="margin-bottom:12px;">
+                <div class="field mb-12">
                     <label for="subject_code">Subject code</label>
                     <select id="subject_code" name="subject_code">
                         {% for memory in subject_memories %}
@@ -63,7 +63,7 @@
                     </select>
                 </div>
                 <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none">
                         <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
@@ -110,7 +110,7 @@
                 <div class="profile-actions" style="display:flex; gap:6px;">
                     {% if bundle.status == "ready" and bundle.output_path %}
                     <a class="button button-compact" href="{% url 'export_download' bundle.pk %}">
-                        <svg viewBox="0 0 24 24" fill="none" style="width:14px;">
+                        <svg class="icon-xs" viewBox="0 0 24 24" fill="none">
                             <path d="M12 4v10M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         Download

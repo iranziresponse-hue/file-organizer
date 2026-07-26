@@ -136,3 +136,26 @@ class ReviewRescheduleWorkflowTests(SandboxedPathsTestCase):
         self.assertEqual(item.status, "skipped")
         self.assertEqual(next_item.status, "queued")
         self.assertEqual(next_item.metadata["source"], "rescheduled_after_skip")
+
+    def test_skip_all_due_reschedules_every_due_item(self):
+        from django.urls import reverse
+
+        item_a = ReviewItem.objects.create(
+            profile=self.profile, move_event=self.event, subject_code="CSC2100",
+            title="Review trees", due_at=timezone.now(), metadata={"interval_index": 0},
+        )
+        item_b = ReviewItem.objects.create(
+            profile=self.profile, move_event=self.event, subject_code="CSC2100",
+            title="Review graphs", due_at=timezone.now(), metadata={"interval_index": 0},
+        )
+
+        response = self.client.post(reverse("review_queue"), {"action": "skip_all_due"})
+
+        self.assertRedirects(response, reverse("review_queue"))
+        item_a.refresh_from_db()
+        item_b.refresh_from_db()
+        self.assertEqual(item_a.status, "skipped")
+        self.assertEqual(item_b.status, "skipped")
+        # Each skip reschedules a fresh queued follow-up, same as skipping
+        # them one at a time would.
+        self.assertEqual(ReviewItem.objects.filter(status="queued").count(), 2)

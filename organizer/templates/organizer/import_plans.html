@@ -59,7 +59,7 @@
             <div class="form-actions"><button type="submit" id="folder-sort-start-btn">Start sorting</button></div>
         </form>
         <div id="folder-sort-progress" hidden>
-            <div class="why-panel" style="margin-top:12px;">
+            <div class="why-panel mt-12">
                 <p><strong>Status:</strong> <span id="folder-sort-status">Starting...</span></p>
                 <p id="folder-sort-message"></p>
             </div>
@@ -68,7 +68,7 @@
             </div>
         </div>
         {% if folder_sorts %}
-        <div class="table-shell" style="margin-top:12px;">
+        <div class="table-shell mt-12">
             <table>
                 <tr><th>Started</th><th>Status</th><th>Result</th></tr>
                 {% for task in folder_sorts %}
@@ -84,7 +84,16 @@
     </section>
 
     <section class="card compact-card">
-        <div class="card-header"><div><h2>Plans ({{ plans|length }})</h2></div></div>
+        <div class="card-header">
+            <div><h2>Plans ({{ plans|length }})</h2></div>
+            {% if plans %}
+            <form method="post" class="inline-form" data-confirm="Reject every plan that's only been scanned so far? Approved or applied plans are not affected.">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject_all_scanned">
+                <button type="submit" class="button-ghost">Reject all scanned</button>
+            </form>
+            {% endif %}
+        </div>
         {% if plans %}
         <div class="profile-list">
             {% for plan in plans %}

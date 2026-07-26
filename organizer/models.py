@@ -153,6 +153,10 @@ class Profile(models.Model):
     )
     is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    dismissed_setup_items = models.JSONField(
+        default=list, blank=True,
+        help_text="Keys of optional setup checklist items the user chose to hide (see dashboard's service mesh).",
+    )
 
     class Meta:
         ordering = ["name"]
@@ -1241,6 +1245,11 @@ class SupportMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     emailed_at = models.DateTimeField(null=True, blank=True)
     email_error = models.CharField(max_length=500, blank=True)
+    app_state = models.JSONField(
+        default=dict, blank=True,
+        help_text="Optional diagnostic snapshot (app version, setup status, recent errors) the "
+                   "sender chose to attach from the support popup's 'Include app diagnostics' checkbox.",
+    )
 
     class Meta:
         ordering = ["-created_at"]

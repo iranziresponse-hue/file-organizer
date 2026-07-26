@@ -35,13 +35,13 @@
         <div class="card compact-card">
             <div class="card-header"><div><h2>Most common file types</h2></div></div>
             {% if top_extensions %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for row in top_extensions %}
                 <span class="suggestion-token"><strong>.{{ row.extension }}</strong><span class="path-text">({{ row.count }})</span></span>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:8px;">Nothing sorted yet.</p>
+            <p class="help-text mt-8">Nothing sorted yet.</p>
             {% endif %}
         </div>
     </section>
@@ -68,7 +68,7 @@
     {% if subject_rows %}
     <section class="card compact-card">
         <div class="card-header"><div><h2>Subjects with the most movement</h2></div></div>
-        <div class="meta-list" style="margin-top:8px;">
+        <div class="meta-list mt-8">
             {% for row in subject_rows %}
             <a href="{% url 'subject_memory_detail' row.course_code %}" class="suggestion-token">
                 <strong>{{ row.course_code|course_label }}</strong><span class="path-text">({{ row.total }})</span>

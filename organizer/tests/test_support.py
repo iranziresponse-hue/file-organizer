@@ -39,6 +39,29 @@ class SubmitSupportMessageTests(TestCase):
         self.assertIsNotNone(record.emailed_at)
         self.assertEqual(record.email_error, "")
 
+    def test_app_state_is_empty_by_default(self):
+        record, _ = support.submit_support_message("Jordan", "jordan@example.com", "Bug report", "Hello there")
+        self.assertEqual(record.app_state, {})
+
+    @override_settings(
+        SUPPORT_EMAIL_CONFIGURED=True,
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="orch@example.com",
+        SUPPORT_INBOX_ADDRESS="iranziresponse@gmail.com",
+    )
+    def test_opted_in_app_state_is_saved_and_emailed(self):
+        snapshot = {"app_version": "1.2.0", "profile": "School", "watcher_running": True, "recent_watcher_errors": [], "recent_error_log": ["[2026-01-01] something failed"]}
+        record, error = support.submit_support_message(
+            "Jordan", "jordan@example.com", "Bug report", "Hello there", app_state=snapshot,
+        )
+
+        self.assertIsNone(error)
+        record.refresh_from_db()
+        self.assertEqual(record.app_state, snapshot)
+        self.assertIn("App diagnostics", mail.outbox[0].body)
+        self.assertIn("1.2.0", mail.outbox[0].body)
+        self.assertIn("something failed", mail.outbox[0].body)
+
 
 class SupportMessageViewTests(TestCase):
     def test_saves_a_valid_message_and_returns_ok(self):
@@ -69,3 +92,19 @@ class SupportMessageViewTests(TestCase):
     def test_get_is_not_allowed(self):
         response = self.client.get(reverse("support_message"))
         self.assertEqual(response.status_code, 405)
+
+    def test_diagnostics_are_not_collected_unless_opted_in(self):
+        response = self.client.post(reverse("support_message"), {
+            "subject": "Bug report", "message": "Something is broken",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(SupportMessage.objects.get().app_state, {})
+
+    def test_diagnostics_are_collected_when_opted_in(self):
+        response = self.client.post(reverse("support_message"), {
+            "subject": "Bug report", "message": "Something is broken", "include_diagnostics": "1",
+        })
+        self.assertEqual(response.status_code, 200)
+        record = SupportMessage.objects.get()
+        self.assertIn("app_version", record.app_state)
+        self.assertIn("recent_error_log", record.app_state)

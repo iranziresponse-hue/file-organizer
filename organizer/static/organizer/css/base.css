@@ -2208,6 +2208,27 @@
             border-color: var(--red);
         }
 
+        .mt-8 { margin-top: 8px; }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .mb-12 { margin-bottom: 12px; }
+        .mb-16 { margin-bottom: 16px; }
+
+        .icon-sm { width: 18px; }
+        .icon-xs { width: 14px; }
+
+        .inline-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .inline-actions-tight {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
         .copy-block {
             white-space: pre-line;
             color: var(--text);
@@ -3372,6 +3393,16 @@
             background: transparent;
             border: 0;
             color: var(--muted);
+        }
+
+        .meta-token-button {
+            font: inherit;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .meta-token-button:hover {
+            color: var(--text);
         }
 
         .meta-list,

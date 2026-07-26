@@ -471,6 +471,22 @@ def content_draft_delete(request, pk):
     return redirect("content_drafts")
 
 
+def content_drafts_delete_posted(request):
+    """Bulk-clears every already-published draft at once -- the list page
+    otherwise has no way to clean up posts that already served their
+    purpose, unlike drafts/approved ones a user is still working through."""
+    if request.method != "POST":
+        return HttpResponse("POST required.", status=405)
+    profile = Profile.get_active()
+    if not profile:
+        messages.error(request, "Activate a profile first.")
+        return redirect("dashboard")
+
+    count, _ = ContentDraft.objects.filter(profile=profile, status="posted").delete()
+    messages.success(request, f"Cleared {count} posted draft(s).")
+    return redirect("content_drafts")
+
+
 _PUBLISHING_CHANNEL_PROVIDERS = ["custom_website", "github"]
 
 

@@ -515,6 +515,26 @@ a { color: inherit; }
     margin-top: 18px;
 }
 
+.laptop-points {
+    max-width: 380px;
+    margin: 14px auto 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.laptop-points li {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.laptop-points strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
 /* ---------- Homepage hub links ---------- */
 
 .hub-grid {

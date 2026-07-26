@@ -11,7 +11,7 @@
             <h2>{{ memory.code|course_label }}</h2>
             <p>Subject memory, resources, themes, deadlines, and guides - all in one place.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
             {% if guide %}
             <button type="button" class="button-ghost course-guide-btn" data-profile-id="{{ profile.pk }}" data-course-code="{{ memory.code }}" data-has-guide="true">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -66,7 +66,7 @@
                 </div>
             </div>
             {% if top_themes %}
-            <div class="meta-list" style="margin-top:12px;">
+            <div class="meta-list mt-12">
                 {% for theme in top_themes %}
                 <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
                     <strong>{{ theme.name }}</strong>
@@ -75,7 +75,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:12px;">Focus areas appear as files accumulate for this subject.</p>
+            <p class="help-text mt-12">Focus areas appear as files accumulate for this subject.</p>
             {% endif %}
         </div>
 
@@ -88,13 +88,13 @@
                 <a class="button button-ghost" href="{% url 'weakness_radar' %}">Full radar</a>
             </div>
             {% if memory.weak_areas %}
-            <div class="meta-list" style="margin-top:12px;">
+            <div class="meta-list mt-12">
                 {% for area in memory.weak_areas %}
                 <span class="suggestion-token text-red">{{ area }}</span>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:12px;">Nothing flagged yet.</p>
+            <p class="help-text mt-12">Nothing flagged yet.</p>
             {% endif %}
         </div>
     </section>
@@ -109,7 +109,7 @@
                 </div>
             </div>
             {% if themes %}
-            <div class="meta-list" style="margin-top:12px;">
+            <div class="meta-list mt-12">
                 {% for theme in themes %}
                 <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
                     <strong>{{ theme.name }}</strong>
@@ -123,7 +123,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:12px;">Themes appear as files and summaries accumulate for this subject.</p>
+            <p class="help-text mt-12">Themes appear as files and summaries accumulate for this subject.</p>
             {% endif %}
         </div>
 
@@ -136,7 +136,7 @@
                 <a class="button button-ghost" href="{% url 'assignment_tracker' %}">Manage</a>
             </div>
             {% if assignments %}
-            <div class="profile-list" style="margin-top:12px;">
+            <div class="profile-list mt-12">
                 {% for item in assignments %}
                 <article class="profile-row">
                     <div class="profile-main">
@@ -167,7 +167,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:12px;">No assignments yet. MUELE will sync them automatically.</p>
+            <p class="help-text mt-12">No assignments yet. MUELE will sync them automatically.</p>
             {% endif %}
         </div>
     </section>
@@ -183,14 +183,14 @@
         {% if resources %}
         {% for label, events in resource_buckets.items %}
         {% if events %}
-        <details style="margin-top:12px;" open>
+        <details class="mt-12" open>
             <summary style="cursor:pointer; font-weight:600;">
                 {{ label }} ({{ events|length }})
                 {% if label == "Past Papers & Tests" %}
                 <a href="{% url 'past_paper_analysis' memory.code %}" class="path-text" style="font-weight:400; margin-left:8px;">Analyze &rarr;</a>
                 {% endif %}
             </summary>
-            <div class="table-shell" style="margin-top:8px;">
+            <div class="table-shell mt-8">
                 <table>
                     <tr><th>Time</th><th>File</th><th>Method</th><th>Summary</th></tr>
                     {% for event in events %}
@@ -259,7 +259,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="help-text" style="margin-top:12px;">Timeline items appear as files are sorted and summaries are created.</p>
+        <p class="help-text mt-12">Timeline items appear as files are sorted and summaries are created.</p>
         {% endif %}
     </section>
 

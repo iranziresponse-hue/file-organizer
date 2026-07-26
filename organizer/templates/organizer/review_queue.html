@@ -11,12 +11,12 @@
             <h2>Smart review queue</h2>
             <p>Spaced repetition review items scheduled from your study materials. Complete a review to schedule the next one at the right interval.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
             <form method="post" action="{% url 'review_queue' %}" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="auto_schedule">
                 <button type="submit" class="button-ghost">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
                     Auto-schedule from files
@@ -81,7 +81,7 @@
                 </div>
             </div>
             {% if stats.by_subject %}
-            <div class="meta-list" style="margin-top:8px;">
+            <div class="meta-list mt-8">
                 {% for item in stats.by_subject %}
                 <span class="suggestion-token">
                     <strong>{{ item.subject_code|course_label }}</strong>
@@ -90,7 +90,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="help-text" style="margin-top:8px;">No subjects with queued reviews yet.</p>
+            <p class="help-text mt-8">No subjects with queued reviews yet.</p>
             {% endif %}
         </div>
     </section>
@@ -102,6 +102,13 @@
                 <h2>Due now</h2>
                 <p class="card-subtitle">Items ready for review, ordered by urgency</p>
             </div>
+            {% if due_items %}
+            <form method="post" class="inline-form" data-confirm="Skip every item due now? Each one gets rescheduled at a shorter interval.">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="skip_all_due">
+                <button type="submit" class="button-ghost">Skip all due</button>
+            </form>
+            {% endif %}
         </div>
         {% if due_items %}
         <div class="profile-list">
@@ -133,7 +140,7 @@
                     <form method="post" action="{% url 'review_mark_done' item.pk %}" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="button button-compact">
-                            <svg viewBox="0 0 24 24" fill="none" style="width:14px;">
+                            <svg class="icon-xs" viewBox="0 0 24 24" fill="none">
                                 <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             Done

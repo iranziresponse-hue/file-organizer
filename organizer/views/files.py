@@ -671,6 +671,11 @@ def import_plans(request):
             messages.info(request, "Plan rejected.")
             return redirect("import_plans")
 
+        elif action == "reject_all_scanned":
+            count = FolderImportPlan.objects.filter(profile=profile, status="scanned").update(status="rejected")
+            messages.info(request, f"Rejected {count} scanned plan(s).")
+            return redirect("import_plans")
+
     plans = FolderImportPlan.objects.filter(profile=profile).order_by("-updated_at")
 
     from ..models import BackgroundTask

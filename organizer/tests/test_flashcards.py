@@ -255,6 +255,29 @@ class FlashcardsPageTests(SandboxedPathsTestCase):
         response = self.client.post(reverse("flashcards"), {"action": "create_manual", "front": ""})
 
         self.assertRedirects(response, reverse("flashcards"))
+
+    def test_delete_subject_cards_removes_only_that_subject(self):
+        Flashcard.objects.create(profile=self.profile, subject_code="CSC2100", front="Q1")
+        Flashcard.objects.create(profile=self.profile, subject_code="CSC2100", front="Q2")
+        other = Flashcard.objects.create(profile=self.profile, subject_code="BIO101", front="Q3")
+
+        response = self.client.post(reverse("flashcards"), {
+            "action": "delete_subject_cards", "subject_code": "CSC2100",
+        }, follow=True)
+
+        self.assertContains(response, "Deleted 2 card")
+        self.assertEqual(Flashcard.objects.filter(subject_code="CSC2100").count(), 0)
+        self.assertTrue(Flashcard.objects.filter(pk=other.pk).exists())
+
+    def test_delete_subject_cards_handles_the_unassigned_bucket(self):
+        Flashcard.objects.create(profile=self.profile, subject_code="", front="Q1")
+
+        response = self.client.post(reverse("flashcards"), {
+            "action": "delete_subject_cards", "subject_code": "Unassigned",
+        }, follow=True)
+
+        self.assertContains(response, "Deleted 1 card")
+        self.assertEqual(Flashcard.objects.filter(status="active").count(), 0)
         self.assertEqual(Flashcard.objects.count(), 0)
 
     def test_delete_removes_the_card(self):

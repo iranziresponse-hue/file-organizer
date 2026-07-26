@@ -8,7 +8,7 @@
         <div>
             <span class="eyebrow">{% if profile %}{{ profile.name }}{% else %}App-wide{% endif %}</span>
             <h2>Connections</h2>
-            <p>See what Orch can work with, what is already connected, and what is worth adding for this profile.</p>
+            <p>See what Orch can work with, what is already connected, and what is worth adding for this profile. <a href="{% url 'privacy_policy' %}">What does each one send?</a></p>
             <div class="hero-icon-row" role="list" aria-label="Jump to a connection category">
                 {% for group in groups %}
                 <a class="hero-icon-tip" role="listitem" href="#group-{{ forloop.counter }}" data-tip="{{ group.title }}: {{ group.detail }}">

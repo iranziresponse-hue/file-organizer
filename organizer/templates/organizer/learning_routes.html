@@ -12,9 +12,9 @@
             <h2>Turn weak areas into a study path.</h2>
             <p>Each route links a focused resource, summary task, review checkpoint, and progress check.</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
         <a class="button button-ghost" href="{% url 'study_home' %}">Back to Learning</a>
-        <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <form class="inline-actions" method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="generate">
             <select name="subject_code" aria-label="Subject">

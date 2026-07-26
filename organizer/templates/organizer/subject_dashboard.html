@@ -12,19 +12,19 @@
             <p>Topics found from filenames and summaries across your subjects, with extra cleanup when writing help is available.</p>
         </div>
         {% if profile %}
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="inline-actions">
             <form method="post" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="refresh_topics">
                 <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
                     Refresh All Topics
                 </button>
             </form>
             <a class="button button-ghost" href="{% url 'study_home' %}">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px;">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Back to Study

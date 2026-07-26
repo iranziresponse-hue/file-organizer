@@ -306,6 +306,24 @@ class ImportPlanWorkflowTests(SandboxedPathsTestCase):
         self.assertTrue((self.profile_root / "Year 1" / "Semester 1" / "BIO101" / "Notes").exists())
         self.assertTrue((self.profile_root / "Year 1" / "Semester 1" / "BIO101" / "Labs").exists())
 
+    def test_reject_all_scanned_only_touches_scanned_plans(self):
+        from django.urls import reverse
+
+        scanned = FolderImportPlan.objects.create(
+            profile=self.profile, root_path=str(self.profile_root / "A"), status="scanned",
+        )
+        approved = FolderImportPlan.objects.create(
+            profile=self.profile, root_path=str(self.profile_root / "B"), status="approved",
+        )
+
+        response = self.client.post(reverse("import_plans"), {"action": "reject_all_scanned"})
+
+        self.assertRedirects(response, reverse("import_plans"))
+        scanned.refresh_from_db()
+        approved.refresh_from_db()
+        self.assertEqual(scanned.status, "rejected")
+        self.assertEqual(approved.status, "approved")
+
 
 class UndoWorkflowTests(SandboxedPathsTestCase):
     def test_restore_move_returns_file_and_records_trace_event(self):
