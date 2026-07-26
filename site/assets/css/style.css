@@ -102,6 +102,16 @@ a { color: inherit; }
     50% { transform: translateY(-4px); }
 }
 
+@keyframes flowArrowNudge {
+    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.72; }
+    50% { transform: translateY(-50%) translateX(5px); opacity: 1; }
+}
+
+@keyframes flowArrowDownNudge {
+    0%, 100% { transform: translateX(50%) translateY(0); opacity: 0.72; }
+    50% { transform: translateX(50%) translateY(5px); opacity: 1; }
+}
+
 .pain-grid [data-reveal]:nth-child(2) { transition-delay: 70ms; }
 .pain-grid [data-reveal]:nth-child(3) { transition-delay: 140ms; }
 .pain-grid [data-reveal]:nth-child(4) { transition-delay: 210ms; }
@@ -452,7 +462,7 @@ a { color: inherit; }
 .hub-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
+    gap: 24px 20px;
 }
 
 .hub-card {
@@ -464,7 +474,7 @@ a { color: inherit; }
     text-decoration: none;
     color: var(--text);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     transition:
         transform 200ms var(--ease-out),
         border-color 160ms ease,
@@ -511,6 +521,91 @@ a { color: inherit; }
 .hub-card:hover h3 .icon { transform: translateX(5px); }
 
 .hub-card p { color: var(--muted); font-size: 0.9rem; }
+
+/* ---------- Card flow connectors ---------- */
+
+.flow-card {
+    position: relative;
+}
+
+.flow-arrow {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    right: -27px;
+    width: 34px;
+    height: 16px;
+    color: var(--mak-green);
+    opacity: 0.72;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity 180ms ease;
+}
+
+.flow-arrow::before,
+.flow-arrow::after {
+    content: "";
+    position: absolute;
+    display: block;
+}
+
+.flow-arrow::before {
+    left: 0;
+    right: 8px;
+    top: 50%;
+    border-top: 2px solid currentColor;
+    transform: translateY(-50%);
+}
+
+.flow-arrow::after {
+    right: 0;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.flow-card:hover > .flow-arrow {
+    animation: flowArrowNudge 1s var(--ease-out) infinite;
+    opacity: 1;
+}
+
+.flow-card.is-flow-down > .flow-arrow {
+    top: auto;
+    right: 50%;
+    bottom: -28px;
+    width: 16px;
+    height: 34px;
+    transform: translateX(50%);
+}
+
+.flow-card.is-flow-down > .flow-arrow::before {
+    left: 50%;
+    right: auto;
+    top: 0;
+    bottom: 8px;
+    border-top: 0;
+    border-left: 2px solid currentColor;
+    transform: translateX(-50%);
+}
+
+.flow-card.is-flow-down > .flow-arrow::after {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%) rotate(135deg);
+}
+
+.flow-card.is-flow-down:hover > .flow-arrow {
+    animation: flowArrowDownNudge 1s var(--ease-out) infinite;
+}
+
+.flow-card.is-flow-last > .flow-arrow {
+    display: none;
+}
 
 /* ---------- Author card ---------- */
 
@@ -685,7 +780,7 @@ section:nth-of-type(even) {
 .pain-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 18px;
+    gap: 26px 20px;
     margin-bottom: 44px;
 }
 
@@ -722,7 +817,7 @@ section:nth-of-type(even) {
 .steps {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    gap: 26px 20px;
 }
 
 .step {
@@ -731,7 +826,7 @@ section:nth-of-type(even) {
     border-radius: var(--radius);
     padding: 20px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     transition: transform 200ms var(--ease-out), border-color 160ms ease, box-shadow 200ms var(--ease-out);
 }
 
@@ -743,21 +838,7 @@ section:nth-of-type(even) {
 
 .step::before { display: none; }
 
-.step::after {
-    content: "";
-    position: absolute;
-    top: 34px;
-    right: -13px;
-    width: 18px;
-    height: 18px;
-    border-top: 2px solid rgba(31, 122, 63, 0.42);
-    border-right: 2px solid rgba(31, 122, 63, 0.42);
-    transform: rotate(45deg);
-    z-index: 2;
-    animation: arrowPulse 1.8s ease-in-out infinite;
-}
-
-.step:last-child::after { display: none; }
+.step::after { display: none; }
 
 .step.is-visible::before { width: 100%; }
 
@@ -792,7 +873,7 @@ section:nth-of-type(even) {
 .feature-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 26px 20px;
 }
 
 .feature-card {
@@ -824,7 +905,7 @@ section:nth-of-type(even) {
 .showcase-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 40px 32px;
+    gap: 46px 36px;
 }
 
 .showcase-grid .laptop {
@@ -957,7 +1038,7 @@ section:nth-of-type(even) {
 
 .cta-steps {
     display: grid;
-    gap: 14px;
+    gap: 22px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -977,20 +1058,38 @@ section:nth-of-type(even) {
     border-color: rgba(31, 122, 63, 0.52);
 }
 
-.cta-steps li::after {
-    content: "";
-    position: absolute;
-    left: -9px;
-    bottom: -14px;
-    width: 12px;
-    height: 12px;
-    border-right: 2px solid rgba(31, 122, 63, 0.4);
-    border-bottom: 2px solid rgba(31, 122, 63, 0.4);
-    transform: rotate(45deg);
-    animation: arrowPulse 1.9s ease-in-out infinite;
+.cta-steps li.flow-card > .flow-arrow {
+    left: 3px;
+    right: auto;
+    bottom: -23px;
+    top: auto;
+    width: 16px;
+    height: 28px;
+    transform: none;
 }
 
-.cta-steps li:last-child::after { display: none; }
+.cta-steps li.flow-card > .flow-arrow::before {
+    left: 50%;
+    right: auto;
+    top: 0;
+    bottom: 8px;
+    border-top: 0;
+    border-left: 2px solid currentColor;
+    transform: translateX(-50%);
+}
+
+.cta-steps li.flow-card > .flow-arrow::after {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%) rotate(135deg);
+}
+
+.cta-steps li.flow-card:hover > .flow-arrow {
+    animation: none;
+    opacity: 1;
+}
 
 .cta-steps strong {
     color: var(--text);
@@ -1068,6 +1167,7 @@ section:nth-of-type(even) {
         padding: 26px 22px;
     }
     section { padding: 56px 0; }
+    .flow-arrow { display: none; }
 }
 
 .footer-copy { color: var(--muted); font-size: 0.8rem; margin-top: 20px; text-align: center; }
