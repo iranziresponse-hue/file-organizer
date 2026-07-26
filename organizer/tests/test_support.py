@@ -63,6 +63,62 @@ class SubmitSupportMessageTests(TestCase):
         self.assertIn("something failed", mail.outbox[0].body)
 
 
+class RedactDiagnosticTextTests(TestCase):
+    def test_redacts_the_windows_username_in_a_path(self):
+        text = support.redact_diagnostic_text(r"Error sorting C:\Users\jordan\Downloads\notes.pdf")
+        self.assertNotIn("jordan", text)
+        self.assertIn(r"C:\Users\<user>\Downloads\notes.pdf", text)
+
+    def test_redacts_email_addresses(self):
+        text = support.redact_diagnostic_text("Sync failed for jordan@example.com")
+        self.assertNotIn("jordan@example.com", text)
+        self.assertIn("<email>", text)
+
+    def test_redacts_token_like_values(self):
+        text = support.redact_diagnostic_text("MUELE token=abcdef123456 rejected")
+        self.assertNotIn("abcdef123456", text)
+        self.assertIn("<redacted>", text)
+
+    def test_leaves_plain_text_untouched(self):
+        text = support.redact_diagnostic_text("Watcher restarted after a permission error")
+        self.assertEqual(text, "Watcher restarted after a permission error")
+
+    def test_empty_string_is_returned_as_is(self):
+        self.assertEqual(support.redact_diagnostic_text(""), "")
+
+
+class BuildAppStateSnapshotTests(TestCase):
+    def test_redacts_log_lines_by_default(self):
+        from unittest import mock
+
+        with mock.patch(
+            "organizer.core.diagnostics.get_watcher_status",
+            return_value={"running": True, "recent_errors": [r"Failed: C:\Users\jordan\Downloads\x.pdf"]},
+        ), mock.patch(
+            "organizer.core.diagnostics.get_error_log_tail",
+            return_value=["Contact jordan@example.com for help"],
+        ):
+            snapshot = support.build_app_state_snapshot(None)
+
+        self.assertNotIn("jordan", snapshot["recent_watcher_errors"][0])
+        self.assertNotIn("jordan@example.com", snapshot["recent_error_log"][0])
+
+    def test_include_raw_details_skips_redaction(self):
+        from unittest import mock
+
+        with mock.patch(
+            "organizer.core.diagnostics.get_watcher_status",
+            return_value={"running": True, "recent_errors": [r"Failed: C:\Users\jordan\Downloads\x.pdf"]},
+        ), mock.patch(
+            "organizer.core.diagnostics.get_error_log_tail",
+            return_value=["Contact jordan@example.com for help"],
+        ):
+            snapshot = support.build_app_state_snapshot(None, include_raw_details=True)
+
+        self.assertIn("jordan", snapshot["recent_watcher_errors"][0])
+        self.assertIn("jordan@example.com", snapshot["recent_error_log"][0])
+
+
 class SupportMessageViewTests(TestCase):
     def test_saves_a_valid_message_and_returns_ok(self):
         response = self.client.post(reverse("support_message"), {
@@ -108,3 +164,22 @@ class SupportMessageViewTests(TestCase):
         record = SupportMessage.objects.get()
         self.assertIn("app_version", record.app_state)
         self.assertIn("recent_error_log", record.app_state)
+
+    def test_raw_details_are_ignored_unless_diagnostics_is_also_opted_in(self):
+        response = self.client.post(reverse("support_message"), {
+            "subject": "Bug report", "message": "Something is broken", "include_raw_details": "1",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(SupportMessage.objects.get().app_state, {})
+
+    def test_raw_details_flag_reaches_the_snapshot_builder(self):
+        from unittest import mock
+
+        with mock.patch("organizer.core.support.build_app_state_snapshot") as mocked_build:
+            mocked_build.return_value = {}
+            self.client.post(reverse("support_message"), {
+                "subject": "Bug report", "message": "Something is broken",
+                "include_diagnostics": "1", "include_raw_details": "1",
+            })
+
+        mocked_build.assert_called_once_with(None, include_raw_details=True)

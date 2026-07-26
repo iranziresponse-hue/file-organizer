@@ -66,8 +66,8 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'organizer/css/base.css' %}">
-    <script src="{% static 'organizer/js/nav-dropdowns.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'organizer/css/base.css' %}?v={{ ORCH_STATIC_VERSION }}">
+    <script src="{% static 'organizer/js/nav-dropdowns.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 </head>
 <body{% if is_desktop_shell %} class="has-desktop-titlebar"{% endif %}>
 {% csrf_token %}
@@ -575,7 +575,15 @@
                     <span class="toggle-track" aria-hidden="true"></span>
                     <span class="setting-switch-copy">
                         <strong>Include app diagnostics</strong>
-                        <span>Adds the app version, watcher status, and recent error log lines to help fix this faster. Never sent unless you turn this on. <a href="{% url 'privacy_policy' %}" target="_blank" rel="noopener">What's included</a></span>
+                        <span>Adds the app version, watcher status, and recent error log lines to help fix this faster. File paths, emails, and tokens in those lines are redacted by default. Never sent unless you turn this on. <a href="{% url 'privacy_policy' %}" target="_blank" rel="noopener">What's included</a></span>
+                    </span>
+                </label>
+                <label class="setting-switch">
+                    <input type="checkbox" id="support-include-raw-details" name="include_raw_details" value="1">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="setting-switch-copy">
+                        <strong>Include unredacted details</strong>
+                        <span>Only matters with diagnostics above turned on. Sends the exact file paths, emails, and other specifics as they appear in the log, instead of the redacted version.</span>
                     </span>
                 </label>
                 <div id="support-feedback" class="help-text feedback-message"></div>
@@ -616,16 +624,16 @@
         </div>
     </div>
 
-    <script src="{% static 'organizer/js/folder-browser.js' %}"></script>
-    <script src="{% static 'organizer/js/summary.js' %}"></script>
-    <script src="{% static 'organizer/js/course-guide.js' %}"></script>
-    <script src="{% static 'organizer/js/submit-feedback.js' %}"></script>
-    <script src="{% static 'organizer/js/support-widget.js' %}"></script>
-    <script src="{% static 'organizer/js/task-poll.js' %}"></script>
-    <script src="{% static 'organizer/js/command-palette.js' %}"></script>
-    <script src="{% static 'organizer/js/confirm-dialog.js' %}"></script>
-    <script src="{% static 'organizer/js/toast.js' %}"></script>
-    <script src="{% static 'organizer/js/focus-trap.js' %}"></script>
+    <script src="{% static 'organizer/js/folder-browser.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/summary.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/course-guide.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/submit-feedback.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/support-widget.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/task-poll.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/command-palette.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/confirm-dialog.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/toast.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/focus-trap.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 
     <main>
         {% if messages %}
@@ -662,8 +670,8 @@
     </footer>
 </div>
 
-    <script src="{% static 'organizer/js/topbar-behavior.js' %}"></script>
-    <script src="{% static 'organizer/js/status-bar.js' %}"></script>
+    <script src="{% static 'organizer/js/topbar-behavior.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+    <script src="{% static 'organizer/js/status-bar.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

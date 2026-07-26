@@ -3,26 +3,60 @@ emails it to the admin. A message is never lost just because SMTP isn't
 configured yet or a send fails -- it's always in the database either way.
 """
 
+import re
+
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
 
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+_WINDOWS_USER_PATH_RE = re.compile(r"([A-Za-z]:\\Users\\)[^\\]+", re.IGNORECASE)
+_SECRET_VALUE_RE = re.compile(
+    r"(token|key|secret|password|bearer)([\"']?\s*[:=]\s*[\"']?)([\w\-.]{6,})",
+    re.IGNORECASE,
+)
 
-def build_app_state_snapshot(profile) -> dict:
+
+def redact_diagnostic_text(text: str) -> str:
+    """Scrubs a log/error line for anything that identifies the person or
+    could be replayed as a credential -- the Windows account name inside a
+    file path, email addresses, and token/key/secret/password values --
+    while keeping the rest of the line (folder structure, error type)
+    intact for actual debugging. Applied by default to every diagnostics
+    snapshot; only skipped if the sender explicitly opts into raw details."""
+    if not text:
+        return text
+    text = _WINDOWS_USER_PATH_RE.sub(r"\1<user>", text)
+    text = _EMAIL_RE.sub("<email>", text)
+    text = _SECRET_VALUE_RE.sub(r"\1\2<redacted>", text)
+    return text
+
+
+def build_app_state_snapshot(profile, include_raw_details: bool = False) -> dict:
     """A small diagnostic snapshot -- app version, active profile, watcher
     status, and the last few log lines -- attached to a support message
     only when the sender explicitly ticks "Include app diagnostics" in the
-    popup. Never collected or sent silently."""
+    popup. Never collected or sent silently.
+
+    Log lines are redacted (usernames, emails, token/key/secret values) by
+    default; include_raw_details=True (a second, separate opt-in) skips
+    that scrubbing for a sender who wants to hand over the exact text."""
     from organizer import __version__
     from . import diagnostics
 
     watcher = diagnostics.get_watcher_status()
+    watcher_errors = watcher.get("recent_errors", [])[-5:]
+    error_log = diagnostics.get_error_log_tail(20)
+    if not include_raw_details:
+        watcher_errors = [redact_diagnostic_text(line) for line in watcher_errors]
+        error_log = [redact_diagnostic_text(line) for line in error_log]
+
     return {
         "app_version": __version__,
         "profile": profile.name if profile else None,
         "watcher_running": watcher.get("running"),
-        "recent_watcher_errors": watcher.get("recent_errors", [])[-5:],
-        "recent_error_log": diagnostics.get_error_log_tail(20),
+        "recent_watcher_errors": watcher_errors,
+        "recent_error_log": error_log,
     }
 
 

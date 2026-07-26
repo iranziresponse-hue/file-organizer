@@ -28,6 +28,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Audit dependencies for known vulnerabilities
+        # Fails the build (and blocks the release) if any installed
+        # dependency has a known CVE -- matches the release checklist a
+        # user-facing exe deserves: don't ship a known-vulnerable library
+        # just because the app code itself passed its tests.
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
       - name: Run test suite
         run: python manage.py test
 

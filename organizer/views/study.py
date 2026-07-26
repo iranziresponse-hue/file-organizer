@@ -1058,7 +1058,10 @@ def support_message(request):
 
     app_state = None
     if request.POST.get("include_diagnostics") == "1":
-        app_state = support_core.build_app_state_snapshot(Profile.get_active())
+        include_raw_details = request.POST.get("include_raw_details") == "1"
+        app_state = support_core.build_app_state_snapshot(
+            Profile.get_active(), include_raw_details=include_raw_details,
+        )
 
     # Any SMTP/config failure lands on the saved SupportMessage row for the
     # admin to see (email_error, visible in the owner console) -- the
