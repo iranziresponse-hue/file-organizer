@@ -32,7 +32,7 @@
 
     <!-- Course notes: at-a-glance stats -->
     <section class="overview-grid">
-        <div class="stat-row" style="grid-column:1/-1;">
+        <div class="stat-row span-all">
             <div class="stat stat-primary">
                 <div class="value">{{ lecture_notes_count }}</div>
                 <div class="label">Lecture notes</div>
@@ -68,7 +68,7 @@
             {% if top_themes %}
             <div class="meta-list mt-12">
                 {% for theme in top_themes %}
-                <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
+                <span class="suggestion-token badge-pill">
                     <strong>{{ theme.name }}</strong>
                     <span class="path-text">({{ theme.weight }})</span>
                 </span>
@@ -111,12 +111,12 @@
             {% if themes %}
             <div class="meta-list mt-12">
                 {% for theme in themes %}
-                <span class="suggestion-token" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.08);">
+                <span class="suggestion-token badge-pill">
                     <strong>{{ theme.name }}</strong>
                     <span class="path-text">({{ theme.weight }})</span>
                     {% if theme.evidence %}
-                    <span class="path-text" title="From: {{ theme.evidence|join:', ' }}" style="display:inline-flex;">
-                        <svg viewBox="0 0 24 24" fill="none" style="width:13px;" aria-label="Evidence"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    <span class="path-text inline-flex" title="From: {{ theme.evidence|join:', ' }}">
+                        <svg class="icon-xs" viewBox="0 0 24 24" fill="none" aria-label="Evidence"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
                     {% endif %}
                 </span>
@@ -184,10 +184,10 @@
         {% for label, events in resource_buckets.items %}
         {% if events %}
         <details class="mt-12" open>
-            <summary style="cursor:pointer; font-weight:600;">
+            <summary class="summary-toggle">
                 {{ label }} ({{ events|length }})
                 {% if label == "Past Papers & Tests" %}
-                <a href="{% url 'past_paper_analysis' memory.code %}" class="path-text" style="font-weight:400; margin-left:8px;">Analyze &rarr;</a>
+                <a href="{% url 'past_paper_analysis' memory.code %}" class="path-text fw-normal ml-8">Analyze &rarr;</a>
                 {% endif %}
             </summary>
             <div class="table-shell mt-8">

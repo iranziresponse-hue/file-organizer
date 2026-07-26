@@ -138,10 +138,24 @@
                 }
             });
 
+            function appScrollTarget() {
+                if (document.body.classList.contains('has-desktop-titlebar')) {
+                    return document.querySelector('.app-shell');
+                }
+                return null;
+            }
+
             window.addEventListener('resize', function () { close(false); });
             window.addEventListener('scroll', function () {
                 close(false);
             }, true);
+            document.addEventListener('DOMContentLoaded', function () {
+                var shell = appScrollTarget();
+                if (!shell) return;
+                shell.addEventListener('scroll', function () {
+                    close(false);
+                }, { passive: true });
+            });
 
             window.OrchDropdowns = {
                 close: close,

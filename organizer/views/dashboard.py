@@ -144,7 +144,6 @@ def owner_setup(request):
         {
             "errors": errors,
             "values": values,
-            "owner_config_path": owner_access.owner_config_path(),
         },
     )
 
@@ -902,12 +901,12 @@ def _service_mesh_context(profile, app_status_items, pending_decisions=0):
         "next_activation": next_activation,
         "hidden_count": hidden_count,
         "headline": (
-            f"{connected_count} parts of Orch are set up"
+            f"{connected_count} things are ready"
             if connected_count
-            else "Orch is ready for setup"
+            else "Let's get Orch set up"
         ),
         "detail": (
-            f"Set up {next_activation['name']} next so Orch can handle more of your files."
+            f"Try {next_activation['name']} next so Orch can handle more of your files."
             if next_activation
             else "Everything important is set up."
         ),
@@ -922,7 +921,7 @@ def _dashboard_priority_cards(profile, service_mesh, pending_inbox_count):
             "label": "Projects",
             "title": "Save your project work",
             "detail": "Keep projects, work files, notes, and proof together so you can find them later.",
-            "meta": f"{service_mesh['connected_count']} parts of Orch set up",
+            "meta": f"{service_mesh['connected_count']} things set up",
             "state": "live" if profile else "warning",
             "url": reverse("career_home"),
             "action_label": "Open projects",

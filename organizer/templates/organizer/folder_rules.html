@@ -84,11 +84,11 @@
                         <h3>Test this rule</h3>
                         <p>Enter a sample filename to check if this rule matches before saving.</p>
                     </div>
-                    <div class="field-control" style="margin-bottom:8px;">
-                        <input type="text" id="test-filename" placeholder="e.g. CSC2100_Assignment.pdf" style="font-family:monospace;">
+                    <div class="field-control mb-8">
+                        <input type="text" id="test-filename" placeholder="e.g. CSC2100_Assignment.pdf" class="mono-input">
                         <button type="button" id="test-rule-btn" class="button-ghost">Test</button>
                     </div>
-                    <div id="test-result" class="help-text" style="display:none;padding:8px 12px;border-radius:10px;"></div>
+                    <div id="test-result" class="help-text rule-test-result"></div>
                 </div>
                 <div class="form-actions"><button type="submit">Create rule</button></div>
             </form>
@@ -98,7 +98,7 @@
             {% if rules %}
             <div class="profile-list">
                 {% for rule in rules %}
-                <article class="profile-row" style="grid-template-columns: minmax(140px,1.2fr) minmax(80px,0.5fr) minmax(60px,0.3fr) auto;">
+                <article class="profile-row rules-row-grid">
                     <div class="profile-main">
                         <h3>{{ rule.name }}</h3>
                         <span class="path-text">
@@ -114,7 +114,7 @@
                         <span class="path-text">Status</span>
                         <strong>{% if rule.enabled %}Active{% else %}Paused{% endif %}</strong>
                     </div>
-                    <div class="profile-actions" style="display:flex;gap:6px;">
+                    <div class="profile-actions inline-actions-tight">
                         <form method="post" class="inline-form">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="toggle">
@@ -153,9 +153,8 @@
     testBtn.addEventListener('click', function() {
         var filename = testInput.value.trim();
         if (!filename) {
-            resultDiv.style.display = 'block';
-            resultDiv.style.background = 'rgba(239,51,64,0.1)';
-            resultDiv.style.borderColor = 'rgba(239,51,64,0.3)';
+            resultDiv.classList.remove('is-match');
+            resultDiv.classList.add('is-no-match');
             resultDiv.textContent = 'Enter a filename to test.';
             return;
         }
@@ -177,24 +176,23 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            resultDiv.style.display = 'block';
             resultDiv.textContent = '';
             if (data.matched) {
-                resultDiv.style.background = 'rgba(31,122,63,0.1)';
-                resultDiv.style.borderColor = 'rgba(47,180,111,0.3)';
+                resultDiv.classList.remove('is-no-match');
+                resultDiv.classList.add('is-match');
                 var matchLabel = document.createElement('strong');
                 matchLabel.textContent = 'Match! ';
                 resultDiv.appendChild(matchLabel);
                 resultDiv.appendChild(document.createTextNode(data.action));
             } else {
-                resultDiv.style.background = 'rgba(239,51,64,0.1)';
-                resultDiv.style.borderColor = 'rgba(239,51,64,0.3)';
+                resultDiv.classList.remove('is-match');
+                resultDiv.classList.add('is-no-match');
                 resultDiv.textContent = 'No match. ' + data.action;
             }
         })
         .catch(function() {
-            resultDiv.style.display = 'block';
-            resultDiv.style.background = 'rgba(239,51,64,0.1)';
+            resultDiv.classList.remove('is-match');
+            resultDiv.classList.add('is-no-match');
             resultDiv.textContent = 'Error testing rule.';
         });
     });

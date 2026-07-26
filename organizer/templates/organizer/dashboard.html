@@ -44,68 +44,70 @@
         </div>
     </section>
     {% else %}
-    <section class="mission-control priority-arrival">
-        <div class="mission-main">
-            <div>
-                <span class="eyebrow">Needs attention</span>
-                <h2>{{ next_best_action.title }}</h2>
-                <p>{{ next_best_action.detail }}</p>
+    <section class="dashboard-lead" aria-label="Dashboard priorities">
+        <div class="mission-control priority-arrival">
+            <div class="mission-main">
+                <div>
+                    <span class="eyebrow">Needs attention</span>
+                    <h2>{{ next_best_action.title }}</h2>
+                    <p>{{ next_best_action.detail }}</p>
+                </div>
+                <div class="mission-actions">
+                    {% if next_best_action.summary_move_id %}
+                    <button type="button" class="button button-live summarize-btn" data-move-id="{{ next_best_action.summary_move_id }}" data-action="view">{{ next_best_action.label }}</button>
+                    {% elif next_best_action.post_action %}
+                    <form method="post" action="{{ next_best_action.url }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="{{ next_best_action.post_action }}">
+                        <button type="submit" class="button-live">{{ next_best_action.label }}</button>
+                    </form>
+                    {% else %}
+                    <a class="button button-live" href="{{ next_best_action.url }}">{{ next_best_action.label }}</a>
+                    {% endif %}
+                    <a class="button button-ghost" href="{% url 'career_home' %}">Projects</a>
+                    <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Files to check</a>
+                </div>
             </div>
-            <div class="mission-actions">
-                {% if next_best_action.summary_move_id %}
-                <button type="button" class="button button-live summarize-btn" data-move-id="{{ next_best_action.summary_move_id }}" data-action="view">{{ next_best_action.label }}</button>
-                {% elif next_best_action.post_action %}
-                <form method="post" action="{{ next_best_action.url }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="{{ next_best_action.post_action }}">
-                    <button type="submit" class="button-live">{{ next_best_action.label }}</button>
-                </form>
-                {% else %}
-                <a class="button button-live" href="{{ next_best_action.url }}">{{ next_best_action.label }}</a>
-                {% endif %}
-                <a class="button button-ghost" href="{% url 'career_home' %}">Projects</a>
-                <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Files to check</a>
+            <div class="mission-status" aria-label="Current dashboard signals">
+                {% for item in now_strip %}
+                <div class="mission-signal is-{{ item.state }}">
+                    <span class="now-label">{{ item.label }}</span>
+                    <span class="now-value" title="{{ item.detail }}">{{ item.detail }}</span>
+                </div>
+                {% endfor %}
             </div>
         </div>
-        <div class="mission-status" aria-label="Current dashboard signals">
-            {% for item in now_strip %}
-            <div class="mission-signal is-{{ item.state }}">
-                <span class="now-label">{{ item.label }}</span>
-                <span class="now-value" title="{{ item.detail }}">{{ item.detail }}</span>
-            </div>
+
+        <div class="priority-deck">
+            {% for item in priority_cards %}
+            <article class="priority-card is-{{ item.state }}">
+                <span class="priority-index">0{{ forloop.counter }}</span>
+                <div>
+                    <span class="mini-label">{{ item.label }}</span>
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.detail }}</p>
+                </div>
+                <div class="priority-footer">
+                    <span>{{ item.meta }}</span>
+                    {% if item.post_action %}
+                    <form method="post" action="{{ item.url }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="{{ item.post_action }}">
+                        <button type="submit" class="button-ghost service-action">{{ item.action_label }}</button>
+                    </form>
+                    {% elif item.url %}
+                    <a class="button button-ghost service-action" href="{{ item.url }}">{{ item.action_label }}</a>
+                    {% endif %}
+                </div>
+            </article>
             {% endfor %}
         </div>
     </section>
 
-    <section class="priority-deck" aria-label="Dashboard priorities">
-        {% for item in priority_cards %}
-        <article class="priority-card is-{{ item.state }}">
-            <span class="priority-index">0{{ forloop.counter }}</span>
-            <div>
-                <span class="mini-label">{{ item.label }}</span>
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.detail }}</p>
-            </div>
-            <div class="priority-footer">
-                <span>{{ item.meta }}</span>
-                {% if item.post_action %}
-                <form method="post" action="{{ item.url }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="{{ item.post_action }}">
-                    <button type="submit" class="button-ghost service-action">{{ item.action_label }}</button>
-                </form>
-                {% elif item.url %}
-                <a class="button button-ghost service-action" href="{{ item.url }}">{{ item.action_label }}</a>
-                {% endif %}
-            </div>
-        </article>
-        {% endfor %}
-    </section>
-
-    <section class="card compact-card service-board" data-power-hero>
+    <section class="card compact-card service-board dashboard-secondary" data-power-hero>
         <div class="service-board-hero">
             <div class="service-brief">
-                <span class="eyebrow">What Orch can see</span>
+                <span class="eyebrow">Your setup</span>
                 <h2>{{ service_mesh.headline }}</h2>
                 <p class="card-subtitle">{{ service_mesh.detail }}</p>
                 <div class="service-meter" aria-hidden="true">
@@ -114,7 +116,7 @@
                 <div class="meta-list">
                     <span class="meta-token">{{ service_mesh.connected_count }} ready</span>
                     <span class="meta-token">{{ service_mesh.missing_count }} left</span>
-                    <span class="meta-token">{{ service_mesh.total_count }} parts</span>
+                    <span class="meta-token">{{ service_mesh.total_count }} total</span>
                     {% if service_mesh.hidden_count %}
                     <form method="post" action="{% url 'setup_items_restore' %}" class="inline-form">
                         {% csrf_token %}
@@ -125,7 +127,7 @@
             </div>
             {% if service_mesh.next_activation %}
             <div class="service-priority">
-                <span class="now-label">Set up next</span>
+                <span class="now-label">Try this next</span>
                 <h3>{{ service_mesh.next_activation.name }}</h3>
                 <p>{{ service_mesh.next_activation.insight }}</p>
                 <a class="button button-live service-priority-action" href="{{ service_mesh.next_activation.url }}">{{ service_mesh.next_activation.action_label }}</a>
@@ -183,7 +185,7 @@
         </details>
     </section>
 
-    <section class="overview-grid">
+    <section class="overview-grid dashboard-secondary">
         <div class="card">
             <div class="card-header">
                 <div>
@@ -276,7 +278,7 @@
     </section>
 
     {% if muele_connection and muele_connection.status == "connected" %}
-    <section class="card">
+    <section class="card dashboard-secondary">
         <div class="card-header">
             <div>
                 <h2>MUELE live panel</h2>
@@ -371,7 +373,7 @@
     {% endif %}
 
     {% if course_counts %}
-    <section class="card">
+    <section class="card dashboard-secondary">
         <div class="card-header">
             <div>
                 <h2>Subject Distribution</h2>
@@ -392,7 +394,7 @@
     </section>
     {% endif %}
 
-    <section class="card">
+    <section class="card dashboard-recent-card">
         <div class="card-header">
             <div>
                 <h2>Recent Moves</h2>
@@ -427,27 +429,27 @@
         <div id="recent-moves-body" aria-live="polite">
         {% if page_obj.object_list %}
             <div class="table-shell">
-                <table>
-                    <tr><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th></th><th>Actions</th></tr>
+                <table class="recent-moves-table">
+                    <tr class="recent-moves-header"><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th></th><th>Actions</th></tr>
                     {% for event in page_obj.object_list %}
-                    <tr>
-                        <td>{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
-                        <td>{{ event.filename }}</td>
-                        <td class="path-text">{{ event.destination_path }}</td>
-                        <td>{{ event.get_method_display }}</td>
-                        <td>
+                    <tr class="recent-move-row">
+                        <td data-label="Time">{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td data-label="File">{{ event.filename }}</td>
+                        <td data-label="Destination" class="path-text">{{ event.destination_path }}</td>
+                        <td data-label="Method">{{ event.get_method_display }}</td>
+                        <td data-label="Status">
                             {% if event.success %}
                             <span class="status-dot is-live">Sorted</span>
                             {% else %}
                             <span class="status-dot is-error">Failed</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Reason">
                             {% if event.explanation or event.sort_decision.matched_rule %}
                             <button type="button" class="button-ghost button-compact why-toggle-btn" data-why-toggle="why-{{ event.pk }}" aria-expanded="false" aria-controls="why-{{ event.pk }}">Why?</button>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="row-actions">
                                 <button type="button" class="button-ghost row-actions-trigger" data-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="move-actions-{{ event.pk }}">
                                     Actions

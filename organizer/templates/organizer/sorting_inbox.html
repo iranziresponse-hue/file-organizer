@@ -32,12 +32,12 @@
         </div>
         <div class="profile-list" id="pending-list">
             {% for item in pending_items %}
-            <article class="profile-row" data-pk="{{ item.pk }}" style="grid-template-columns: minmax(200px,1.6fr) minmax(90px,0.4fr) auto;">
+            <article class="profile-row inbox-row-grid" data-pk="{{ item.pk }}">
                 <div class="profile-main">
                     <h3>{{ item.filename }}</h3>
                     <span class="path-text">{{ item.explanation|default:"Awaiting review" }}</span>
-                    {% if item.source_path %}<span class="path-text" style="font-size:0.78rem;">{{ item.source_path }}</span>{% endif %}
-                    {% if item.suggested_destination %}<span class="path-text" style="font-size:0.78rem;">&rarr; {{ item.suggested_destination }}</span>{% endif %}
+                    {% if item.source_path %}<span class="path-text path-detail-small">{{ item.source_path }}</span>{% endif %}
+                    {% if item.suggested_destination %}<span class="path-text path-detail-small">&rarr; {{ item.suggested_destination }}</span>{% endif %}
                 </div>
                 <div class="profile-detail">
                     <span class="path-text">Confidence</span>
@@ -77,7 +77,7 @@
 
     <!-- Reroute form (hidden, shown via JS) -->
     <div id="reroute-form" class="guide-overlay" hidden>
-        <div class="guide-panel" style="max-width:500px;">
+        <div class="guide-panel modal-narrow">
             <button type="button" class="guide-close" id="reroute-close"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             <h3>Move to a different folder</h3>
             <p class="help-text mb-16" id="reroute-filename"></p>
@@ -91,8 +91,8 @@
                         <button type="button" class="button-ghost" onclick="openFolderBrowser('new_destination')">Browse</button>
                     </div>
                 </div>
-                <label style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:500; color:var(--muted); margin-top:8px;">
-                    <input type="checkbox" name="confirm_external" value="1" style="width:auto;">
+                <label class="checkbox-label-row">
+                    <input type="checkbox" name="confirm_external" value="1" class="w-auto">
                     This folder is outside my usual Orch folders, move it anyway
                 </label>
                 <div class="form-actions mt-12">
@@ -133,5 +133,5 @@
     }
 })();
 </script>
-<script src="{% static 'organizer/js/inbox-actions.js' %}"></script>
+<script src="{% static 'organizer/js/inbox-actions.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 {% endblock %}

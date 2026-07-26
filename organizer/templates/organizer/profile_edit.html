@@ -153,8 +153,8 @@
     {% endif %}
 </div>
 
-<script src="{% static 'organizer/js/tag-input.js' %}"></script>
-<script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
+<script src="{% static 'organizer/js/tag-input.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+<script src="{% static 'organizer/js/folder-suggestions.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 <script>
     initTagInput('groups-tag-input', 'groups_entry', 'groups_hidden', document.getElementById('groups_hidden').value);
     initFolderSuggestions();

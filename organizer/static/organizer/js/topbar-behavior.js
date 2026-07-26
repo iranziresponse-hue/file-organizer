@@ -81,15 +81,22 @@
         var rail = document.getElementById('topbar-power');
         var hero = document.querySelector('[data-power-hero]');
         if (!rail || !hero) return;
+        var shell = document.body.classList.contains('has-desktop-titlebar') ? document.querySelector('.app-shell') : null;
+        var scrollNode = shell || window;
 
         function setRail(active) {
             document.documentElement.classList.toggle('power-rail-active', active);
             rail.setAttribute('aria-hidden', active ? 'false' : 'true');
         }
 
+        function scrollY() {
+            return shell ? shell.scrollTop : window.scrollY;
+        }
+
         function shouldCollapse() {
             var rect = hero.getBoundingClientRect();
-            return window.scrollY > 72 && rect.top < 24;
+            var topLimit = document.body.classList.contains('has-desktop-titlebar') ? 88 : 24;
+            return scrollY() > 72 && rect.top < topLimit;
         }
 
         var ticking = false;
@@ -109,7 +116,7 @@
             observer.observe(hero);
         }
 
-        window.addEventListener('scroll', function () {
+        scrollNode.addEventListener('scroll', function () {
             if (!ticking) {
                 window.requestAnimationFrame(update);
                 ticking = true;

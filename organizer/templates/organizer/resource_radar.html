@@ -153,6 +153,6 @@
         {% endif %}
     </section>
 </div>
-<script src="{% static 'organizer/js/resource-radar-actions.js' %}"></script>
-<script src="{% static 'organizer/js/video-facade.js' %}"></script>
+<script src="{% static 'organizer/js/resource-radar-actions.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+<script src="{% static 'organizer/js/video-facade.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 {% endblock %}

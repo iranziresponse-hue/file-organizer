@@ -27,7 +27,7 @@
     </section>
 
     <!-- Stats row -->
-    <section class="stat-row" style="grid-column:1/-1;">
+    <section class="stat-row span-all">
         <div class="stat stat-primary">
             <div class="value">{{ stats.queued }}</div>
             <div class="label">Queued</div>
@@ -113,7 +113,7 @@
         {% if due_items %}
         <div class="profile-list">
             {% for item in due_items %}
-            <article class="profile-row" style="grid-template-columns: minmax(180px, 1.5fr) minmax(120px, 0.8fr) minmax(100px, 0.6fr) auto;">
+            <article class="profile-row review-row-grid">
                 <div class="profile-main">
                     <h3>{{ item.title }}</h3>
                     <span class="path-text">{{ item.reason|default:"Study material" }}</span>
@@ -136,7 +136,7 @@
                         <span class="path-text">-</span>
                     {% endif %}
                 </div>
-                <div class="profile-actions" style="display:flex; gap:6px;">
+                <div class="profile-actions inline-actions-tight">
                     <form method="post" action="{% url 'review_mark_done' item.pk %}" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="button button-compact">
@@ -182,7 +182,7 @@
         </div>
         <div class="profile-list">
             {% for item in recent_done %}
-            <article class="profile-row" style="opacity:0.7;">
+            <article class="profile-row opacity-70">
                 <div class="profile-main">
                     <h3>{{ item.title }}</h3>
                     <span class="path-text">Completed {{ item.completed_at|date:"Y-m-d H:i" }}</span>

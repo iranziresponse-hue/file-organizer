@@ -53,17 +53,17 @@
             </div>
             <span class="meta-token">{{ done_count }}/{{ total_count }}</span>
         </div>
-        <div style="height:8px;border-radius:999px;overflow:hidden;background:var(--stroke-soft);margin-bottom:24px;">
-            <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--amber));transition:width var(--ease);width:{% widthratio done_count total_count 100 %}%;"></div>
+        <div class="progress-track">
+            <div class="progress-fill" style="width:{% widthratio done_count total_count 100 %}%;"></div>
         </div>
         <div class="profile-list">
             {% for item in checklist %}
-            <div class="profile-row" style="grid-template-columns:32px minmax(160px,1fr) auto;{% if item.warning %}border-color:rgba(239,51,64,0.3);{% endif %}">
-                <div style="text-align:center;">
+            <div class="profile-row checklist-row-grid{% if item.warning %} checklist-row-warning{% endif %}">
+                <div class="text-center">
                     {% if item.done %}
-                    <svg viewBox="0 0 24 24" fill="none" style="width:22px;color:var(--green);" aria-label="Done"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="icon-md text-green" viewBox="0 0 24 24" fill="none" aria-label="Done"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     {% else %}
-                    <svg viewBox="0 0 24 24" fill="none" style="width:22px;color:var(--muted);" aria-label="Not done yet"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
+                    <svg class="icon-md text-muted" viewBox="0 0 24 24" fill="none" aria-label="Not done yet"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
                     {% endif %}
                 </div>
                 <div class="profile-main">
@@ -74,7 +74,7 @@
                 </div>
                 <div class="profile-actions">
                     {% if item.url %}
-                    <a href="{{ item.url }}" class="button button-ghost button-compact"{% if item.done %} style="opacity:0.6;"{% endif %}>
+                    <a href="{{ item.url }}" class="button button-ghost button-compact{% if item.done %} opacity-60{% endif %}">
                         {% if item.done %}Edit{% else %}Set up{% endif %}
                     </a>
                     {% endif %}
@@ -91,13 +91,13 @@
             </div>
         </div>
         <div class="choice-list">
-            <a href="{% url 'makerere_wizard' %}" class="choice-option" style="justify-content:center;text-align:center;padding:20px;">
+            <a href="{% url 'makerere_wizard' %}" class="choice-option choice-option-centered">
                 <strong>Makerere University</strong>
-                <span style="font-size:0.85rem;color:var(--muted);">Guided setup with college, school, program, and MUELE integration</span>
+                <span class="field-note">Guided setup with college, school, program, and MUELE integration</span>
             </a>
-            <a href="{% url 'profile_wizard' %}" class="choice-option" style="justify-content:center;text-align:center;padding:20px;">
+            <a href="{% url 'profile_wizard' %}" class="choice-option choice-option-centered">
                 <strong>Manual setup</strong>
-                <span style="font-size:0.85rem;color:var(--muted);">Create your own profile with custom labels and subjects</span>
+                <span class="field-note">Create your own profile with custom labels and subjects</span>
             </a>
         </div>
     </section>

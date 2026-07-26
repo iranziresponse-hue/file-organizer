@@ -146,8 +146,8 @@
 
 {{ colleges_json|json_script:"colleges-data" }}
 {{ curricula_json|json_script:"curricula-data" }}
-<script src="{% static 'organizer/js/tag-input.js' %}"></script>
-<script src="{% static 'organizer/js/folder-suggestions.js' %}"></script>
+<script src="{% static 'organizer/js/tag-input.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
+<script src="{% static 'organizer/js/folder-suggestions.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 <script>
     (function () {
         var flatCurricula = JSON.parse(document.getElementById('curricula-data').textContent);

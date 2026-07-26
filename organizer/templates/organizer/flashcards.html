@@ -22,10 +22,10 @@
     <section class="card compact-card">
         <div class="card-header"><div><h2>Practice</h2></div></div>
         {% if next_card %}
-        <div id="practice-card" style="padding:16px 0;">
+        <div id="practice-card" class="practice-card-body">
             <p class="path-text">{{ next_card.get_card_type_display }}{% if next_card.subject_code %} &middot; {{ next_card.subject_code|course_label }}{% endif %}</p>
-            <h3 style="font-size:1.15rem; margin:8px 0 16px;">{{ next_card.front }}</h3>
-            <div id="practice-answer" hidden style="margin-bottom:16px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.06);">
+            <h3 class="practice-question">{{ next_card.front }}</h3>
+            <div id="practice-answer" hidden class="practice-answer-box">
                 {% if next_card.back %}{{ next_card.back }}{% else %}<span class="path-text">No answer recorded; check your own notes or past paper solutions.</span>{% endif %}
             </div>
             <div class="inline-actions">
@@ -33,7 +33,7 @@
                 <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="remembered-form" hidden>
                     {% csrf_token %}
                     <input type="hidden" name="remembered" value="1">
-                    <button type="submit" class="button" style="background:var(--green);">I remembered</button>
+                    <button type="submit" class="button button-success-solid">I remembered</button>
                 </form>
                 <form method="post" action="{% url 'flashcard_grade' next_card.pk %}" id="forgot-form" hidden>
                     {% csrf_token %}
@@ -121,7 +121,7 @@
         <div class="card-header"><div><h2>All cards</h2></div></div>
         {% for subject_code, cards in cards_by_subject.items %}
         <details class="mt-12">
-            <summary style="cursor:pointer; font-weight:600;">{{ subject_code|course_label }} ({{ cards|length }})</summary>
+            <summary class="summary-toggle">{{ subject_code|course_label }} ({{ cards|length }})</summary>
             <form method="post" class="inline-form mt-8" data-confirm="Delete all {{ cards|length }} card(s) for {{ subject_code|course_label }}?">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete_subject_cards">
