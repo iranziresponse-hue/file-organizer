@@ -70,7 +70,7 @@ class GlobalSortCategory(models.Model):
         ("sensitive", "Sensitive files"),
     ]
     MODE_CHOICES = [
-        ("review", "Suggest -- always ask first"),
+        ("review", "Suggest (always ask first)"),
         ("auto_high_confidence", "Auto-move when confident"),
         ("auto", "Always auto-move"),
     ]
@@ -855,7 +855,7 @@ class SortDecision(models.Model):
         ("profile_auto", "Profile auto-sort"),
         ("global_suggested", "Global category suggestion"),
         ("global_auto", "Global category auto-move"),
-        ("held_sensitive", "Held for review -- sensitive"),
+        ("held_sensitive", "Held for review (sensitive)"),
         ("manual", "Manual"),
     ]
     STATUS_CHOICES = [

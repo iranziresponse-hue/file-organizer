@@ -1,12 +1,22 @@
-"""Self-update: checks this repo's GitHub Releases for a newer Orch.exe,
-downloads it, and swaps it in for the currently running exe on next
-relaunch.
+"""Self-update: checks this repo's GitHub Releases for a newer Orch build,
+downloads it, and runs it (silently, unattended) to reinstall in place on
+next relaunch.
 
 Only ever targets this repo's own Releases API over HTTPS -- never a
 user-supplied or redirected URL -- and verifies the downloaded file's
 SHA-256 against the digest GitHub itself reports for the asset before
-ever letting anything replace the running exe. A corrupted or tampered
-download is deleted and reported as a failure, never applied.
+ever letting anything run. A corrupted or tampered download is deleted
+and reported as a failure, never applied.
+
+The release asset is an Inno Setup installer (Orch-Setup.exe), not a bare
+exe or a zip: it gives first-time users the familiar Next-Next-Install
+wizard instead of an unzip step, and updates run the SAME installer with
+/VERYSILENT so it's no different in kind from a first install, just
+pointed at the existing install directory and never showing a UI. This
+also sidesteps the old onefile build's slow re-extract-on-every-launch
+cost (the actual cause of a real, reported blank "ghost window" at
+startup) since PyInstaller's onedir layout underneath only extracts once,
+at install time, not on every run.
 
 Every public function here follows the same fallback-on-exception shape
 as organizer.core.diagnostics: network/parsing problems come back as a
@@ -32,7 +42,7 @@ from organizer import __version__ as CURRENT_VERSION
 
 REPO = "iranziresponse-hue/file-organizer"
 RELEASES_API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
-ASSET_NAME = "Orch.exe"
+ASSET_NAME = "Orch-Setup.exe"
 REQUEST_TIMEOUT = 6
 DOWNLOAD_TIMEOUT = 30
 CACHE_KEY = "orch_update_check_result"
@@ -115,9 +125,9 @@ def _sha256_of(path):
 
 
 def download_update(download_url, destination, expected_sha256=None, progress_callback=None):
-    """Streams the new exe to `destination`. Returns (success, error).
-    Refuses (and deletes the partial file) on any checksum mismatch rather
-    than ever handing back a file that could end up running."""
+    """Streams the new installer to `destination`. Returns (success,
+    error). Refuses (and deletes the partial file) on any checksum
+    mismatch rather than ever handing back a file that could end up run."""
     try:
         request = urllib.request.Request(download_url, headers={"User-Agent": "Orch-updater"})
         with urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT) as response:
@@ -143,16 +153,20 @@ def download_update(download_url, destination, expected_sha256=None, progress_ca
     return True, None
 
 
-def build_relaunch_script(current_pid, new_exe_path, target_exe_path):
-    """A tiny batch script that waits for this process to fully exit, then
-    swaps the downloaded exe into the running one's place and reopens it.
+def build_relaunch_script(current_pid, installer_path, install_dir, target_exe_path):
+    """A tiny batch script that waits for this process to fully exit, runs
+    the downloaded installer silently against the existing install
+    directory, reopens the app, then cleans up after itself.
 
     Written to disk and run as a separate, detached process rather than
-    done inline, because the currently-running exe holds its own file
-    locked on Windows -- nothing can overwrite Orch.exe while Orch.exe is
-    still the process doing the overwriting. Polling `tasklist` for the
-    PID to disappear is the simplest wait that needs no extra dependency.
-    """
+    done inline, because the currently-running exe (and the DLLs it has
+    loaded out of its install directory) are locked on Windows -- the
+    installer can't touch them while this process still holds them open.
+    Polling `tasklist` for the PID to disappear is the simplest wait that
+    needs no extra dependency. /VERYSILENT and /SUPPRESSMSGBOXES make this
+    the exact same installer a first-time user runs, just unattended and
+    pointed at /DIR= so it reinstalls in place instead of prompting for a
+    location."""
     return (
         "@echo off\n"
         ":wait\n"
@@ -161,25 +175,25 @@ def build_relaunch_script(current_pid, new_exe_path, target_exe_path):
         "    timeout /t 1 /nobreak >nul\n"
         "    goto wait\n"
         ")\n"
-        f'move /Y "{new_exe_path}" "{target_exe_path}"\n'
+        f'"{installer_path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="{install_dir}"\n'
         f'start "" "{target_exe_path}"\n'
+        f'del "{installer_path}"\n'
         'del "%~f0"\n'
     )
 
 
-def apply_update_and_restart(new_exe_path, target_exe_path=None, exit_func=None, popen_func=None):
+def apply_update_and_restart(installer_path, install_dir, target_exe_path, exit_func=None, popen_func=None):
     """Writes the relaunch script, launches it detached, then exits this
-    process so the script's wait loop can finish and the file lock
-    releases. `exit_func`/`popen_func` are injection points so tests can
+    process so the script's wait loop can finish and the file locks
+    release. `exit_func`/`popen_func` are injection points so tests can
     verify the right script/command without spawning a real process or
     exiting the test run."""
-    target_exe_path = target_exe_path or sys.executable
     popen_func = popen_func or subprocess.Popen
     exit_func = exit_func or (lambda: os._exit(0))
 
     script_path = Path(tempfile.gettempdir()) / f"orch_update_{os.getpid()}.bat"
     script_path.write_text(
-        build_relaunch_script(os.getpid(), str(new_exe_path), str(target_exe_path)),
+        build_relaunch_script(os.getpid(), str(installer_path), str(install_dir), str(target_exe_path)),
         encoding="utf-8",
     )
     popen_func(
@@ -191,21 +205,22 @@ def apply_update_and_restart(new_exe_path, target_exe_path=None, exit_func=None,
 
 
 def download_and_apply(result, exit_func=None, popen_func=None):
-    """The full flow behind clicking "Update": download next to the
-    running exe, verify, then swap and restart. Returns (success, error)
-    on failure; never returns on success, since exit_func replaces this
-    process (a real run truly exits here -- tests pass a fake exit_func
-    to observe that point was reached instead)."""
+    """The full flow behind clicking "Update": download the installer
+    next to the running install, verify it, then swap and restart.
+    Returns (success, error) on failure; never returns on success, since
+    exit_func replaces this process (a real run truly exits here -- tests
+    pass a fake exit_func to observe that point was reached instead)."""
     target_exe_path = Path(sys.executable)
-    new_exe_path = target_exe_path.with_name("Orch.new.exe")
+    install_dir = target_exe_path.parent
+    installer_path = Path(tempfile.gettempdir()) / "Orch-Setup.exe"
 
     success, error = download_update(
-        result["download_url"], new_exe_path, expected_sha256=result.get("sha256")
+        result["download_url"], installer_path, expected_sha256=result.get("sha256")
     )
     if not success:
         return False, error
 
     apply_update_and_restart(
-        new_exe_path, target_exe_path, exit_func=exit_func, popen_func=popen_func
+        installer_path, install_dir, target_exe_path, exit_func=exit_func, popen_func=popen_func
     )
     return True, None

@@ -1,4 +1,4 @@
-name: Build and release Orch.exe
+name: Build and release Orch-Setup.exe
 
 # Push a tag like v1.0.0 to build the exe and attach it to a new GitHub
 # Release. workflow_dispatch lets you run the same build on demand (from
@@ -40,22 +40,52 @@ jobs:
       - name: Run test suite
         run: python manage.py test
 
-      - name: Build Orch.exe
+      - name: Build Orch
+        # Orch.spec builds a onedir layout (dist\Orch\Orch.exe plus its
+        # _internal support folder) rather than a single-file exe -- a
+        # onefile build has to re-extract its whole bundle on every single
+        # launch, slow enough that Windows can show a blank "ghost"
+        # placeholder window until the real one finishes loading. onedir
+        # only extracts once, at install time below, not on every run.
         run: pyinstaller Orch.spec
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+        shell: pwsh
+
+      - name: Determine the version to stamp on the installer
+        id: version
+        # Only a real tag push (a real release) gets the actual version
+        # number; a manual workflow_dispatch run (testing the build itself
+        # before tagging, see the trigger comment above) leaves it unset,
+        # and installer/Orch.iss's own #ifndef falls back to a harmless
+        # placeholder version instead.
+        shell: pwsh
+        run: |
+          if ("${{ github.ref }}".StartsWith("refs/tags/")) {
+            $version = "${{ github.ref_name }}" -replace '^v', ''
+            echo "define=/DMyAppVersion=$version" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "define=" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Build the installer
+        # installer/Orch.iss packages dist\Orch into a normal Next-Next-
+        # Install wizard (Orch-Setup.exe) instead of a bare exe or a zip a
+        # non-technical student has to unzip themselves.
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ${{ steps.version.outputs.define }} installer\Orch.iss'
+        shell: pwsh
 
       - uses: actions/upload-artifact@v4
         with:
           name: Orch-windows
-          path: dist\Orch.exe
+          path: dist_installer\Orch-Setup.exe
 
       - name: Attach to release
-        # Uploaded unzipped: the README and the landing page's download
-        # button both point directly at .../releases/latest/download/Orch.exe,
-        # and Orch.spec already builds one self-contained file -- an extra
-        # zip step would only add an unzip step for the exact non-technical
-        # users this is aimed at, for no real benefit.
+        # The README and the landing page's download button both point
+        # directly at .../releases/latest/download/Orch-Setup.exe.
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist\Orch.exe
+          files: dist_installer\Orch-Setup.exe
           generate_release_notes: true

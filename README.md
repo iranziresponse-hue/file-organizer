@@ -13,10 +13,10 @@ same filing work every week.
 
 ## Get Orch
 
-[Download Orch](../../releases/latest/download/Orch.exe) — clicking that link
-starts the download straight away, no extra steps. There is nothing to
-install: once it's done downloading, just open `Orch.exe` like any other
-Windows app.
+[Download Orch](../../releases/latest/download/Orch-Setup.exe), clicking
+that link starts the download straight away, no extra steps. Run the
+installer and click through it like any other Windows app, no admin
+rights needed.
 
 Orch will ask a few questions the first time you open it. After that, it can
 watch your Downloads folder and help keep new files in order.
@@ -119,8 +119,8 @@ you to check.
 
 ## Start
 
-1. Click [Download Orch](../../releases/latest/download/Orch.exe).
-2. Open `Orch.exe`.
+1. Click [Download Orch](../../releases/latest/download/Orch-Setup.exe).
+2. Run the installer and click through it.
 3. Create your first profile.
 4. Choose where that profile's files should live.
 5. Let Orch help keep new downloads in order.

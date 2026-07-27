@@ -46,8 +46,8 @@ class _FakeResponse:
 
 
 class CheckForUpdateTests(TestCase):
-    def _release_payload(self, tag="v9.9.9", asset_name="Orch.exe", digest=None):
-        asset = {"name": asset_name, "browser_download_url": "https://example.invalid/Orch.exe"}
+    def _release_payload(self, tag="v9.9.9", asset_name="Orch-Setup.exe", digest=None):
+        asset = {"name": asset_name, "browser_download_url": "https://example.invalid/Orch-Setup.exe"}
         if digest:
             asset["digest"] = digest
         return json.dumps({"tag_name": tag, "assets": [asset]}).encode("utf-8")
@@ -61,7 +61,7 @@ class CheckForUpdateTests(TestCase):
 
         self.assertTrue(result["available"])
         self.assertEqual(result["latest_version"], "99.0.0")
-        self.assertEqual(result["download_url"], "https://example.invalid/Orch.exe")
+        self.assertEqual(result["download_url"], "https://example.invalid/Orch-Setup.exe")
         self.assertIsNone(result["error"])
 
     def test_reports_unavailable_when_already_current(self):
@@ -84,7 +84,7 @@ class CheckForUpdateTests(TestCase):
 
         self.assertEqual(result["sha256"], "ab" * 32)
 
-    def test_missing_exe_asset_is_reported_as_an_error_not_a_crash(self):
+    def test_missing_zip_asset_is_reported_as_an_error_not_a_crash(self):
         with mock.patch(
             "organizer.core.updater.urllib.request.urlopen",
             return_value=_FakeResponse(self._release_payload(asset_name="Orch-linux.tar.gz")),
@@ -92,7 +92,7 @@ class CheckForUpdateTests(TestCase):
             result = updater.check_for_update()
 
         self.assertFalse(result["available"])
-        self.assertIn("Orch.exe", result["error"])
+        self.assertIn(updater.ASSET_NAME, result["error"])
 
     def test_a_network_failure_never_raises(self):
         with mock.patch(
@@ -126,19 +126,19 @@ class RememberCheckResultTests(TestCase):
 
 
 class DownloadUpdateTests(TestCase):
-    def test_writes_the_downloaded_bytes_to_disk(self, tmp_name="orch_test_download.exe"):
+    def test_writes_the_downloaded_bytes_to_disk(self, tmp_name="orch_test_download.zip"):
         import tempfile
         from pathlib import Path
 
         destination = Path(tempfile.gettempdir()) / tmp_name
         self.addCleanup(lambda: destination.unlink(missing_ok=True))
-        body = b"fake-exe-bytes"
+        body = b"fake-zip-bytes"
 
         with mock.patch(
             "organizer.core.updater.urllib.request.urlopen",
             return_value=_FakeResponse(body, headers={"Content-Length": str(len(body))}),
         ):
-            success, error = updater.download_update("https://example.invalid/Orch.exe", destination)
+            success, error = updater.download_update("https://example.invalid/Orch-windows.zip", destination)
 
         self.assertTrue(success)
         self.assertIsNone(error)
@@ -148,9 +148,9 @@ class DownloadUpdateTests(TestCase):
         import tempfile
         from pathlib import Path
 
-        destination = Path(tempfile.gettempdir()) / "orch_test_bad_checksum.exe"
+        destination = Path(tempfile.gettempdir()) / "orch_test_bad_checksum.zip"
         self.addCleanup(lambda: destination.unlink(missing_ok=True))
-        body = b"fake-exe-bytes"
+        body = b"fake-zip-bytes"
         wrong_hash = "0" * 64
 
         with mock.patch(
@@ -158,7 +158,7 @@ class DownloadUpdateTests(TestCase):
             return_value=_FakeResponse(body),
         ):
             success, error = updater.download_update(
-                "https://example.invalid/Orch.exe", destination, expected_sha256=wrong_hash
+                "https://example.invalid/Orch-windows.zip", destination, expected_sha256=wrong_hash
             )
 
         self.assertFalse(success)
@@ -169,9 +169,9 @@ class DownloadUpdateTests(TestCase):
         import tempfile
         from pathlib import Path
 
-        destination = Path(tempfile.gettempdir()) / "orch_test_good_checksum.exe"
+        destination = Path(tempfile.gettempdir()) / "orch_test_good_checksum.zip"
         self.addCleanup(lambda: destination.unlink(missing_ok=True))
-        body = b"fake-exe-bytes"
+        body = b"fake-zip-bytes"
         correct_hash = hashlib.sha256(body).hexdigest()
 
         with mock.patch(
@@ -179,7 +179,7 @@ class DownloadUpdateTests(TestCase):
             return_value=_FakeResponse(body),
         ):
             success, error = updater.download_update(
-                "https://example.invalid/Orch.exe", destination, expected_sha256=correct_hash
+                "https://example.invalid/Orch-windows.zip", destination, expected_sha256=correct_hash
             )
 
         self.assertTrue(success)
@@ -189,7 +189,7 @@ class DownloadUpdateTests(TestCase):
         import tempfile
         from pathlib import Path
 
-        destination = Path(tempfile.gettempdir()) / "orch_test_network_fail.exe"
+        destination = Path(tempfile.gettempdir()) / "orch_test_network_fail.zip"
         destination.write_bytes(b"partial")
         self.addCleanup(lambda: destination.unlink(missing_ok=True))
 
@@ -197,7 +197,7 @@ class DownloadUpdateTests(TestCase):
             "organizer.core.updater.urllib.request.urlopen",
             side_effect=urllib.error.URLError("connection reset"),
         ):
-            success, error = updater.download_update("https://example.invalid/Orch.exe", destination)
+            success, error = updater.download_update("https://example.invalid/Orch-windows.zip", destination)
 
         self.assertFalse(success)
         self.assertIsNotNone(error)
@@ -205,26 +205,31 @@ class DownloadUpdateTests(TestCase):
 
 
 class RelaunchScriptTests(TestCase):
-    def test_script_waits_for_the_old_pid_then_swaps_and_relaunches(self):
-        script = updater.build_relaunch_script(4242, r"C:\Orch\Orch.new.exe", r"C:\Orch\Orch.exe")
+    def test_script_waits_for_the_old_pid_then_installs_silently_and_relaunches(self):
+        script = updater.build_relaunch_script(
+            4242, r"C:\Temp\Orch-Setup.exe", r"C:\Orch", r"C:\Orch\Orch.exe"
+        )
 
         self.assertIn('"PID eq 4242"', script)
-        self.assertIn(r'move /Y "C:\Orch\Orch.new.exe" "C:\Orch\Orch.exe"', script)
+        self.assertIn(
+            r'"C:\Temp\Orch-Setup.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="C:\Orch"',
+            script,
+        )
         self.assertIn(r'start "" "C:\Orch\Orch.exe"', script)
         self.assertTrue(script.startswith("@echo off"))
 
 
 class ApplyUpdateAndRestartTests(TestCase):
     def test_writes_the_script_launches_it_detached_then_exits(self):
-        import tempfile
         from pathlib import Path
 
         popen_calls = []
         exit_calls = []
 
         updater.apply_update_and_restart(
-            r"C:\Orch\Orch.new.exe",
-            target_exe_path=r"C:\Orch\Orch.exe",
+            r"C:\Temp\Orch-Setup.exe",
+            r"C:\Orch",
+            r"C:\Orch\Orch.exe",
             exit_func=lambda: exit_calls.append(True),
             popen_func=lambda *args, **kwargs: popen_calls.append((args, kwargs)),
         )
@@ -239,12 +244,13 @@ class ApplyUpdateAndRestartTests(TestCase):
         self.assertTrue(script_path.exists())
         self.addCleanup(lambda: script_path.unlink(missing_ok=True))
         content = script_path.read_text(encoding="utf-8")
-        self.assertIn(r'move /Y "C:\Orch\Orch.new.exe" "C:\Orch\Orch.exe"', content)
+        self.assertIn("/VERYSILENT", content)
+        self.assertIn(r'start "" "C:\Orch\Orch.exe"', content)
 
 
 class DownloadAndApplyTests(TestCase):
     def test_returns_the_download_error_without_applying_anything_on_failure(self):
-        result = {"download_url": "https://example.invalid/Orch.exe", "sha256": None}
+        result = {"download_url": "https://example.invalid/Orch-Setup.exe", "sha256": None}
         exit_calls = []
 
         with mock.patch(
@@ -259,7 +265,7 @@ class DownloadAndApplyTests(TestCase):
         self.assertEqual(exit_calls, [])
 
     def test_applies_and_exits_on_a_successful_download(self):
-        result = {"download_url": "https://example.invalid/Orch.exe", "sha256": None}
+        result = {"download_url": "https://example.invalid/Orch-Setup.exe", "sha256": None}
         exit_calls = []
         popen_calls = []
 

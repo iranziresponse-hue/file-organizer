@@ -3627,15 +3627,15 @@
         }
 
         .messages .success {
-            background: rgba(34, 197, 94, 0.16);
-            border-color: rgba(47, 180, 111, 0.4);
-            color: #BBF7D0;
+            background: var(--success-bg);
+            border-color: var(--success-border);
+            color: var(--success-text);
         }
 
         .messages .error {
-            background: rgba(244, 63, 94, 0.16);
-            border-color: rgba(251, 113, 133, 0.4);
-            color: #FFE4E6;
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+            color: var(--danger-text);
         }
 
         .messages .info {
@@ -3645,9 +3645,9 @@
         }
 
         .messages .warning {
-            background: rgba(242, 201, 76, 0.16);
-            border-color: rgba(242, 201, 76, 0.4);
-            color: #FDE9B4;
+            background: var(--warning-bg);
+            border-color: var(--warning-border);
+            color: var(--warning-text);
         }
 
         body.has-desktop-titlebar .messages {
@@ -5105,6 +5105,10 @@
         html[data-theme="light"] .mini-label,
         html[data-theme="light"] .card-subtitle {
             color: var(--muted);
+        }
+
+        html[data-theme="light"] a {
+            color: var(--blue);
         }
 
         html[data-theme="light"] .nav {

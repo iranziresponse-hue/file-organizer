@@ -1475,6 +1475,57 @@ body.support-open {
     width: fit-content;
 }
 
+.support-fallback {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 10px;
+}
+
+.support-fallback[hidden] {
+    display: none;
+}
+
+.support-fallback p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.support-fallback label {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.support-copy-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.support-copy-row input,
+.support-copy-row textarea {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #F7F9FA;
+    color: var(--text);
+    font: inherit;
+    padding: 10px 12px;
+}
+
+.support-copy-row textarea {
+    resize: vertical;
+    min-height: 110px;
+}
+
+.support-copy-btn {
+    flex-shrink: 0;
+    padding: 10px 14px;
+}
+
 @media (max-width: 560px) {
     .support-overlay {
         align-items: start;
