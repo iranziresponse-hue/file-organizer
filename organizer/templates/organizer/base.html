@@ -67,9 +67,11 @@
         })();
     </script>
     <link rel="stylesheet" href="{% static 'organizer/css/base.css' %}?v={{ ORCH_STATIC_VERSION }}">
+    <link rel="stylesheet" href="{% static 'organizer/css/premium.css' %}?v={{ ORCH_STATIC_VERSION }}">
     <script src="{% static 'organizer/js/nav-dropdowns.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 </head>
 <body{% if is_desktop_shell %} class="has-desktop-titlebar"{% endif %}>
+<a class="skip-link" href="#main-content">Skip to content</a>
 {% csrf_token %}
 {% if is_desktop_shell %}
 <div class="desktop-titlebar">
@@ -635,9 +637,9 @@
     <script src="{% static 'organizer/js/toast.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
     <script src="{% static 'organizer/js/focus-trap.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 
-    <main>
+    <main id="main-content" tabindex="-1">
         {% if messages %}
-        <ul class="messages" id="page-messages">
+        <ul class="messages" id="page-messages" role="status" aria-live="polite">
             {% for message in messages %}
             <li class="{{ message.tags }}">{{ message }}</li>
             {% endfor %}

@@ -1,0 +1,74 @@
+{% comment %}
+Tier 3; everything that used to be a full-width dashboard card, now one
+compact line each with a link to its own full page. Collapsed by default in
+a real <details> disclosure (not CSS-hidden); the open/closed choice is
+persisted to localStorage under orch-dash-more by dashboard-disclosure.js.
+
+Nothing here is exclusive to the dashboard:
+  - Sorting mix + subject spread  -> Sorting Report  (sorting_report)
+  - Setup readiness               -> Connections     (connections_home)
+  - MUELE sync                    -> MUELE Courses   (muele_courses)
+  - Plain status tiles            -> nested disclosure + first_run
+{% endcomment %}
+<details class="dashboard-more" id="dashboard-more" data-persist-key="orch-dash-more">
+    <summary>
+        <span class="dashboard-more__title">More detail</span>
+        <span class="dashboard-more__hint">Sorting mix, subjects, setup, sync</span>
+    </summary>
+
+    <div class="summary-row">
+        <a class="summary-stat" href="{% url 'sorting_report' %}">
+            <span class="summary-stat__label">Files sorted</span>
+            <span class="summary-stat__value" data-tabular>{{ total_moves }}</span>
+            <span class="summary-stat__meta">
+                {% if top_method %}Mostly {{ top_method.label|lower }}{% else %}No moves yet{% endif %}
+            </span>
+        </a>
+
+        <a class="summary-stat" href="{% url 'sorting_report' %}">
+            <span class="summary-stat__label">Subjects receiving files</span>
+            <span class="summary-stat__value" data-tabular>{{ subjects_receiving }}</span>
+            <span class="summary-stat__meta">Subject distribution</span>
+        </a>
+
+        <a class="summary-stat" href="{% url 'connections_home' %}">
+            <span class="summary-stat__label">Setup readiness</span>
+            <span class="summary-stat__value" data-tabular>{{ service_mesh.readiness }}%</span>
+            <span class="summary-stat__meta">
+                {{ service_mesh.connected_count }}/{{ service_mesh.total_count }} connected
+                {% if service_mesh.hidden_count %}&middot; {{ service_mesh.hidden_count }} hidden{% endif %}
+            </span>
+        </a>
+
+        {% if muele_connection and muele_connection.status == "connected" %}
+        <a class="summary-stat" href="{% url 'muele_courses' %}">
+            <span class="summary-stat__label">MUELE</span>
+            <span class="summary-stat__value" data-tabular>{{ muele_courses_count }}</span>
+            <span class="summary-stat__meta">
+                {% if muele_next_deadline %}Next due {{ muele_next_deadline.due_at|date:"M j" }}{% else %}Courses tracked{% endif %}
+            </span>
+        </a>
+        {% endif %}
+    </div>
+
+    {% if service_mesh.hidden_count %}
+    <form method="post" action="{% url 'setup_items_restore' %}" class="inline-form dashboard-more__restore">
+        {% csrf_token %}
+        <button type="submit" class="button-ghost button-compact">Show {{ service_mesh.hidden_count }} hidden setup item{{ service_mesh.hidden_count|pluralize }}</button>
+    </form>
+    {% endif %}
+
+    <details class="plain-status" id="plain-status" data-persist-key="orch-dash-plain-status">
+        <summary>Plain status view</summary>
+        <div class="health-grid">
+            {% for item in app_status_items %}
+            <div class="mini-tile is-{{ item.state }}">
+                <span class="mini-label">{{ item.label }}</span>
+                <span class="mini-value">{{ item.value }}</span>
+                <span class="path-text">{{ item.detail }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="help-text"><a href="{% url 'first_run' %}">Open the full system check</a></p>
+    </details>
+</details>

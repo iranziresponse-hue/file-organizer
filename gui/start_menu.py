@@ -1,7 +1,8 @@
 """Creates a Start Menu shortcut so Orch shows up when searching or
-browsing the Windows Start Menu, the same way installed apps do, without
-an actual installer -- Orch stays a single portable exe; this just adds a
-.lnk pointing at wherever that exe currently lives.
+browsing the Windows Start Menu. The installer (installer/Orch.iss)
+already creates one of these at install time; this is a fallback safety
+net for a copy that was moved or run without going through the installer,
+so a missing shortcut fixes itself on the next launch either way.
 """
 
 import os

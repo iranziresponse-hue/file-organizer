@@ -65,6 +65,36 @@ class OrchMainWindow:
     the window rather than quitting the app -- the tray icon and the
     background watcher keep running either way (see gui/tray.py)."""
 
+    @staticmethod
+    def _sized_and_centered_for_screen(preferred_width, preferred_height):
+        # A fixed 1280x820 window (no x/y) left it up to the OS default
+        # placement, which on a display too small to fit that size (a
+        # smaller/older laptop panel, or a scaled-down secondary monitor)
+        # neither centers nor shrinks it -- it just plants the window near
+        # the top-left with its right/bottom edges hanging off the visible
+        # screen. Those edges are exactly where the custom titlebar's
+        # minimize/maximize/close buttons live, so that's the real cause
+        # behind "no shrink window, launches in the corner, cannot click
+        # close or minimize": confirmed by measuring the actual window
+        # rect on a 1280x720 display, which came back as (25,25)-(1290,725)
+        # for a requested 1280x820 window -- clipped on both edges, not
+        # centered. Clamping to the real primary screen size and centering
+        # explicitly keeps the whole window (and its controls) on-screen
+        # regardless of the display it launches on.
+        try:
+            screen = webview.screens[0]
+            screen_width = int(screen.width)
+            screen_height = int(screen.height)
+        except Exception:
+            return preferred_width, preferred_height, None, None
+
+        margin_x, margin_y = 40, 60  # leaves room for the taskbar/DPI rounding
+        width = max(640, min(preferred_width, screen_width - margin_x))
+        height = max(460, min(preferred_height, screen_height - margin_y))
+        x = max(0, (screen_width - width) // 2)
+        y = max(0, (screen_height - height) // 2)
+        return width, height, x, y
+
     def __init__(self, watcher_controller=None):
         self.watcher = watcher_controller
         self.is_fullscreen = False
@@ -73,10 +103,13 @@ class OrchMainWindow:
         # startup sequence), and loading before it's ready would show a
         # connection-refused page for an instant. app.py loads the real URL
         # once it has confirmed the server actually answers.
+        width, height, x, y = self._sized_and_centered_for_screen(1280, 820)
         self.window = webview.create_window(
             "Orch",
-            width=1280,
-            height=820,
+            width=width,
+            height=height,
+            x=x,
+            y=y,
             min_size=(640, 460),
             background_color=PAGE_BACKGROUND,
             hidden=True,
@@ -127,9 +160,65 @@ class OrchMainWindow:
         self.schedule_repaint_nudge()
 
     def show(self):
+        self._clamp_to_screen()
         self.window.show()
         try:
             self.restore()
+        except Exception:
+            pass
+
+    def _clamp_to_screen(self):
+        # webview.screens (queried in _sized_and_centered_for_screen, before
+        # the native window exists) turned out not to be reliable enough on
+        # its own: even after clamping to it, a real rebuilt onedir exe still
+        # landed at a rect like (101,101)-(1366,801) on a 1280x720 screen --
+        # still hanging off both the right and bottom edges. WinForms only
+        # finalizes real DPI-aware bounds once the form is actually
+        # associated with a monitor, which happens later than window
+        # creation -- so this re-checks against the real Win32 monitor work
+        # area (taskbar-aware, unlike raw screen resolution) right before
+        # the window is actually shown, while it's still hidden, so any
+        # correction here never produces a visible flash/jump.
+        if sys.platform != "win32":
+            return
+        hwnd = self._native_hwnd()
+        if not hwnd:
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class MONITORINFO(ctypes.Structure):
+                _fields_ = [
+                    ("cbSize", wintypes.DWORD),
+                    ("rcMonitor", wintypes.RECT),
+                    ("rcWork", wintypes.RECT),
+                    ("dwFlags", wintypes.DWORD),
+                ]
+
+            MONITOR_DEFAULTTONEAREST = 2
+            monitor = ctypes.windll.user32.MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)
+            info = MONITORINFO()
+            info.cbSize = ctypes.sizeof(MONITORINFO)
+            if not ctypes.windll.user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+                return
+            work = info.rcWork
+            work_width = work.right - work.left
+            work_height = work.bottom - work.top
+
+            rect = wintypes.RECT()
+            ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            width = rect.right - rect.left
+            height = rect.bottom - rect.top
+
+            margin = 16
+            new_width = max(640, min(width, work_width - margin))
+            new_height = max(460, min(height, work_height - margin))
+            new_x = work.left + max(0, (work_width - new_width) // 2)
+            new_y = work.top + max(0, (work_height - new_height) // 2)
+
+            if (new_width, new_height, new_x, new_y) != (width, height, rect.left, rect.top):
+                ctypes.windll.user32.MoveWindow(hwnd, new_x, new_y, new_width, new_height, True)
         except Exception:
             pass
 

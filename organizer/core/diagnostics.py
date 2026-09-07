@@ -5,6 +5,7 @@ All functions return (result, error_message) tuples — never throw.
 """
 
 import json
+import logging
 import os
 import shutil
 import sqlite3
@@ -15,6 +16,8 @@ from pathlib import Path
 from typing import Callable
 
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -38,16 +41,33 @@ def get_watcher_status() -> dict:
         "poll_interval": "3 seconds (default)",
     }
 
+    # Liveness comes from the watcher's heartbeat file, not the log's mtime:
+    # a healthy watcher with nothing to sort writes no log lines for minutes
+    # at a time, so "log older than 60s" used to report a fine watcher as
+    # stopped. The heartbeat is rewritten every poll cycle regardless of
+    # activity (core.watcher.write_heartbeat); the log is still parsed below
+    # for errors, counts, and uptime.
+    from .watcher import read_heartbeat
+
+    heartbeat = read_heartbeat()
+    if heartbeat is not None:
+        # Poll interval backs off to ~15s when idle; 75s of slack keeps a
+        # slow cycle or a busy machine from flapping the indicator.
+        status["running"] = (datetime.now() - heartbeat).total_seconds() < 75
+        status["last_heartbeat"] = heartbeat.isoformat()
+
     # Check the watcher log for recent activity
     log_path = paths.LOG_PATH
     if log_path.exists():
         try:
             last_modified = datetime.fromtimestamp(log_path.stat().st_mtime)
             status["last_activity"] = last_modified.isoformat()
-
-            # If the log was modified within the last 30 seconds, watcher is likely running
             seconds_since = (datetime.now() - last_modified).total_seconds()
-            status["running"] = seconds_since < 60
+            # Fallback only: if there is no heartbeat yet (older watcher build
+            # still starting up, or the file was cleared), fall back to the
+            # old log-mtime heuristic rather than reporting nothing.
+            if heartbeat is None:
+                status["running"] = seconds_since < 60
 
             # Parse recent log lines for errors and activity counts
             try:
@@ -294,6 +314,7 @@ def get_database_health() -> dict:
             health["warnings"].append(f"Database integrity check failed: {health['integrity']}")
 
     except Exception as exc:
+        logger.warning("Database health check failed: %s", exc, exc_info=True)
         health["warnings"].append(f"Database connection error: {exc}")
 
     return health
@@ -590,6 +611,7 @@ def vacuum_database(log: Callable | None = None) -> dict:
             "reclaimed_kb": round(reclaimed / 1024, 1),
         }
     except Exception as exc:
+        logger.warning("Vacuum failed: %s", exc, exc_info=True)
         if log:
             log(f"Vacuum failed: {exc}")
         return {"success": False, "error": str(exc)}
@@ -606,6 +628,7 @@ def reindex_database(log: Callable | None = None) -> dict:
             log("Database reindexed successfully")
         return {"success": True}
     except Exception as exc:
+        logger.warning("Reindex failed: %s", exc, exc_info=True)
         if log:
             log(f"Reindex failed: {exc}")
         return {"success": False, "error": str(exc)}
@@ -641,7 +664,11 @@ def get_database_table_details() -> list[dict]:
                 })
 
     except Exception:
-        pass
+        # Deliberately non-fatal (a details panel, not a critical path), but
+        # no longer silent -- the LOGGING config only captures escaped
+        # request exceptions, so without this line a failure here is
+        # invisible everywhere.
+        logger.warning("get_database_table_details failed", exc_info=True)
 
     return details
 
