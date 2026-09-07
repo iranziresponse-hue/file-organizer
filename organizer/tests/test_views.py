@@ -173,11 +173,16 @@ class DashboardViewTests(SandboxedPathsTestCase):
 
         response = self.client.get(reverse("dashboard"))
 
+        # Tier 1 live strip: the sorting badge in its calm resting state.
         self.assertContains(response, "Watching Downloads")
-        self.assertContains(response, "Needs attention")
+        # Tier 2: the single primary focus card and the activity film.
+        self.assertContains(response, "Next best step")
+        self.assertContains(response, "What Orch has been doing")
+        # Tier 3: the collapsed "More detail" disclosure and, nested inside,
+        # the plain status tiles.
+        self.assertContains(response, "More detail")
         self.assertContains(response, "Plain status view")
         self.assertContains(response, "Downloads folder")
-        self.assertContains(response, "Profile sorting")
 
     def test_dashboard_priority_deck_has_no_duplicate_signals(self):
         # "Academic priority" duplicated the top dashboard panel right
@@ -273,6 +278,46 @@ class DashboardViewTests(SandboxedPathsTestCase):
         response = self.client.get(reverse("dashboard"))
 
         self.assertNotContains(response, "why-toggle-btn")
+
+    def test_recent_moves_shows_five_rows_and_a_view_all_link(self):
+        profile = self.make_profile()
+        for i in range(8):
+            MoveEvent.objects.create(
+                profile=profile, filename=f"file{i}.pdf",
+                destination_path=str(self.profile_root / f"file{i}.pdf"),
+                method="course_code", success=True,
+            )
+
+        response = self.client.get(reverse("dashboard"))
+
+        # Table trimmed to 5 rows on the dashboard...
+        self.assertEqual(response.content.count(b'class="recent-move-row"'), 5)
+        # ...with a link to the full page and the paginator still intact.
+        self.assertContains(response, reverse("undo_recent"))
+        self.assertEqual(response.context["page_obj"].paginator.count, 8)
+
+
+class SortingReportViewTests(SandboxedPathsTestCase):
+    def test_sorting_report_carries_the_pulse_and_distribution_tables(self):
+        profile = self.make_profile()
+        MoveEvent.objects.create(
+            profile=profile, filename="bio.pdf",
+            destination_path=str(self.profile_root / "bio.pdf"),
+            method="course_code", success=True, course_code="BIO101",
+        )
+
+        response = self.client.get(reverse("sorting_report"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sorting pulse")
+        self.assertContains(response, "Subject distribution")
+        self.assertEqual(response.context["total_moves"], 1)
+
+    def test_sorting_report_is_safe_without_a_profile(self):
+        response = self.client.get(reverse("sorting_report"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No active profile")
 
 
 class SetupItemDismissViewTests(SandboxedPathsTestCase):

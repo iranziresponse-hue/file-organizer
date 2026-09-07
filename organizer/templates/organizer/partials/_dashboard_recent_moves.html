@@ -1,0 +1,133 @@
+{% comment %}
+Recent Moves; Tier 3, bottom of the dashboard. Shows the five most recent
+rows plus a "View all" link to the full Recent Moves page (undo_recent). The
+instant-search box still fetches the dashboard with ?q= and swaps in
+#recent-moves-body, so the search contract is unchanged; only the number of
+rows shown at rest is smaller. Behaviour lives in dashboard-moves.js.
+{% endcomment %}
+<section class="card dashboard-recent-card">
+    <div class="card-header">
+        <div>
+            <h2>Recent moves</h2>
+            <p class="card-subtitle">File decisions for {{ profile.name }}</p>
+        </div>
+        <div class="inline-actions-start">
+            <span class="meta-token" id="recent-moves-total" data-tabular>{{ page_obj.paginator.count }} total</span>
+            <a class="button button-ghost" href="{% url 'undo_recent' %}">View all</a>
+            {% if page_obj.paginator.count %}
+            <form method="post" action="{% url 'move_clear_history' %}" class="inline-form" data-confirm="Clear the entire Recent Moves history? This also removes the ability to undo those moves and cannot be undone.">
+                {% csrf_token %}
+                <button type="submit" class="button-ghost button-danger-soft">Clear all</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    <div class="field field-tight search-field" id="recent-moves-search">
+        <label for="move-search-input">Search sorted files</label>
+        <div class="search-control">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/>
+                <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <input type="search" id="move-search-input" placeholder="Type a filename..." value="{{ search_query }}" autocomplete="off" aria-describedby="move-search-status">
+            <button type="button" class="search-clear" id="move-search-clear" aria-label="Clear search" {% if not search_query %}hidden{% endif %}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <span class="search-status" id="move-search-status" aria-live="polite">{% if search_query %}Showing matches for "{{ search_query }}"{% endif %}</span>
+    </div>
+    <div id="recent-moves-body" aria-live="polite">
+    {% if page_obj.object_list %}
+        <div class="table-shell">
+            <table class="recent-moves-table">
+                <tr class="recent-moves-header"><th>Time</th><th>File</th><th>Destination</th><th>Method</th><th>Status</th><th></th><th>Actions</th></tr>
+                {% for event in page_obj.object_list|slice:":5" %}
+                <tr class="recent-move-row">
+                    <td data-label="Time">{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td data-label="File">{{ event.filename }}</td>
+                    <td data-label="Destination" class="path-text">{{ event.destination_path }}</td>
+                    <td data-label="Method">{{ event.get_method_display }}</td>
+                    <td data-label="Status">
+                        {% if event.success %}
+                        <span class="status-dot is-live">Sorted</span>
+                        {% else %}
+                        <span class="status-dot is-error">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Reason">
+                        {% if event.explanation or event.sort_decision.matched_rule %}
+                        <button type="button" class="button-ghost button-compact why-toggle-btn" data-why-toggle="why-{{ event.pk }}" aria-expanded="false" aria-controls="why-{{ event.pk }}">Why?</button>
+                        {% endif %}
+                    </td>
+                    <td data-label="Actions">
+                        <div class="row-actions">
+                            <button type="button" class="button-ghost row-actions-trigger" data-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="move-actions-{{ event.pk }}">
+                                Actions
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="row-actions-menu" id="move-actions-{{ event.pk }}" role="menu" hidden>
+                                {% if event.success and event.destination_path %}
+                                <button type="button" class="row-actions-item move-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Move to...</button>
+                                {% if event.is_summarizable %}
+                                    {% if event.summary %}
+                                    <button type="button" class="row-actions-item summarize-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-action="view">View summary</button>
+                                    {% else %}
+                                    <button type="button" class="row-actions-item summarize-btn" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-action="generate">Summarize</button>
+                                    {% endif %}
+                                {% endif %}
+                                <button type="button" class="row-actions-item undo-btn is-destructive" role="menuitem" tabindex="-1" data-move-id="{{ event.pk }}" data-filename="{{ event.filename }}">Undo this move</button>
+                                {% endif %}
+                                <form method="post" action="{% url 'move_clear_one' event.pk %}" class="row-actions-form" data-confirm="Clear this row from Recent Moves? The file stays where it is, but undo for this move will no longer be available.">
+                                    {% csrf_token %}
+                                    <button type="submit" class="row-actions-item is-destructive" role="menuitem" tabindex="-1">Clear from history</button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% if event.explanation or event.sort_decision.matched_rule %}
+                <tr id="why-{{ event.pk }}" class="why-row" hidden>
+                    <td colspan="7">
+                        <div class="why-panel">
+                            {% if event.explanation %}<p><strong>Reason:</strong> {{ event.explanation }}</p>{% endif %}
+                            {% if event.sort_decision.matched_rule %}<p><strong>Matched rule:</strong> {{ event.sort_decision.matched_rule }}</p>{% endif %}
+                            {% if event.confidence is not None %}<p><strong>Confidence:</strong> {{ event.confidence }}%</p>{% endif %}
+                            <p><strong>Method:</strong> {{ event.get_method_display }}</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+        {% if page_obj.paginator.count > 5 %}
+        <p class="help-text dashboard-recent-more">
+            Showing the 5 most recent of {{ page_obj.paginator.count }}.
+            <a href="{% url 'undo_recent' %}">Open the full Recent Moves page</a> to page through them all.
+        </p>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 7.5C5 5.6 6.6 4 8.5 4h7C17.4 4 19 5.6 19 7.5v9c0 1.9-1.6 3.5-3.5 3.5h-7C6.6 20 5 18.4 5 16.5v-9Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 9h6M9 12h6M9 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                {% if search_query %}
+                <h3>No files match "{{ search_query }}".</h3>
+                <p>Try a different part of the filename.</p>
+                {% else %}
+                <h3>No files sorted yet.</h3>
+                <p>Once {{ profile.name }} is set up, each move will appear here.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    </div>
+</section>

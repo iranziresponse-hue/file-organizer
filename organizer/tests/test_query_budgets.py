@@ -42,8 +42,18 @@ class DashboardQueryBudgetTests(SandboxedPathsTestCase):
         # PerformanceMetric row (duration_ms/query_count) after every
         # tracked page renders -- a deliberate, fixed per-request cost, not
         # a regression.
+        #
+        # 91, not 80: the decongested dashboard server-renders its Tier 1
+        # live strip (organizer.core.pulse.get_snapshot: sorting task,
+        # recent-move count, in-flight tasks, next lecture, review count,
+        # nearest deadline) and its Tier 2 activity film
+        # (get_activity_stream: a union over MoveEvent, Notification,
+        # finished BackgroundTask, ReviewItem). All fixed, bounded queries
+        # (LIMIT 30 each, no per-row lookups) -- and consciously chosen over
+        # a third client-side polling timer, which the /api/pulse/ endpoint
+        # now replaces with one visibility-aware, backing-off poll.
         cache.clear()
-        with self.assertNumQueries(80):
+        with self.assertNumQueries(91):
             self.client.get(reverse("dashboard"))
 
     def test_study_home_query_count(self):

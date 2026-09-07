@@ -44,6 +44,15 @@ DEFAULT_LIBRARY_INBOX: Path = PERSONAL_ROOT / "Library" / "00 New - Sort Me"
 # stays in one continuous place across the switchover.
 LOG_PATH: Path = USER_PROFILE / "Documents" / "Scripts" / "organize-log.txt"
 
+
+def watcher_heartbeat_path() -> Path:
+    """The watcher rewrites this file every poll cycle whether or not any
+    file moved, so diagnostics can tell "idle but alive" from "not running"
+    -- log mtime alone can't, since a healthy watcher with nothing to do
+    writes no log lines. Derived from LOG_PATH at call time so the test
+    sandbox's LOG_PATH override carries through. See core.watcher."""
+    return LOG_PATH.parent / "watcher-heartbeat.txt"
+
 # Project-local, gitignored -- see ai_config.example.json for the template.
 AI_CONFIG_PATH: Path = BASE_DIR / "ai_config.json"
 

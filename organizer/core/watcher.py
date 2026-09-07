@@ -54,6 +54,29 @@ def write_log(message):
         pass
 
 
+def write_heartbeat():
+    """Stamp the current time into the heartbeat file. Called once per poll
+    cycle in run_watcher() regardless of whether any file moved, so
+    diagnostics.get_watcher_status() can distinguish a healthy idle watcher
+    from a stopped one without depending on log-line activity."""
+    try:
+        path = paths.watcher_heartbeat_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(datetime.now().isoformat(), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def read_heartbeat():
+    """The datetime of the last heartbeat, or None if the file is missing or
+    unreadable."""
+    try:
+        raw = paths.watcher_heartbeat_path().read_text(encoding="utf-8").strip()
+        return datetime.fromisoformat(raw)
+    except (OSError, ValueError):
+        return None
+
+
 def _record_event(**fields):
     # Imported lazily so this module (and its unit tests) work without
     # django.setup() having been called first.
@@ -242,6 +265,9 @@ def run_watcher(stop_event=None, poll_seconds=3, max_poll_seconds=15):
     current_interval = poll_seconds
 
     while stop_event is None or not stop_event.is_set():
+        # Liveness signal for diagnostics -- written every cycle, busy or
+        # idle, so "no downloads in a minute" never reads as "not running".
+        write_heartbeat()
         downloads, downloads2 = _watched_paths()
         activity_this_cycle = False
 

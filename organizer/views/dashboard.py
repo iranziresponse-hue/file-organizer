@@ -33,6 +33,7 @@ from ..core import (
     rules,
     study,
 )
+from ..core import pulse as pulse_core
 from ..core import summarize as summarize_core
 from ..core.watcher import write_log
 from ..models import (
@@ -268,6 +269,20 @@ def status_bar_data(request):
 
     profile = Profile.get_active()
     return JsonResponse(status_bar.get_snapshot(profile))
+
+
+def pulse_data(request):
+    """The dashboard live strip's one consolidated poll (dashboard-pulse.js):
+    same dict organizer.core.pulse.get_snapshot() renders the strip from on
+    first paint. Small indexed queries only, never raises. The client polls
+    this at 5s while a task is active, 30s when idle, and not at all while
+    the window is hidden -- so it stays cheaper than the third fixed-rate
+    timer it replaces. The same poll also carries the activity film's rows,
+    so the page never grows a separate timer for that."""
+    profile = Profile.get_active()
+    payload = pulse_core.get_snapshot(profile)
+    payload["activity"] = pulse_core.get_activity_stream_json(profile)
+    return JsonResponse(payload)
 
 
 def command_palette_search(request):
@@ -1035,32 +1050,37 @@ def desktop_shell_enter(request):
     return redirect("dashboard")
 
 
-@perf.measure_view
-def dashboard(request):
-    profile = Profile.get_active()
-    if profile:
-        notifications.check_deadlines(profile, log=write_log)
-        notifications.check_upcoming_classes(profile, log=write_log)
-    events = MoveEvent.objects.filter(profile=profile) if profile else MoveEvent.objects.none()
+def _sorting_pulse_context(profile, events):
+    """Route-method counts and per-subject file counts -- the numbers behind
+    the dashboard's compact "Sorting" summary line and the full Sorting
+    Report page. Pure move out of dashboard(); query shape is unchanged."""
     method_counts = list(events.values("method").annotate(total=Count("id")).order_by("-total"))
     method_labels = dict(MoveEvent.METHOD_CHOICES)
     for row in method_counts:
         row["label"] = method_labels.get(row["method"], row["method"])
         last_of_method = events.filter(method=row["method"]).order_by("-timestamp").first()
         row["last_event"] = last_of_method
-    last_move = events.filter(success=True).order_by("-timestamp").first()
-    course_counts = (
+    course_counts = list(
         events.exclude(course_code__isnull=True)
         .exclude(course_code="")
         .values("course_code")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
-    config = getattr(profile, "config", None) if profile else None
-    guided_codes = set(
-        CourseGuide.objects.filter(profile=profile).values_list("course_code", flat=True)
-    ) if profile else set()
+    return {
+        "method_counts": method_counts,
+        "course_counts": course_counts,
+        "total_moves": events.count(),
+        "top_method": method_counts[0] if method_counts else None,
+        "subjects_receiving": len(course_counts),
+    }
 
+
+def _recent_moves_context(request, profile, events):
+    """Recent Moves search + pagination. The dashboard now shows only the
+    first few rows with a "View all" link, but the paginator stays: the
+    instant-search JS still fetches this same view with ?q= and swaps in a
+    fresh slice, and the query-count budget test pins this shape."""
     # Recent Moves search: filters just the table, not the stat boxes above
     # it, so searching for one file doesn't make the overall counts look
     # like they changed. Indexed (FTS5) first, matching filenames, course
@@ -1082,16 +1102,21 @@ def dashboard(request):
     else:
         table_events = events
 
-    # Paginate recent events -- 25 per page instead of loading all 50 at once.
     # select_related avoids one extra query per row for each: the "Why?"
     # panel's event.sort_decision.matched_rule lookup, and the Actions
     # menu's event.summary check (both reverse-OneToOne, both looped over
-    # in dashboard.html -- an N+1 for every row on the page otherwise).
+    # in the recent-moves partial -- an N+1 for every row otherwise).
     paginator = Paginator(table_events.select_related("sort_decision", "summary"), 25)
     page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
+    return {
+        "page_obj": paginator.get_page(page_number),
+        "search_query": search_query,
+    }
 
-    # MUELE integration status for the dashboard panel
+
+def _muele_panel_context(profile):
+    """MUELE course/deadline/sync figures for the dashboard summary line and
+    the MUELE Courses page link. Unchanged from the inline version."""
     muele_connection = None
     muele_courses_count = 0
     muele_upcoming_deadlines = []
@@ -1106,35 +1131,68 @@ def dashboard(request):
             muele_courses_count = MueleCourse.objects.filter(
                 connection=muele_connection, auto_download=True
             ).count()
-            muele_upcoming_deadlines = AssignmentItem.objects.filter(
-                profile=profile, source="muele", status="open"
-            ).order_by("due_at")[:5]
+            muele_upcoming_deadlines = list(
+                AssignmentItem.objects.filter(
+                    profile=profile, source="muele", status="open"
+                ).order_by("due_at")[:5]
+            )
             muele_last_synced_course = (
                 MueleCourse.objects.filter(connection=muele_connection)
                 .exclude(last_sync_at__isnull=True)
                 .order_by("-last_sync_at")
                 .first()
             )
-
-    context = {
-        "profile": profile,
-        "has_any_profile": Profile.objects.exists(),
-        "page_obj": page_obj,
-        "method_counts": method_counts,
-        "course_counts": course_counts,
-        "config": config,
-        "guided_codes": guided_codes,
-        "total_moves": events.count(),
-        "last_move": last_move,
+    return {
         "muele_connection": muele_connection,
         "muele_courses_count": muele_courses_count,
         "muele_upcoming_deadlines": muele_upcoming_deadlines,
         "muele_next_deadline": muele_upcoming_deadlines[0] if muele_upcoming_deadlines else None,
         "muele_last_synced_course": muele_last_synced_course,
-        "search_query": search_query,
     }
+
+
+@perf.measure_view
+def dashboard(request):
+    profile = Profile.get_active()
+    if profile:
+        notifications.check_deadlines(profile, log=write_log)
+        notifications.check_upcoming_classes(profile, log=write_log)
+    events = MoveEvent.objects.filter(profile=profile) if profile else MoveEvent.objects.none()
+    last_move = events.filter(success=True).order_by("-timestamp").first()
+    config = getattr(profile, "config", None) if profile else None
+    guided_codes = set(
+        CourseGuide.objects.filter(profile=profile).values_list("course_code", flat=True)
+    ) if profile else set()
+
+    context = {
+        "profile": profile,
+        "has_any_profile": Profile.objects.exists(),
+        "config": config,
+        "guided_codes": guided_codes,
+        "last_move": last_move,
+    }
+    context.update(_sorting_pulse_context(profile, events))
+    context.update(_recent_moves_context(request, profile, events))
+    context.update(_muele_panel_context(profile))
     context.update(_cockpit_context(request, profile, events, last_move))
+    context["pulse"] = pulse_core.get_snapshot(profile)
+    context["activity_stream"] = pulse_core.get_activity_stream(profile)
     return render(request, "organizer/dashboard.html", context)
+
+
+def sorting_report(request):
+    """Sorting Pulse (files per route method) and Subject Distribution
+    (files per subject) -- the two analytics tables that used to sit on the
+    dashboard as full-width cards. Kept reachable here, linked from the
+    dashboard's compact summary row."""
+    profile = Profile.get_active()
+    events = MoveEvent.objects.filter(profile=profile) if profile else MoveEvent.objects.none()
+    context = {
+        "profile": profile,
+        "last_move": events.filter(success=True).order_by("-timestamp").first(),
+    }
+    context.update(_sorting_pulse_context(profile, events))
+    return render(request, "organizer/sorting_report.html", context)
 
 
 def privacy_policy(request):

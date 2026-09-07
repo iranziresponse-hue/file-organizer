@@ -1,0 +1,42 @@
+{% comment %}
+Tier 2, right column; the activity film. A reverse-chronological stream of
+what Orch has done, from organizer.core.pulse.get_activity_stream() (union of
+MoveEvent, Notification, finished BackgroundTask, ReviewItem changes; capped
+at 30). Phase 4 gives new items a short slide+fade as they arrive and wires
+the announce toggle.
+
+Accessibility: the log is aria-live="off" by default so a screen reader is
+not interrupted every few seconds. "Announce new activity" flips it to
+polite. Regardless, #activity-announcer is a separate polite region that
+Phase 4 updates with a throttled count ("3 new activity items"), never row
+contents, at most once every 30s.
+{% endcomment %}
+<section class="card activity-film" aria-label="Recent activity">
+    <div class="card-header activity-film__head">
+        <div>
+            <span class="eyebrow">Activity</span>
+            <h2>What Orch has been doing</h2>
+        </div>
+        <label class="activity-film__announce">
+            <input type="checkbox" id="activity-announce-toggle">
+            Announce new activity
+        </label>
+    </div>
+
+    <p class="activity-announcer visually-hidden" id="activity-announcer" role="status" aria-live="polite"></p>
+
+    <ol class="activity-list" id="activity-list" role="log" aria-live="off" aria-label="Activity stream"
+        data-announce-key="orch-activity-announce">
+        {% for row in activity_stream %}
+        <li class="activity-row activity-row--{{ row.kind }}" data-key="{{ row.key }}">
+            {% include "organizer/partials/_activity_icon.html" with icon=row.icon %}
+            <a class="activity-row__text" href="{{ row.url }}">{{ row.text }}</a>
+            <time class="activity-row__time" datetime="{{ row.when|date:'c' }}" data-tabular>{{ row.when_short }}</time>
+        </li>
+        {% empty %}
+        <li class="activity-row activity-row--empty">
+            <span class="activity-row__text">Nothing yet. As Orch sorts files, runs syncs, and schedules reviews, it will show up here.</span>
+        </li>
+        {% endfor %}
+    </ol>
+</section>

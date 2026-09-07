@@ -1,0 +1,63 @@
+{% comment %}
+Tier 1; the live strip. One compact row of badges, every one backed by a
+real row or filesystem fact from organizer.core.pulse.get_snapshot(). When
+nothing is happening a badge shows a calm resting state or is omitted; it
+never animates to imply activity that is not there. Phase 3 keeps this
+fresh via GET /api/pulse/ (5s while a task runs, 30s idle, paused when the
+window is hidden). data-pulse-active carries the initial "is anything
+running" flag so the poller starts at the right cadence.
+{% endcomment %}
+<section class="pulse-strip" id="pulse-strip" aria-label="Live status"
+         data-pulse-strip data-pulse-active="{% if pulse.active %}1{% else %}0{% endif %}">
+
+    {% with s=pulse.sorting %}
+    <a class="pulse-badge is-{{ s.state }}" href="{{ s.url }}" data-badge="sorting">
+        <span class="pulse-badge__dot" aria-hidden="true"></span>
+        <span class="pulse-badge__label">{{ s.label }}</span>
+        {% if s.detail %}<span class="pulse-badge__meta" data-tabular>{{ s.detail }}</span>{% endif %}
+    </a>
+    {% endwith %}
+
+    {% if pulse.in_flight %}
+    {% with f=pulse.in_flight %}
+    <a class="pulse-badge is-active" href="{{ f.url }}" data-badge="in_flight">
+        {% if f.indeterminate %}
+        <span class="pulse-badge__spinner" aria-hidden="true"></span>
+        {% else %}
+        <span class="pulse-badge__dot" aria-hidden="true"></span>
+        {% endif %}
+        <span class="pulse-badge__label">{{ f.label }}</span>
+        {% if f.detail %}<span class="pulse-badge__meta" data-tabular>{{ f.detail }}</span>
+        {% elif f.count > 1 %}<span class="pulse-badge__meta" data-tabular>{{ f.count }} running</span>{% endif %}
+    </a>
+    {% endwith %}
+    {% endif %}
+
+    {% if pulse.lecture %}
+    {% with l=pulse.lecture %}
+    <a class="pulse-badge is-{{ l.state }}" href="{{ l.url }}" data-badge="lecture">
+        <span class="pulse-badge__dot" aria-hidden="true"></span>
+        <span class="pulse-badge__label">{{ l.label }}</span>
+        {% if l.detail %}<span class="pulse-badge__meta">{{ l.detail }}</span>{% endif %}
+    </a>
+    {% endwith %}
+    {% endif %}
+
+    {% if pulse.needs_you %}
+    {% with n=pulse.needs_you %}
+    <a class="pulse-badge is-active" href="{{ n.url }}" data-badge="needs_you">
+        <span class="pulse-badge__dot" aria-hidden="true"></span>
+        <span class="pulse-badge__label">{{ n.label }}</span>
+    </a>
+    {% endwith %}
+    {% endif %}
+
+    {% if pulse.deadline %}
+    {% with d=pulse.deadline %}
+    <a class="pulse-badge is-{{ d.state }}" href="{{ d.url }}" data-badge="deadline">
+        <span class="pulse-badge__dot" aria-hidden="true"></span>
+        <span class="pulse-badge__label">{{ d.label }}</span>
+    </a>
+    {% endwith %}
+    {% endif %}
+</section>

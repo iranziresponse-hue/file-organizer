@@ -78,6 +78,33 @@
             --shadow-soft: 0 10px 34px rgba(0, 0, 0, 0.24);
             --ease: 180ms cubic-bezier(0.22, 1, 0.36, 1);
             --ease-slow: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+
+            /* Type scale -- one tight ladder of sizes; weight and tracking
+               contrast carry the rest. "Premium" here means dense and
+               consistent, not shrunk: nothing in the app renders below
+               --fs-2xs (12px), and body copy never below --fs-xs (13px).
+               Small text gets MORE line-height and positive tracking.
+               The marketing site (site/assets/css/style.css) has its own
+               stylesheet and its clamp() heroes are untouched by this. */
+            --fs-3xs: 0.75rem;   /* 12px -- uppercase tracked micro-labels. The
+                                   original draft put this at 11px; Rule 2 and
+                                   the 12px hard floor win, so it equals --fs-2xs
+                                   in size and is set apart by weight + tracking. */
+            --fs-2xs: 0.75rem;   /* 12px -- table meta, badge text, timestamps */
+            --fs-xs: 0.8125rem;  /* 13px -- secondary body, labels, controls, chips */
+            --fs-sm: 0.875rem;   /* 14px -- default body */
+            --fs-md: 1rem;       /* 16px -- emphasized body, panel intros */
+            --fs-lg: 1.125rem;   /* 18px -- card titles (h3) */
+            --fs-xl: 1.375rem;   /* 22px -- card headers (h2), brand wordmark */
+            --fs-2xl: 1.75rem;   /* 28px -- page and section titles */
+            --fs-stat: 2rem;     /* 32px -- the big numbers only */
+            --lh-tight: 1.2;     /* headings, stat numbers */
+            --lh-snug: 1.4;      /* dense UI rows, labels */
+            --lh-body: 1.6;      /* body copy, list items */
+            --ls-tight: -0.01em; /* large headings */
+            --ls-normal: 0;
+            --ls-label: 0.04em;  /* small labels */
+            --ls-micro: 0.08em;  /* uppercase micro-labels at --fs-3xs/--fs-2xs */
         }
 
         html[data-theme="light"] {
@@ -213,6 +240,35 @@
             margin: 0;
         }
 
+        /* -- Phase 1 premium density --------------------------------------
+           Tabular numerals on everything that shows a number which can
+           change while the user watches it (stat cards, badge counts,
+           live pulse figures, activity timestamps), so digits keep their
+           column and don't jitter on each poll. [data-tabular] is the
+           opt-in hook for one-off numeric spans in templates. */
+        .stat .value,
+        .mini-number,
+        .connection-stat strong,
+        .service-score strong,
+        .service-orbit strong,
+        .priority-index,
+        .topbar-power-score strong,
+        .status-bar-count,
+        .pulse-badge__count,
+        .activity-row__time,
+        [data-tabular] {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1, "cv05" 1;
+        }
+
+        /* NB: the Phase 1 brief lists .card-subtitle among the uppercase
+           micro-labels, but in practice it carries full sentences and
+           short paragraphs (first_run.html, settings_edit.html, the
+           large-folder-sort explainer). Uppercasing and tracking those
+           would break the same readability floor the brief sets, so it is
+           deliberately left as secondary body text (see its rule further
+           down, ~14px --fs-sm, normal case). */
+
         code {
             font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
             font-size: 0.88em;
@@ -289,11 +345,13 @@
         }
 
         .app-sidebar-label {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
+            font-size: var(--fs-3xs);
+            font-weight: 600;
+            letter-spacing: var(--ls-micro);
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.38);
+            /* Was rgba(255,255,255,0.38) -- ~3.3:1 on the sidebar, below
+               AA. At the 12px floor this label has to clear 4.5:1. */
+            color: rgba(255, 255, 255, 0.62);
             padding: 0 10px;
             margin-bottom: 4px;
         }
@@ -305,7 +363,7 @@
             padding: 9px 10px;
             border-radius: 10px;
             color: rgba(255, 255, 255, 0.78);
-            font-size: 13.5px;
+            font-size: var(--fs-xs);
             font-weight: 500;
             transition: background var(--ease), color var(--ease);
         }
@@ -343,7 +401,7 @@
             padding: 9px 22px;
             overflow-x: auto;
             scrollbar-width: none;
-            font-size: 12.5px;
+            font-size: var(--fs-2xs);
             color: rgba(255, 255, 255, 0.7);
             background:
                 linear-gradient(0deg, rgba(31, 122, 63, 0.14), rgba(255, 255, 255, 0.03)),
@@ -499,7 +557,7 @@
             place-items: center;
             color: #F8FAFC;
             font-family: "Space Grotesk", sans-serif;
-            font-size: 1.34rem;
+            font-size: var(--fs-xl);
             font-weight: 800;
             background:
                 radial-gradient(circle at 72% 30%, var(--gold) 0 9%, transparent 10%),
@@ -547,7 +605,7 @@
         }
 
         .brand-copy h1 {
-            font-size: clamp(1.04rem, 1.7vw, 1.28rem);
+            font-size: var(--fs-xl);
             line-height: 1.1;
             font-weight: 800;
             margin: 0;
@@ -560,7 +618,7 @@
         .brand-copy span {
             color: var(--muted);
             display: block;
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             font-weight: 750;
             letter-spacing: 0.02em;
             margin-top: 0;
@@ -721,7 +779,7 @@
         }
 
         html.power-rail-active .topbar.has-power-rail .brand-copy h1 {
-            font-size: 1.02rem;
+            font-size: var(--fs-md);
         }
 
         html.power-rail-active .topbar.has-power-rail .nav {
@@ -775,7 +833,7 @@
 
         html.power-rail-active .topbar-power-copy .now-label {
             color: rgba(248, 250, 252, 0.88);
-            font-size: 0.74rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
             letter-spacing: 0.04em;
             text-transform: uppercase;
@@ -800,7 +858,7 @@
 
         .topbar-power-score strong {
             font-family: "Space Grotesk", sans-serif;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             line-height: 1;
         }
 
@@ -926,7 +984,7 @@
             background: var(--glass-strong);
             backdrop-filter: blur(12px);
             color: var(--text);
-            font-size: 0.76rem;
+            font-size: var(--fs-2xs);
             font-weight: 500;
             line-height: 1.4;
             text-transform: none;
@@ -1019,7 +1077,7 @@
             display: block;
             color: var(--text);
             font-family: "Space Grotesk", sans-serif;
-            font-size: 1.35rem;
+            font-size: var(--fs-xl);
             line-height: 1;
         }
 
@@ -1027,7 +1085,7 @@
             display: block;
             margin-top: 6px;
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             text-transform: uppercase;
         }
@@ -1091,7 +1149,7 @@
 
         .connection-area {
             color: var(--accent-label);
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -1107,7 +1165,7 @@
             border-radius: 999px;
             color: var(--muted);
             background: rgba(255, 255, 255, 0.055);
-            font-size: 0.76rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
         }
 
@@ -1137,7 +1195,7 @@
         }
 
         .connection-card h3 {
-            font-size: 1.1rem;
+            font-size: var(--fs-lg);
         }
 
         .connection-reason {
@@ -1146,7 +1204,7 @@
             border-radius: 12px;
             color: var(--faint);
             background: rgba(255, 255, 255, 0.035);
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
         }
 
         .connection-footer {
@@ -1168,12 +1226,12 @@
 
         .connection-meta strong {
             color: var(--text);
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
         }
 
         .connection-meta span {
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         main {
@@ -1259,7 +1317,7 @@
         }
 
         .auth-card h2 {
-            font-size: 1.6rem;
+            font-size: var(--fs-2xl);
             margin: 8px 0;
         }
 
@@ -1277,7 +1335,7 @@
             width: 100%;
             height: 52px;
             border-radius: 16px;
-            font-size: 0.98rem;
+            font-size: var(--fs-md);
         }
 
         .page-heading {
@@ -1300,7 +1358,7 @@
         }
 
         .page-heading h2 {
-            font-size: clamp(2rem, 3.4vw, 3rem);
+            font-size: var(--fs-2xl);
             line-height: 1;
             font-weight: 800;
             color: var(--text);
@@ -1359,14 +1417,14 @@
             width: fit-content;
             margin-bottom: 12px;
             color: var(--accent-label);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 800;
             letter-spacing: 0;
             text-transform: uppercase;
         }
 
         .page-banner h2 {
-            font-size: clamp(1.9rem, 4vw, 3.2rem);
+            font-size: var(--fs-2xl);
             line-height: 1;
             max-width: 16ch;
         }
@@ -1374,7 +1432,7 @@
         .page-banner p {
             max-width: 640px;
             margin-top: 16px;
-            font-size: clamp(1rem, 2vw, 1.12rem);
+            font-size: var(--fs-md);
         }
 
         .grid {
@@ -1466,7 +1524,7 @@
         }
 
         .card h2 {
-            font-size: 1.34rem;
+            font-size: var(--fs-xl);
             line-height: 1.15;
             font-weight: 800;
             color: var(--text);
@@ -1481,7 +1539,7 @@
            color the dark theme never set, breaking the heading hierarchy
            the rest of the app is careful about. */
         .card h3 {
-            font-size: 1.05rem;
+            font-size: var(--fs-lg);
             line-height: 1.2;
             font-weight: 750;
             color: var(--text);
@@ -1491,7 +1549,7 @@
         .card-subtitle {
             color: var(--muted);
             margin-top: 6px;
-            font-size: 0.92rem;
+            font-size: var(--fs-sm);
             font-weight: 500;
         }
 
@@ -1508,7 +1566,7 @@
            not evidence they matter less. */
         .study-secondary .card h2,
         .card.study-secondary h2 {
-            font-size: 1.14rem;
+            font-size: var(--fs-lg);
             font-weight: 750;
         }
 
@@ -1621,7 +1679,7 @@
             text-align: left;
             padding: 12px 10px;
             border-bottom: 1px solid var(--stroke-soft);
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             vertical-align: top;
         }
 
@@ -1630,7 +1688,7 @@
             font-weight: 800;
             letter-spacing: 0;
             text-transform: uppercase;
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
         }
 
         td {
@@ -1689,7 +1747,7 @@
                from four narrow ones in a row, so it was sizing text for
                the full window width regardless of how narrow this
                specific card actually was. */
-            font-size: clamp(1.1rem, 15cqw, 2.6rem);
+            font-size: clamp(var(--fs-lg), 15cqw, var(--fs-stat));
             line-height: 1.15;
             font-weight: 800;
             color: var(--text);
@@ -1699,7 +1757,7 @@
         }
 
         .stat .label {
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             color: var(--muted);
             font-weight: 800;
             letter-spacing: 0;
@@ -1707,7 +1765,7 @@
         }
 
         .stat-detail {
-            font-size: 0.74rem;
+            font-size: var(--fs-2xs);
             font-weight: 600;
             color: var(--muted);
             text-transform: none;
@@ -1719,7 +1777,7 @@
         }
 
         .stat .detail {
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             color: var(--muted);
             font-weight: 600;
             margin-top: 4px;
@@ -1847,7 +1905,7 @@
         label {
             display: block;
             margin: 0 0 8px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             color: var(--muted);
             font-weight: 800;
             letter-spacing: 0;
@@ -1877,7 +1935,7 @@
             gap: 6px;
             padding: 4px 6px 4px 10px;
             border-radius: 999px;
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2018,6 +2076,31 @@
             border: 0 !important;
         }
 
+        /* Skip link: the first focusable element on every page, so keyboard
+           and screen-reader users can jump past the ~15 sidebar links
+           straight to <main>. Off-screen until it takes focus. */
+        .skip-link {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            z-index: 1000;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--field-bg-strong);
+            border: 1px solid var(--stroke);
+            color: var(--text);
+            font-size: var(--fs-xs);
+            font-weight: 600;
+            transform: translateY(-160%);
+            transition: transform var(--ease);
+        }
+
+        .skip-link:focus {
+            transform: translateY(0);
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
         .guide-overlay {
             position: fixed;
             inset: 0;
@@ -2049,12 +2132,12 @@
         }
 
         .guide-panel h3 {
-            font-size: 1.2rem;
+            font-size: var(--fs-lg);
             margin-bottom: 14px;
         }
 
         .guide-panel h4 {
-            font-size: 0.86rem;
+            font-size: var(--fs-sm);
             text-transform: uppercase;
             letter-spacing: 0.02em;
             color: var(--faint);
@@ -2064,14 +2147,14 @@
         .guide-panel p.guide-intro {
             margin: -4px 0 16px;
             color: var(--muted);
-            font-size: 0.92rem;
+            font-size: var(--fs-sm);
         }
 
         .guide-panel ul {
             margin: 0;
             padding-left: 18px;
             color: var(--muted);
-            font-size: 0.92rem;
+            font-size: var(--fs-sm);
             line-height: 1.6;
         }
 
@@ -2117,7 +2200,7 @@
         }
 
         .browser-path {
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             color: var(--faint);
             margin-bottom: 12px;
             word-break: break-all;
@@ -2140,7 +2223,7 @@
             padding: 8px 10px;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             color: var(--text);
         }
 
@@ -2167,7 +2250,7 @@
         }
 
         .summary-meta {
-            font-size: 0.8rem;
+            font-size: var(--fs-xs);
             color: var(--muted);
             font-weight: 600;
             margin-bottom: 16px;
@@ -2182,14 +2265,14 @@
 
         .summary-body h1 {
             font-family: "Space Grotesk", sans-serif;
-            font-size: 1.6rem;
+            font-size: var(--fs-2xl);
             margin-bottom: 16px;
             line-height: 1.25;
         }
 
         .summary-body h2 {
             font-family: "Space Grotesk", sans-serif;
-            font-size: 1.1rem;
+            font-size: var(--fs-lg);
             margin: 26px 0 10px;
             color: var(--accent-label);
         }
@@ -2198,7 +2281,7 @@
             color: var(--text);
             line-height: 1.75;
             margin-bottom: 14px;
-            font-size: 0.96rem;
+            font-size: var(--fs-md);
             font-weight: 500;
         }
 
@@ -2211,7 +2294,7 @@
         .summary-body li {
             line-height: 1.7;
             margin-bottom: 8px;
-            font-size: 0.96rem;
+            font-size: var(--fs-md);
             font-weight: 500;
         }
 
@@ -2290,7 +2373,7 @@
             height: 30px;
             min-height: 30px;
             padding: 4px 10px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         .filter-pill-active {
@@ -2338,7 +2421,7 @@
         }
 
         .section-label {
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             color: var(--faint);
             font-weight: 700;
             text-transform: uppercase;
@@ -2389,12 +2472,12 @@
         }
 
         .field-note {
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
             color: var(--muted);
         }
 
         .path-detail-small {
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         .choice-option-centered {
@@ -2475,7 +2558,7 @@
         }
 
         .practice-question {
-            font-size: 1.15rem;
+            font-size: var(--fs-lg);
             margin: 8px 0 16px;
         }
 
@@ -2555,7 +2638,7 @@
         }
 
         .workspace-page .page-heading h2 {
-            font-size: clamp(1.8rem, 2.2vw, 2.35rem);
+            font-size: var(--fs-2xl);
             line-height: 1.08;
             font-weight: 760;
         }
@@ -2563,14 +2646,14 @@
         .workspace-page .page-heading p {
             margin-top: 8px;
             max-width: 760px;
-            font-size: 0.98rem;
+            font-size: var(--fs-md);
             line-height: 1.55;
         }
 
         .workspace-page .eyebrow {
             margin-bottom: 8px;
             color: var(--muted);
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             text-transform: none;
         }
@@ -2622,7 +2705,7 @@
 
         .workspace-callout-text {
             color: var(--text);
-            font-size: 1rem;
+            font-size: var(--fs-md);
             line-height: 1.55;
         }
 
@@ -2653,7 +2736,7 @@
             align-items: center;
             margin-top: 8px;
             color: var(--muted);
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             line-height: 1.45;
         }
 
@@ -2692,7 +2775,7 @@
             border-radius: 0;
             background: transparent;
             color: var(--muted);
-            font-size: 0.84rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
         }
 
@@ -2715,7 +2798,7 @@
 
         .workspace-page .connection-area {
             color: var(--muted);
-            font-size: 0.8rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             letter-spacing: 0;
             text-transform: none;
@@ -2775,7 +2858,7 @@
         }
 
         .assignment-evidence {
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         .assignment-checklist {
@@ -2866,7 +2949,7 @@
         .search-status {
             min-height: 18px;
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
         }
 
@@ -3027,12 +3110,12 @@
 
         .setting-switch-copy strong {
             color: var(--text);
-            font-size: 0.94rem;
+            font-size: var(--fs-sm);
         }
 
         .setting-switch-copy span {
             color: var(--muted);
-            font-size: 0.8rem;
+            font-size: var(--fs-xs);
             line-height: 1.35;
         }
 
@@ -3095,7 +3178,7 @@
         }
 
         .toggle-save-flash {
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             color: var(--green);
             opacity: 0;
             transition: opacity var(--ease-slow);
@@ -3127,13 +3210,13 @@
         }
 
         .form-section-header h3 {
-            font-size: 1rem;
+            font-size: var(--fs-md);
             line-height: 1.25;
         }
 
         .form-section-header p {
             color: var(--faint);
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
         }
 
         .form-actions {
@@ -3144,7 +3227,7 @@
         }
 
         .help-text {
-            font-size: 0.88rem;
+            font-size: var(--fs-sm);
             color: var(--faint);
         }
 
@@ -3159,7 +3242,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             color: var(--faint);
         }
 
@@ -3173,7 +3256,7 @@
             height: 34px;
             min-height: 34px;
             padding: 6px 14px;
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             border-radius: 10px;
         }
 
@@ -3181,7 +3264,7 @@
             height: 30px;
             min-height: 30px;
             padding: 4px 10px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             border-radius: 10px;
         }
 
@@ -3201,7 +3284,7 @@
             height: 30px;
             min-height: 30px;
             padding: 4px 10px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             border-radius: 8px;
         }
 
@@ -3242,7 +3325,7 @@
             border-radius: 10px;
             background: var(--glass);
             border: 1px solid var(--stroke-soft);
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             color: var(--muted);
         }
 
@@ -3274,7 +3357,7 @@
             padding: 8px 12px;
             color: var(--text);
             cursor: pointer;
-            font-size: 0.88rem;
+            font-size: var(--fs-sm);
             font-weight: 650;
             list-style: none;
         }
@@ -3338,7 +3421,7 @@
             min-height: 34px;
             padding: 8px 10px;
             border-radius: 6px;
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
             color: var(--text);
             cursor: pointer;
             transition: background var(--ease);
@@ -3363,7 +3446,7 @@
             min-height: 30px;
             padding: 4px 10px;
             border-radius: 8px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         /* Command palette (Ctrl/Cmd+K): jump to any nav destination, file,
@@ -3379,7 +3462,7 @@
         .confirm-panel #confirm-message {
             margin: 0 0 20px;
             color: var(--text);
-            font-size: 0.98rem;
+            font-size: var(--fs-md);
             line-height: 1.5;
         }
 
@@ -3433,7 +3516,7 @@
             border: 1px solid var(--stroke-soft);
             color: var(--muted);
             font-family: inherit;
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             font-weight: 700;
         }
 
@@ -3445,7 +3528,7 @@
         .palette-group-label {
             padding: 8px 10px 4px;
             color: var(--muted);
-            font-size: 0.7rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -3500,7 +3583,7 @@
 
         .palette-item-title {
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             font-weight: 700;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -3509,7 +3592,7 @@
 
         .palette-item-subtitle {
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -3519,7 +3602,7 @@
             padding: 24px 20px;
             text-align: center;
             color: var(--muted);
-            font-size: 0.88rem;
+            font-size: var(--fs-sm);
         }
 
         .palette-empty[hidden] {
@@ -3577,9 +3660,10 @@
         .messages li {
             position: relative;
             overflow: hidden;
-            padding: 12px 16px;
+            /* extra right padding leaves room for the .toast-dismiss button */
+            padding: 12px 34px 12px 16px;
             border-radius: 12px;
-            font-size: 0.92rem;
+            font-size: var(--fs-sm);
             border: 1px solid var(--stroke);
             background: var(--glass-strong);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
@@ -3621,9 +3705,44 @@
             animation-duration: var(--toast-duration, 3200ms);
         }
 
+        /* Hovering or keyboard-focusing a toast freezes its auto-dismiss
+           countdown (WCAG 2.2.1); freeze the progress bar to match. */
+        .messages li.is-paused .toast-progress {
+            animation-play-state: paused;
+        }
+
         @keyframes toast-shrink {
             from { transform: scaleX(1); }
             to { transform: scaleX(0); }
+        }
+
+        .toast-dismiss {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: inherit;
+            opacity: 0.65;
+            cursor: pointer;
+        }
+
+        .toast-dismiss:hover,
+        .toast-dismiss:focus-visible {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .toast-dismiss svg {
+            width: 14px;
+            height: 14px;
         }
 
         .messages .success {
@@ -3661,7 +3780,7 @@
             min-height: 24px;
             padding: 0;
             border-radius: 0;
-            font-size: 0.84rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
             background: transparent;
             border: 0;
@@ -3693,7 +3812,7 @@
             min-height: 24px;
             cursor: pointer;
             color: var(--muted);
-            font-size: 0.84rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
             transition: color var(--ease), transform var(--ease);
         }
@@ -3725,7 +3844,7 @@
             color: var(--text);
             cursor: pointer;
             text-transform: none;
-            font-size: 0.92rem;
+            font-size: var(--fs-sm);
             font-weight: 500;
             transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
         }
@@ -3812,7 +3931,7 @@
         }
 
         .profile-main h3 {
-            font-size: 1rem;
+            font-size: var(--fs-md);
             line-height: 1.2;
             font-weight: 800;
             overflow-wrap: anywhere;
@@ -3936,7 +4055,7 @@
             background: var(--success-bg);
             color: var(--success-text);
             font-weight: 700;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             line-height: 1;
             white-space: nowrap;
             box-shadow: 0 0 16px var(--success-ring);
@@ -3978,7 +4097,7 @@
             border: 1px solid var(--stroke-soft);
             background: rgba(255, 255, 255, 0.07);
             color: var(--faint);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             line-height: 1;
             white-space: nowrap;
@@ -4038,7 +4157,7 @@
         .mini-label {
             display: block;
             color: var(--muted);
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0;
@@ -4119,7 +4238,7 @@
 
         .mission-main h2 {
             max-width: 14ch;
-            font-size: clamp(2.1rem, 5vw, 4.2rem);
+            font-size: var(--fs-2xl);
             line-height: 0.92;
             font-weight: 800;
         }
@@ -4128,7 +4247,7 @@
             max-width: 680px;
             margin-top: 14px;
             color: var(--faint);
-            font-size: clamp(1rem, 1.6vw, 1.18rem);
+            font-size: var(--fs-md);
         }
 
         .mission-actions {
@@ -4237,14 +4356,14 @@
             top: 10px;
             color: rgba(255, 255, 255, 0.13);
             font-family: "Space Grotesk", sans-serif;
-            font-size: 2.6rem;
+            font-size: var(--fs-stat);
             line-height: 1;
             font-weight: 800;
         }
 
         .priority-card h3 {
             margin-top: 9px;
-            font-size: 1.18rem;
+            font-size: var(--fs-lg);
             line-height: 1.05;
             max-width: 16ch;
         }
@@ -4252,7 +4371,7 @@
         .priority-card p {
             margin-top: 8px;
             color: var(--muted);
-            font-size: 0.84rem;
+            font-size: var(--fs-xs);
             line-height: 1.38;
         }
 
@@ -4266,7 +4385,7 @@
         .priority-footer span {
             min-width: 0;
             color: var(--faint);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 800;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -4319,14 +4438,14 @@
         .service-orbit strong {
             font-family: "Space Grotesk", sans-serif;
             color: var(--text);
-            font-size: clamp(1.85rem, 3.2vw, 2.8rem);
+            font-size: var(--fs-stat);
             line-height: 0.95;
             font-weight: 800;
         }
 
         .service-orbit span {
             color: var(--muted);
-            font-size: 0.72rem;
+            font-size: var(--fs-2xs);
             font-weight: 800;
             text-transform: uppercase;
         }
@@ -4340,7 +4459,7 @@
 
         .service-brief h2 {
             max-width: 18ch;
-            font-size: clamp(1.55rem, 3vw, 2.35rem);
+            font-size: var(--fs-2xl);
             line-height: 0.98;
         }
 
@@ -4378,12 +4497,12 @@
         }
 
         .service-priority h3 {
-            font-size: 1.15rem;
+            font-size: var(--fs-lg);
             line-height: 1.05;
         }
 
         .service-priority p {
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
         }
 
         .service-priority-action {
@@ -4391,7 +4510,7 @@
             height: 34px;
             min-height: 34px;
             padding: 7px 12px;
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
         }
 
         .service-score {
@@ -4404,14 +4523,14 @@
         .service-score strong {
             font-family: "Space Grotesk", sans-serif;
             color: var(--text);
-            font-size: clamp(2rem, 4vw, 3.2rem);
+            font-size: var(--fs-stat);
             line-height: 0.95;
             font-weight: 800;
         }
 
         .service-score span {
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 800;
             text-transform: uppercase;
         }
@@ -4436,12 +4555,12 @@
         }
 
         .service-lane h3 {
-            font-size: 1rem;
+            font-size: var(--fs-md);
             line-height: 1.1;
         }
 
         .service-lane p {
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
         }
 
         .service-list {
@@ -4519,7 +4638,7 @@
         .service-title h4 {
             margin: 0;
             color: var(--text);
-            font-size: 0.93rem;
+            font-size: var(--fs-sm);
             line-height: 1.18;
             font-weight: 800;
         }
@@ -4527,7 +4646,7 @@
         .service-node p {
             margin-top: 4px;
             color: var(--muted);
-            font-size: 0.8rem;
+            font-size: var(--fs-xs);
             line-height: 1.35;
         }
 
@@ -4535,7 +4654,7 @@
             display: block;
             margin-top: 6px;
             color: var(--faint);
-            font-size: 0.76rem;
+            font-size: var(--fs-2xs);
             font-weight: 700;
             line-height: 1.3;
         }
@@ -4545,7 +4664,7 @@
             height: 30px;
             min-height: 30px;
             padding: 5px 10px;
-            font-size: 0.76rem;
+            font-size: var(--fs-2xs);
         }
 
         /* Dashboard: plain, even cards instead of command-center panels. */
@@ -4564,7 +4683,7 @@
 
         .mission-main h2 {
             max-width: 22ch;
-            font-size: clamp(2rem, 3vw, 2.55rem);
+            font-size: var(--fs-2xl);
             line-height: 1.08;
             font-weight: 760;
         }
@@ -4619,7 +4738,7 @@
         }
 
         .priority-card p {
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
             line-height: 1.45;
         }
 
@@ -4686,7 +4805,7 @@
 
         @media (max-width: 700px) {
             .mission-main h2 {
-                font-size: 1.9rem;
+                font-size: var(--fs-2xl);
             }
         }
 
@@ -4739,7 +4858,7 @@
 
         .mini-number {
             font-family: "Space Grotesk", sans-serif;
-            font-size: 1.68rem;
+            font-size: var(--fs-2xl);
             line-height: 1;
             font-weight: 800;
             color: var(--text);
@@ -4766,7 +4885,7 @@
         }
 
         .next-action h3 {
-            font-size: clamp(1.25rem, 2vw, 1.78rem);
+            font-size: var(--fs-xl);
             line-height: 1.05;
             font-weight: 800;
             max-width: 16ch;
@@ -4826,7 +4945,7 @@
         .timeline-detail {
             margin-top: 3px;
             color: var(--muted);
-            font-size: 0.86rem;
+            font-size: var(--fs-sm);
             font-weight: 500;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -4859,7 +4978,7 @@
                 linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.028)),
                 rgba(255, 255, 255, 0.038);
             color: var(--text);
-            font-size: 0.88rem;
+            font-size: var(--fs-sm);
             font-weight: 500;
             transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
         }
@@ -4880,7 +4999,7 @@
             grid-column: 1 / -1;
             padding-top: 4px;
             color: var(--muted);
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
         }
 
@@ -4891,7 +5010,7 @@
         }
 
         .command-search {
-            font-size: 1rem;
+            font-size: var(--fs-md);
         }
 
         .command-list {
@@ -4923,7 +5042,7 @@
 
         .command-item small {
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
         }
 
@@ -4956,7 +5075,7 @@
         }
 
         .empty-state h3 {
-            font-size: 1.2rem;
+            font-size: var(--fs-lg);
             font-weight: 800;
         }
 
@@ -4969,7 +5088,7 @@
 
         .path-text {
             color: var(--muted);
-            font-size: 0.82rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
             /* The one column with genuinely long, space-less content (full
                file paths) -- this is where a mid-word break is actually the
@@ -5124,7 +5243,7 @@
         }
 
         html[data-theme="light"] .app-sidebar-label {
-            color: rgba(17, 24, 39, 0.42);
+            color: rgba(17, 24, 39, 0.66);
         }
 
         html[data-theme="light"] .app-sidebar-link {
@@ -5662,7 +5781,7 @@
             }
 
             .page-banner h2 {
-                font-size: 2.15rem;
+                font-size: var(--fs-2xl);
             }
 
             .card-header {
@@ -5736,7 +5855,7 @@ body.has-desktop-titlebar {
     gap: 8px;
     padding: 0 12px;
     color: var(--muted);
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     font-weight: 600;
     letter-spacing: 0.02em;
     /* user-select:none already stops the "Orch" label from being selected,
@@ -5992,13 +6111,13 @@ html.power-rail-active .topbar.has-power-rail .brand-logo-svg {
 
 .brand-copy h1,
 html.power-rail-active .topbar.has-power-rail .brand-copy h1 {
-    font-size: 1rem;
+    font-size: var(--fs-md);
     font-weight: 750;
 }
 
 .brand-copy span {
     color: var(--faint);
-    font-size: 0.72rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
 }
 
@@ -6082,7 +6201,7 @@ html[data-theme="light"].power-rail-active .topbar-power {
 html.power-rail-active .topbar-power-copy .now-label,
 html[data-theme="light"].power-rail-active .topbar-power-copy .now-label {
     color: var(--muted);
-    font-size: 0.76rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     text-transform: none;
     letter-spacing: 0;
@@ -6159,7 +6278,7 @@ html[data-theme="light"] .timeline-item:hover {
 
 .page-heading h2,
 .mission-main h2 {
-    font-size: clamp(1.65rem, 2.2vw, 2.2rem);
+    font-size: var(--fs-2xl);
     line-height: 1.12;
     font-weight: 750;
 }
@@ -6173,14 +6292,33 @@ html[data-theme="light"] .timeline-item:hover {
     color: var(--muted);
 }
 
-.eyebrow,
-.connection-area,
-.mini-label,
-.now-label {
+.connection-area {
     color: var(--faint);
     font-weight: 650;
     text-transform: none;
     letter-spacing: 0;
+}
+
+/* Micro-labels: the tight, tracked, uppercase treatment from the Phase 1
+   type scale. These sit in the flattening section on purpose -- it is the
+   layer that currently has the last word on these selectors, so aligning
+   them to the scale here (rather than in an earlier, overridden block) is
+   what actually takes effect. Body-length text never gets this; see the
+   .card-subtitle note above. */
+.eyebrow,
+.mini-label,
+.now-label {
+    color: var(--faint);
+    font-size: var(--fs-3xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-micro);
+    line-height: var(--lh-snug);
+}
+
+.eyebrow {
+    color: var(--accent-label);
+    font-weight: 700;
 }
 
 .button,
@@ -6391,20 +6529,20 @@ html[data-theme="light"] .desktop-titlebar {
 
 .settings-detail summary {
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
 }
 
 .settings-detail ol {
     margin-top: 8px;
     padding-left: 20px;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     line-height: 1.7;
 }
 
 .settings-detail p,
 .settings-note {
     margin-top: 8px;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
 }
 
 .settings-gap {
@@ -6438,7 +6576,7 @@ body.has-desktop-titlebar {
 }
 
 body.has-desktop-titlebar .desktop-titlebar-drag {
-    font-size: 0.76rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
 }
 
@@ -6537,11 +6675,11 @@ body.has-desktop-titlebar .brand-logo-svg {
 }
 
 body.has-desktop-titlebar .brand-copy h1 {
-    font-size: 0.96rem;
+    font-size: var(--fs-md);
 }
 
 body.has-desktop-titlebar .brand-copy span {
-    font-size: 0.7rem;
+    font-size: var(--fs-2xs);
 }
 
 body.has-desktop-titlebar .nav {
@@ -6599,7 +6737,7 @@ body.has-desktop-titlebar .page-heading h2,
 body.has-desktop-titlebar .page-banner h2,
 body.has-desktop-titlebar .mission-main h2 {
     max-width: none;
-    font-size: 1.45rem;
+    font-size: var(--fs-xl);
     line-height: 1.22;
     font-weight: 720;
 }
@@ -6608,12 +6746,12 @@ body.has-desktop-titlebar .page-heading p,
 body.has-desktop-titlebar .page-banner p {
     max-width: 720px;
     margin-top: 5px;
-    font-size: 0.92rem;
+    font-size: var(--fs-sm);
 }
 
 body.has-desktop-titlebar .eyebrow {
     margin-bottom: 6px;
-    font-size: 0.76rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     color: var(--faint);
 }
@@ -6660,12 +6798,12 @@ body.has-desktop-titlebar .card-header {
 }
 
 body.has-desktop-titlebar .card h2 {
-    font-size: 1.08rem;
+    font-size: var(--fs-lg);
     font-weight: 700;
 }
 
 body.has-desktop-titlebar .card h3 {
-    font-size: 1rem;
+    font-size: var(--fs-md);
     font-weight: 700;
 }
 
@@ -6673,7 +6811,7 @@ body.has-desktop-titlebar .card-subtitle,
 body.has-desktop-titlebar .help-text,
 body.has-desktop-titlebar .connection-reason,
 body.has-desktop-titlebar .service-node p {
-    font-size: 0.88rem;
+    font-size: var(--fs-sm);
 }
 
 body.has-desktop-titlebar .button,
@@ -6681,7 +6819,7 @@ body.has-desktop-titlebar button {
     height: 34px;
     min-height: 34px !important;
     padding: 7px 12px;
-    font-size: 0.84rem;
+    font-size: var(--fs-xs);
 }
 
 body.has-desktop-titlebar .connection-summary-grid,
@@ -6749,7 +6887,7 @@ body.has-desktop-titlebar .suggestion-token {
     background: transparent;
     box-shadow: none;
     color: var(--faint);
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     font-weight: 650;
 }
 
@@ -6773,7 +6911,7 @@ body.has-desktop-titlebar .mini-tile {
 }
 
 body.has-desktop-titlebar .mini-number {
-    font-size: 1.28rem;
+    font-size: var(--fs-xl);
 }
 
 body.has-desktop-titlebar .now-strip {
@@ -6940,7 +7078,7 @@ body.has-desktop-titlebar .table-shell table {
     body.has-desktop-titlebar .dashboard-recent-card .recent-move-row td::before {
         content: attr(data-label);
         color: var(--faint);
-        font-size: 0.74rem;
+        font-size: var(--fs-2xs);
         font-weight: 750;
     }
 
@@ -7130,5 +7268,335 @@ body.has-desktop-titlebar .table-shell table {
     body.has-desktop-titlebar .service-priority,
     body.has-desktop-titlebar .connection-card {
         min-height: 0;
+    }
+}
+
+/* ===================================================================
+   Live dashboard -- pulse strip (Tier 1), focus + activity film
+   (Tier 2), "More detail" disclosure (Tier 3). Added when the
+   dashboard was decongested and split into partials.
+
+   Motion is opt-in: it only plays inside
+   @media (prefers-reduced-motion: no-preference), so the existing
+   (prefers-reduced-motion: reduce) block up the file does not need a
+   single new line and users who ask for less motion get none of it.
+   Type uses the --fs-* scale; nothing here is below 12px.
+   =================================================================== */
+
+.dashboard-page {
+    gap: 18px;
+}
+
+/* Tier 1 -- pulse strip -------------------------------------------------- */
+.pulse-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pulse-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--stroke);
+    background: var(--glass);
+    color: var(--text);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: var(--lh-snug);
+    text-decoration: none;
+    transition: border-color var(--ease), background var(--ease);
+}
+
+.pulse-badge:hover {
+    border-color: var(--stroke);
+    background: var(--glass-strong);
+    color: var(--text);
+}
+
+.pulse-badge__label {
+    white-space: nowrap;
+}
+
+.pulse-badge__meta {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.pulse-badge__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+}
+
+.pulse-badge.is-active {
+    border-color: var(--success-border);
+    background: var(--success-bg);
+    color: var(--text);
+}
+
+.pulse-badge.is-active .pulse-badge__dot {
+    background: var(--green);
+}
+
+.pulse-badge__spinner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--stroke);
+    border-top-color: var(--green);
+    flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .pulse-badge.is-active .pulse-badge__dot {
+        animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    .pulse-badge__spinner {
+        animation: pulse-spin 0.8s linear infinite;
+    }
+}
+
+@keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 var(--green-glow); }
+    50% { box-shadow: 0 0 0 5px transparent; }
+}
+
+@keyframes pulse-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Tier 2 -- focus card + activity film --------------------------------- */
+.dashboard-tier2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.focus-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.focus-card h2 {
+    font-size: var(--fs-xl);
+    line-height: var(--lh-tight);
+}
+
+.focus-card > p {
+    font-size: var(--fs-sm);
+}
+
+.focus-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.activity-film {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.activity-film__head {
+    align-items: flex-start;
+}
+
+.activity-film__announce {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.activity-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.activity-row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 34px;
+    padding: 5px 2px;
+    border-bottom: 1px solid var(--stroke-soft);
+    font-size: var(--fs-xs);
+}
+
+.activity-row:last-child {
+    border-bottom: 0;
+}
+
+.activity-row__icon {
+    width: 18px;
+    height: 18px;
+    color: var(--muted);
+}
+
+.activity-row__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.activity-row--move_failed .activity-row__icon,
+.activity-row--task_failed .activity-row__icon {
+    color: var(--red);
+}
+
+.activity-row--task_done .activity-row__icon,
+.activity-row--review_done .activity-row__icon {
+    color: var(--green);
+}
+
+.activity-row__text {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-row__text:hover {
+    color: var(--text);
+    text-decoration: underline;
+}
+
+.activity-row__time {
+    font-size: var(--fs-3xs);
+    font-weight: 600;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+.activity-row--empty {
+    grid-template-columns: 1fr;
+    color: var(--muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .activity-row.is-entering {
+        animation: activity-in 180ms ease-out;
+    }
+}
+
+@keyframes activity-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tier 3 -- "More detail" disclosure --------------------------------- */
+.dashboard-more {
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    background: var(--glass);
+}
+
+.dashboard-more > summary {
+    cursor: pointer;
+    padding: 12px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    list-style: none;
+}
+
+.dashboard-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.dashboard-more__title {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--text);
+}
+
+.dashboard-more__hint {
+    font-size: var(--fs-2xs);
+    color: var(--muted);
+}
+
+.dashboard-more[open] > summary {
+    border-bottom: 1px solid var(--stroke-soft);
+}
+
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    padding: 14px 16px;
+}
+
+.summary-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--stroke-soft);
+    background: var(--glass);
+    text-decoration: none;
+}
+
+.summary-stat:hover {
+    border-color: var(--stroke);
+    background: var(--glass-strong);
+}
+
+.summary-stat__label {
+    font-size: var(--fs-3xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--ls-micro);
+    color: var(--faint);
+}
+
+.summary-stat__value {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: var(--fs-xl);
+    font-weight: 800;
+    color: var(--text);
+}
+
+.summary-stat__meta {
+    font-size: var(--fs-2xs);
+    color: var(--muted);
+}
+
+.dashboard-more__restore {
+    padding: 0 16px 12px;
+}
+
+.plain-status {
+    margin: 0 16px 14px;
+}
+
+.dashboard-recent-more {
+    margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+    .dashboard-tier2 {
+        grid-template-columns: 1fr;
     }
 }

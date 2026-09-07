@@ -1,0 +1,88 @@
+{% extends "organizer/base.html" %}
+{% load orch_extras %}
+
+{% block title %}Sorting report - Orch{% endblock %}
+
+{% block content %}
+<div class="page-stack page-center page-wide">
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h2>Sorting report</h2>
+            <p>How files reached their folders, and which subjects are getting them. These two views used to sit on the dashboard.</p>
+        </div>
+        <div class="inline-actions">
+            <a class="button button-ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+            <a class="button button-ghost" href="{% url 'timeline' %}">Open timeline</a>
+        </div>
+    </section>
+
+    {% if not profile %}
+    <section class="card compact-card">
+        <div class="empty-state">
+            <div>
+                <h3>No active profile</h3>
+                <p>Activate a profile to see how its files are being sorted.</p>
+            </div>
+            <a class="button" href="{% url 'profiles_list' %}">Choose a profile</a>
+        </div>
+    </section>
+    {% else %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Sorting pulse</h2>
+                <p class="card-subtitle">Files handled by route method</p>
+            </div>
+        </div>
+        <div class="stat-row">
+            <div class="stat {% if total_moves %}stat-live{% else %}stat-muted{% endif %}">
+                <div class="value" data-tabular>{{ total_moves }}</div>
+                <div class="label">Total files sorted</div>
+                {% if last_move %}
+                <div class="stat-detail" title="{{ last_move.filename }}">{{ last_move.filename }} &middot; {{ last_move.timestamp|date:"M j, Y, g:i A" }}</div>
+                {% else %}
+                <div class="stat-detail">No files sorted yet</div>
+                {% endif %}
+            </div>
+            {% for row in method_counts %}
+            <div class="stat {% if row.total %}stat-live{% endif %}">
+                <div class="value" data-tabular>{{ row.total }}</div>
+                <div class="label">{{ row.label }}</div>
+                {% if row.last_event %}
+                <div class="stat-detail">{{ row.last_event.timestamp|date:"M j, Y, g:i A" }}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="stat">
+                <div class="value" data-tabular>0</div>
+                <div class="label">Waiting for first move</div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if course_counts %}
+    <section class="card">
+        <div class="card-header">
+            <div>
+                <h2>Subject distribution</h2>
+                <p class="card-subtitle">Which subjects are receiving files</p>
+            </div>
+        </div>
+        <div class="table-shell">
+            <table>
+                <tr><th>Subject</th><th>Files</th></tr>
+                {% for row in course_counts %}
+                <tr>
+                    <td><span class="meta-token">{{ row.course_code|course_label }}</span></td>
+                    <td data-tabular>{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

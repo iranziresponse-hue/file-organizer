@@ -1,0 +1,25 @@
+{% comment %}
+Tier 2, left column; the single primary "do this next" card. This is the
+only thing on the dashboard asking for a decision; everything else is
+status or history. next_best_action is built by views.dashboard._next_best_action.
+{% endcomment %}
+<section class="card focus-card is-{{ next_best_action.state }}" aria-label="Suggested next step">
+    <span class="eyebrow">Next best step</span>
+    <h2>{{ next_best_action.title }}</h2>
+    <p>{{ next_best_action.detail }}</p>
+    <div class="focus-card__actions">
+        {% if next_best_action.summary_move_id %}
+        <button type="button" class="button button-live summarize-btn" data-move-id="{{ next_best_action.summary_move_id }}" data-action="view">{{ next_best_action.label }}</button>
+        {% elif next_best_action.post_action %}
+        <form method="post" action="{{ next_best_action.url }}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="{{ next_best_action.post_action }}">
+            <button type="submit" class="button-live">{{ next_best_action.label }}</button>
+        </form>
+        {% else %}
+        <a class="button button-live" href="{{ next_best_action.url }}">{{ next_best_action.label }}</a>
+        {% endif %}
+        <a class="button button-ghost" href="{% url 'sorting_inbox' %}">Files to check</a>
+        <a class="button button-ghost" href="{% url 'career_home' %}">Projects</a>
+    </div>
+</section>
