@@ -85,7 +85,7 @@ jobs:
         # The README and the landing page's download button both point
         # directly at .../releases/latest/download/Orch-Setup.exe.
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist_installer\Orch-Setup.exe
           generate_release_notes: true
