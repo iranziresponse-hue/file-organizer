@@ -1,0 +1,31 @@
+{% comment %}
+Hidden "Move file" dialog for the Recent Moves row action. Shown via
+dashboard-moves.js. Split out of dashboard.html unchanged.
+{% endcomment %}
+<div id="move-form" class="guide-overlay" hidden>
+    <div class="guide-panel panel-narrow">
+        <button type="button" class="guide-close" id="move-close">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <h3>Move file</h3>
+        <p class="help-text help-gap" id="move-filename"></p>
+        <form method="post" id="move-form-inner">
+            {% csrf_token %}
+            <div class="field">
+                <label for="move_destination">New folder</label>
+                <div class="field-control">
+                    <input type="text" id="move_destination" name="new_destination" placeholder="C:\Users\...\Subject\Category" required>
+                    <button type="button" class="button-ghost" onclick="openFolderBrowser('move_destination')">Browse</button>
+                </div>
+            </div>
+            <label class="check-label">
+                <input type="checkbox" name="confirm_external" value="1">
+                This folder is outside my usual Orch folders, move it anyway
+            </label>
+            <div id="move-feedback" class="help-text feedback-message"></div>
+            <div class="form-actions form-actions-spaced">
+                <button type="submit" id="move-submit">Move file</button>
+            </div>
+        </form>
+    </div>
+</div>

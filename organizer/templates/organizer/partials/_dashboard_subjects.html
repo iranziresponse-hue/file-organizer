@@ -1,0 +1,27 @@
+{% comment %}
+Quick access to this profile's subjects and their course guides. Was a
+full-width "Current {secondary_label}" card on the old dashboard; kept here
+as a slim strip. The course-guide buttons still drive course-guide.js
+(loaded in base.html), so data-has-guide / the guide overlay are unchanged.
+{% endcomment %}
+{% if config %}
+<section class="card compact-card dashboard-subjects" aria-label="Subjects">
+    <div class="card-header">
+        <div>
+            <span class="eyebrow">{{ profile.name }}</span>
+            <h3>{{ config.primary_value }} &middot; {{ config.secondary_value }}</h3>
+        </div>
+        <a class="button button-ghost button-compact" href="{% url 'profile_edit' profile.pk %}">Edit</a>
+    </div>
+    <div class="meta-list" aria-label="Subjects">
+        {% for c in config.groups %}
+        <button type="button" class="suggestion-token course-guide-btn" data-profile-id="{{ profile.pk }}" data-course-code="{{ c }}" data-has-guide="{% if c in guided_codes %}true{% else %}false{% endif %}">{{ c }}</button>
+        {% empty %}
+        <span class="meta-token">No subjects yet</span>
+        {% endfor %}
+    </div>
+    {% if config.groups %}
+    <p class="help-text">Open a subject to generate or view its course guide.</p>
+    {% endif %}
+</section>
+{% endif %}

@@ -11,12 +11,15 @@ Fallback contract: the NLP layer always returns something meaningful from
 filenames alone. The AI layer is an enhancement, never a hard dependency.
 """
 
+import logging
 import re
 import string
 from pathlib import Path
 from typing import Callable, Optional
 
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from organizer.models import MoveEvent, SubjectMemory, SubjectTheme
 
@@ -148,6 +151,10 @@ def _tfidf_keywords(texts: list[str], top_n: int = 10) -> list[str]:
         ranked = sorted(zip(terms, scores), key=lambda x: -x[1])
         return [term for term, _ in ranked[:top_n]]
     except Exception:
+        # The plain-keyword fallback below is a fine result, so this stays
+        # non-fatal -- but log it, or a broken scikit-learn install (or a
+        # genuinely bad input) silently degrades topic quality forever.
+        logger.warning("TF-IDF keyword extraction failed, using fallback", exc_info=True)
         merged = " ".join(texts)
         return _extract_keywords(merged, top_n)
 
@@ -215,6 +222,7 @@ def _ai_extract_topics(filename: str, summary_text: str = "",
                 topics.append(line)
         return topics[:6]
     except Exception as exc:
+        logger.warning("AI topic extraction failed for %r: %s", filename, exc)
         if log:
             log(f"AI topic extraction skipped for '{filename}': {exc}")
         return []
