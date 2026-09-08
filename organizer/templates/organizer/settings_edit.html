@@ -1,4 +1,5 @@
 {% extends "organizer/base.html" %}
+{% load static %}
 
 {% block title %}Settings - Orch{% endblock %}
 
@@ -13,7 +14,7 @@
     </section>
 
     <section class="card compact-card">
-        <form method="post" class="form-grid">
+        <form method="post" class="form-grid" id="settings-form" data-settings-form>
             {% csrf_token %}
             <div class="form-section">
                 <div class="form-section-header">
@@ -21,7 +22,7 @@
                     <p>Files added here are reviewed and routed by Orch.</p>
                 </div>
                 <div class="field">
-                    <label for="downloads_path">Primary downloads folder</label>
+                    <label for="downloads_path">Primary downloads folder <span class="required-hint">Required</span></label>
                     <div class="field-control">
                         <input type="text" id="downloads_path" name="downloads_path" value="{{ settings.downloads_path }}" placeholder="{{ default_downloads }}" required>
                         <button type="button" class="button-ghost" onclick="openFolderBrowser('downloads_path')">
@@ -54,7 +55,7 @@
                     <p>Ebooks are kept separate from profile routing.</p>
                 </div>
                 <div class="field">
-                    <label for="library_inbox_path">Ebook inbox folder</label>
+                    <label for="library_inbox_path">Ebook inbox folder <span class="required-hint">Required</span></label>
                     <div class="field-control">
                         <input type="text" id="library_inbox_path" name="library_inbox_path" value="{{ settings.library_inbox_path }}" placeholder="{{ default_library_inbox }}" required>
                         <button type="button" class="button-ghost" onclick="openFolderBrowser('library_inbox_path')">
@@ -102,21 +103,23 @@
                     <span class="toggle-track" aria-hidden="true"></span>
                     <span class="setting-switch-copy">
                         <strong>Use writing help</strong>
-                        <span>{% if ai_enabled %}On for summaries and extra suggestions{% else %}Off until you choose to enable it{% endif %}</span>
+                        <span data-toggle-caption data-on="On for summaries and extra suggestions" data-off="Off until you choose to enable it">{% if ai_enabled %}On for summaries and extra suggestions{% else %}Off until you choose to enable it{% endif %}</span>
                     </span>
                 </label>
-                <div class="field settings-gap">
-                    <label for="ai_api_key">Access key{% if ai_key_set %} (currently saved){% endif %}</label>
-                    <input type="password" id="ai_api_key" name="ai_api_key" placeholder="{% if ai_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                <div class="reveal" data-reveal-for="ai_enabled"{% if not ai_enabled %} hidden{% endif %}>
+                    <div class="field">
+                        <label for="ai_api_key">Access key{% if ai_key_set %} (currently saved){% endif %}</label>
+                        <input type="password" id="ai_api_key" name="ai_api_key" placeholder="{% if ai_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                    </div>
+                    <details class="settings-detail">
+                        <summary>Need a key?</summary>
+                        <ol>
+                            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> and sign up</li>
+                            <li>Click <strong>Create API Key</strong>, name it "Orch", and copy it</li>
+                            <li>Paste it into the field above and save</li>
+                        </ol>
+                    </details>
                 </div>
-                <details class="settings-detail">
-                    <summary>Need a key?</summary>
-                    <ol>
-                        <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> and sign up</li>
-                        <li>Click <strong>Create API Key</strong>, name it "Orch", and copy it</li>
-                        <li>Paste it into the field above and save</li>
-                    </ol>
-                </details>
             </div>
 
             <div class="form-section">
@@ -136,22 +139,24 @@
                     <span class="toggle-track" aria-hidden="true"></span>
                     <span class="setting-switch-copy">
                         <strong>Real video recommendations</strong>
-                        <span>{% if youtube_enabled %}Resource Radar can pick specific videos{% else %}Resource Radar will use search links{% endif %}</span>
+                        <span data-toggle-caption data-on="Resource Radar can pick specific videos" data-off="Resource Radar will use search links">{% if youtube_enabled %}Resource Radar can pick specific videos{% else %}Resource Radar will use search links{% endif %}</span>
                     </span>
                 </label>
-                <div class="field settings-gap">
-                    <label for="youtube_api_key">YouTube key{% if youtube_key_set %} (currently saved){% endif %}</label>
-                    <input type="password" id="youtube_api_key" name="youtube_api_key" placeholder="{% if youtube_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                <div class="reveal" data-reveal-for="youtube_enabled"{% if not youtube_enabled %} hidden{% endif %}>
+                    <div class="field">
+                        <label for="youtube_api_key">YouTube key{% if youtube_key_set %} (currently saved){% endif %}</label>
+                        <input type="password" id="youtube_api_key" name="youtube_api_key" placeholder="{% if youtube_key_set %}Leave blank to keep your current key{% else %}Paste your key here{% endif %}" autocomplete="off">
+                    </div>
+                    <details class="settings-detail">
+                        <summary>Need a YouTube key?</summary>
+                        <ol>
+                            <li>Go to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project</li>
+                            <li>Enable the <strong>YouTube Data API v3</strong> for that project</li>
+                            <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials</strong>, choose <strong>API key</strong>, and copy it</li>
+                            <li>Paste it into the field above and save</li>
+                        </ol>
+                    </details>
                 </div>
-                <details class="settings-detail">
-                    <summary>Need a YouTube key?</summary>
-                    <ol>
-                        <li>Go to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project</li>
-                        <li>Enable the <strong>YouTube Data API v3</strong> for that project</li>
-                        <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials</strong>, choose <strong>API key</strong>, and copy it</li>
-                        <li>Paste it into the field above and save</li>
-                    </ol>
-                </details>
             </div>
 
             <div class="form-section">
@@ -173,28 +178,30 @@
                     <span class="toggle-track" aria-hidden="true"></span>
                     <span class="setting-switch-copy">
                         <strong>Drive backup channel</strong>
-                        <span>{% if drive_enabled %}Backup flow is enabled{% else %}Local-only until you turn this on{% endif %}</span>
+                        <span data-toggle-caption data-on="Backup flow is enabled" data-off="Local-only until you turn this on">{% if drive_enabled %}Backup flow is enabled{% else %}Local-only until you turn this on{% endif %}</span>
                     </span>
                 </label>
-                <div class="form-two settings-gap">
-                    <div class="field">
-                        <label for="drive_client_id">Client ID{% if drive_client_configured %} (currently set){% endif %}</label>
-                        <input type="password" id="drive_client_id" name="drive_client_id" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client ID here{% endif %}" autocomplete="off">
+                <div class="reveal" data-reveal-for="drive_enabled"{% if not drive_enabled %} hidden{% endif %}>
+                    <div class="form-two">
+                        <div class="field">
+                            <label for="drive_client_id">Client ID{% if drive_client_configured %} (currently set){% endif %}</label>
+                            <input type="password" id="drive_client_id" name="drive_client_id" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client ID here{% endif %}" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label for="drive_client_secret">Client secret{% if drive_client_configured %} (currently set){% endif %}</label>
+                            <input type="password" id="drive_client_secret" name="drive_client_secret" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client secret here{% endif %}" autocomplete="off">
+                        </div>
                     </div>
-                    <div class="field">
-                        <label for="drive_client_secret">Client secret{% if drive_client_configured %} (currently set){% endif %}</label>
-                        <input type="password" id="drive_client_secret" name="drive_client_secret" placeholder="{% if drive_client_configured %}Leave blank to keep your current one{% else %}Paste your Client secret here{% endif %}" autocomplete="off">
-                    </div>
+                    <details class="settings-detail">
+                        <summary>Need Google Drive details?</summary>
+                        <ol>
+                            <li>Go to <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project, then enable the <strong>Google Drive API</strong></li>
+                            <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials → OAuth client ID</strong>, and choose application type <strong>Desktop app</strong></li>
+                            <li>Copy the Client ID and Client secret it gives you into the fields above and save</li>
+                            <li>Come back here afterward and click Connect below</li>
+                        </ol>
+                    </details>
                 </div>
-                <details class="settings-detail">
-                    <summary>Need Google Drive details?</summary>
-                    <ol>
-                        <li>Go to <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> and pick or create a project, then enable the <strong>Google Drive API</strong></li>
-                        <li>Go to <strong>Credentials</strong>, click <strong>Create Credentials → OAuth client ID</strong>, and choose application type <strong>Desktop app</strong></li>
-                        <li>Copy the Client ID and Client secret it gives you into the fields above and save</li>
-                        <li>Come back here afterward and click Connect below</li>
-                    </ol>
-                </details>
                 {% if drive_client_configured %}
                 <div class="settings-inline-actions settings-gap">
                     <a class="button button-ghost" href="{% url 'drive_connect' %}">{% if drive_connected %}Reconnect Google Drive{% else %}Connect Google Drive{% endif %}</a>
@@ -229,36 +236,39 @@
                         <span class="toggle-track" aria-hidden="true"></span>
                         <span class="setting-switch-copy">
                             <strong>{{ category.label }} sorting</strong>
-                            <span>{% if category.enabled %}Enabled with {{ category.get_mode_display|lower }}{% else %}Off until you opt in{% endif %}</span>
+                            <span data-toggle-caption data-on="Enabled with {{ category.get_mode_display|lower }}" data-off="Off until you opt in">{% if category.enabled %}Enabled with {{ category.get_mode_display|lower }}{% else %}Off until you opt in{% endif %}</span>
                         </span>
                     </label>
-                    <div class="form-two settings-gap">
-                        <div class="field">
-                            <label for="category_{{ category.key }}_destination">Destination folder</label>
-                            <div class="field-control">
-                                <input type="text" id="category_{{ category.key }}_destination" name="category_{{ category.key }}_destination" value="{{ category.destination_path }}">
-                                <button type="button" class="button-ghost" onclick="openFolderBrowser('category_{{ category.key }}_destination')">Browse</button>
+                    <details class="category-detail" data-detail-for="category_{{ category.key }}_enabled"{% if category.enabled %} open{% endif %}>
+                        <summary></summary>
+                        <div class="form-two settings-gap">
+                            <div class="field">
+                                <label for="category_{{ category.key }}_destination">Destination folder</label>
+                                <div class="field-control">
+                                    <input type="text" id="category_{{ category.key }}_destination" name="category_{{ category.key }}_destination" value="{{ category.destination_path }}">
+                                    <button type="button" class="button-ghost" onclick="openFolderBrowser('category_{{ category.key }}_destination')">Browse</button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label for="category_{{ category.key }}_mode">Automation level</label>
+                                <select id="category_{{ category.key }}_mode" name="category_{{ category.key }}_mode">
+                                    {% for value, label in category.MODE_CHOICES %}
+                                    <option value="{{ value }}" {% if category.mode == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
-                        <div class="field">
-                            <label for="category_{{ category.key }}_mode">Automation level</label>
-                            <select id="category_{{ category.key }}_mode" name="category_{{ category.key }}_mode">
-                                {% for value, label in category.MODE_CHOICES %}
-                                <option value="{{ value }}" {% if category.mode == value %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
+                        <div class="form-two category-test settings-gap" data-category="{{ category.key }}">
+                            <div class="field">
+                                <label>Preview what this would catch</label>
+                                <input type="text" class="category-test-filename" placeholder="e.g. holiday-photo.jpg">
+                            </div>
+                            <div>
+                                <button type="button" class="button-ghost category-test-btn">Test</button>
+                                <span class="path-text category-test-result"></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-two category-test settings-gap" data-category="{{ category.key }}">
-                        <div class="field">
-                            <label>Preview what this would catch</label>
-                            <input type="text" class="category-test-filename" placeholder="e.g. holiday-photo.jpg">
-                        </div>
-                        <div>
-                            <button type="button" class="button-ghost category-test-btn">Test</button>
-                            <span class="path-text category-test-result"></span>
-                        </div>
-                    </div>
+                    </details>
                 </div>
                 {% endfor %}
 
@@ -307,14 +317,18 @@
             </div>
             {% endif %}
 
-            <div class="form-actions">
-                <button type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                        <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                    </svg>
-                    Save settings
-                </button>
+            <div class="form-savebar" data-savebar data-dirty="false">
+                <span class="form-savebar__status" data-savebar-status>All changes saved</span>
+                <div class="form-savebar__actions">
+                    <button type="button" class="button-ghost form-savebar__discard" data-savebar-discard>Discard</button>
+                    <button type="submit" class="button-live form-savebar__save">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M7 21v-8h10v8M7 3v5h8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                        Save settings
+                    </button>
+                </div>
             </div>
         </form>
     </section>
@@ -332,6 +346,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'organizer/js/settings-form.js' %}?v={{ ORCH_STATIC_VERSION }}"></script>
 <script>
 (function () {
     function flash(flashEl, message, isError) {

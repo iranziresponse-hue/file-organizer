@@ -63,6 +63,37 @@ class SettingsViewTests(SandboxedPathsTestCase):
         self.assertEqual(settings.installer_stale_days, 10)
         self.assertEqual(settings.installer_delete_days, 20)
 
+    def test_post_rejects_an_empty_required_path_without_saving_anything(self):
+        self.make_settings(downloads_path="C:/Keep", library_inbox_path="C:/KeepLib")
+
+        response = self.client.post(reverse("settings_edit"), {
+            "downloads_path": "",
+            "secondary_downloads_path": "",
+            "library_inbox_path": "C:/NewLibrary",
+            "installer_stale_days": "30",
+            "installer_delete_days": "60",
+        }, follow=True)
+
+        self.assertContains(response, "primary downloads folder can&#x27;t be empty")
+        settings = AppSettings.get_solo()
+        # Nothing was applied -- not even the valid library path in the same post.
+        self.assertEqual(settings.downloads_path, "C:/Keep")
+        self.assertEqual(settings.library_inbox_path, "C:/KeepLib")
+
+    def test_post_rejects_a_non_numeric_day_count(self):
+        self.make_settings()
+
+        response = self.client.post(reverse("settings_edit"), {
+            "downloads_path": "C:/Downloads",
+            "secondary_downloads_path": "",
+            "library_inbox_path": "C:/Library",
+            "installer_stale_days": "soon",
+            "installer_delete_days": "60",
+        }, follow=True)
+
+        self.assertContains(response, "whole number")
+        self.assertEqual(AppSettings.get_solo().downloads_path, str(paths.DEFAULT_DOWNLOADS))
+
     def test_blank_secondary_downloads_disables_it(self):
         self.make_settings(secondary_downloads_path="D:/SomeDownloads")
 
