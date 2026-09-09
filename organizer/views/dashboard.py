@@ -1454,17 +1454,43 @@ def settings_edit(request):
     GlobalSortCategory.ensure_defaults()
 
     if request.method == "POST":
-        settings.downloads_path = request.POST.get("downloads_path", "").strip() or settings.downloads_path
+        # Validate up front and refuse the whole save on a bad value, rather
+        # than silently keeping the old path / ignoring a non-numeric day
+        # count -- the client-side form blocks these too, this is the
+        # backstop for a direct POST or JS-off.
+        errors = []
+        downloads_path = request.POST.get("downloads_path", "").strip()
+        library_inbox_path = request.POST.get("library_inbox_path", "").strip()
+        if not downloads_path:
+            errors.append("The primary downloads folder can't be empty.")
+        if not library_inbox_path:
+            errors.append("The ebook inbox folder can't be empty.")
+
+        def _positive_int(field, label):
+            raw = request.POST.get(field, "").strip()
+            try:
+                value = int(raw)
+            except (TypeError, ValueError):
+                errors.append(f"{label} needs to be a whole number.")
+                return None
+            if value < 1:
+                errors.append(f"{label} needs to be 1 or more.")
+                return None
+            return value
+
+        stale_days = _positive_int("installer_stale_days", "Installer review-after days")
+        delete_days = _positive_int("installer_delete_days", "Installer delete-after days")
+
+        if errors:
+            for message in errors:
+                messages.error(request, message)
+            return redirect("settings_edit")
+
+        settings.downloads_path = downloads_path
         settings.secondary_downloads_path = request.POST.get("secondary_downloads_path", "").strip()
-        settings.library_inbox_path = request.POST.get("library_inbox_path", "").strip() or settings.library_inbox_path
-        try:
-            settings.installer_stale_days = max(1, int(request.POST.get("installer_stale_days", "")))
-        except ValueError:
-            pass
-        try:
-            settings.installer_delete_days = max(1, int(request.POST.get("installer_delete_days", "")))
-        except ValueError:
-            pass
+        settings.library_inbox_path = library_inbox_path
+        settings.installer_stale_days = stale_days
+        settings.installer_delete_days = delete_days
         global_default_mode = request.POST.get("global_default_mode", "")
         if global_default_mode in dict(AppSettings.GLOBAL_DEFAULT_MODE_CHOICES):
             settings.global_default_mode = global_default_mode
